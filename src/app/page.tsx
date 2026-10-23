@@ -503,18 +503,6 @@ export default function FlandiLandingPage() {
                               / {item.badgeText.split("/")[1]?.trim()}
                             </span>
                           </div>
-
-                          {/* Secondary Top-Left Price Circle for Rau Câu Dừa (Flan) 80k / chục */}
-                          {item.secondaryBadgeText && (
-                            <div className="absolute -top-2 -left-2 w-14 h-14 rounded-full bg-flandi-coral text-white border-2 border-white shadow-md flex flex-col items-center justify-center leading-tight p-1">
-                              <span className="text-[11px] font-extrabold">
-                                {item.secondaryBadgeText.split("/")[0]?.trim()}
-                              </span>
-                              <span className="text-[10px] font-semibold opacity-95">
-                                / {item.secondaryBadgeText.split("/")[1]?.trim()}
-                              </span>
-                            </div>
-                          )}
                         </div>
 
                         <span className="font-display text-lg sm:text-xl text-sticker-sm -mt-2.5 z-10 group-hover:scale-105 transition">
@@ -653,18 +641,6 @@ export default function FlandiLandingPage() {
                           / {product.badgeText.split("/")[1]?.trim()}
                         </span>
                       </div>
-
-                      {/* Floating Left Price Badge (for dual price like Rau Câu Dừa 80k/chục & 60k/chục) */}
-                      {product.secondaryBadgeText && (
-                        <div className="absolute -top-2 -left-2 w-16 h-16 rounded-full bg-flandi-coral text-white border-2 border-white shadow-md flex flex-col items-center justify-center leading-tight">
-                          <span className="text-sm font-extrabold">
-                            {product.secondaryBadgeText.split("/")[0]?.trim()}
-                          </span>
-                          <span className="text-[11px] font-bold">
-                            / {product.secondaryBadgeText.split("/")[1]?.trim()}
-                          </span>
-                        </div>
-                      )}
                     </div>
 
                     <h3 className="font-display text-2xl sm:text-3xl text-sticker-sm -mt-3 z-10 text-center">

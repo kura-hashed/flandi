@@ -152,9 +152,6 @@ export default function MenuPoster({
       >
         {displayProducts.map((product) => {
           const primaryBadge = renderBadgeLines(product.badgeText);
-          const secondaryBadge = product.secondaryBadgeText
-            ? renderBadgeLines(product.secondaryBadgeText)
-            : null;
 
           return (
             <div
@@ -203,38 +200,6 @@ export default function MenuPoster({
                     </span>
                   )}
                 </div>
-
-                {/* Top-Left Secondary Price Circle Badge (e.g. 80k / chục for Rau Câu Dừa Flan) */}
-                {secondaryBadge && (
-                  <div
-                    className={`absolute -top-1.5 -left-1.5 sm:-top-2 sm:-left-2 rounded-full bg-[#F69D91] text-white border-2 border-white/90 shadow-md flex flex-col items-center justify-center leading-tight ${
-                      compact
-                        ? "w-11 h-11 text-[9px]"
-                        : "w-13 h-13 sm:w-16 sm:h-16 md:w-18 md:h-18"
-                    }`}
-                  >
-                    <span
-                      className={`font-extrabold ${
-                        compact
-                          ? "text-[10px]"
-                          : "text-xs sm:text-sm md:text-base"
-                      }`}
-                    >
-                      {secondaryBadge.top} /
-                    </span>
-                    {secondaryBadge.bottom && (
-                      <span
-                        className={`font-bold ${
-                          compact
-                            ? "text-[9px]"
-                            : "text-[10px] sm:text-xs md:text-sm"
-                        }`}
-                      >
-                        {secondaryBadge.bottom}
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Overlapping Outlined Sticker Product Title */}

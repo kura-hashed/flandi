@@ -90,6 +90,7 @@ export interface ShopSettings {
   tagline: string;
   phone: string;
   zaloPhone: string;
+  facebookUrl?: string;
   address: string;
   openHours: string;
   bankName: string;

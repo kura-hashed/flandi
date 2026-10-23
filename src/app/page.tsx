@@ -1215,21 +1215,21 @@ export default function FlandiLandingPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => copyOrderSummary(completedOrder)}
-                className="py-2.5 px-4 rounded-full bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral font-extrabold text-xs flex items-center justify-center gap-1.5 border border-flandi-salmon"
+                className="py-2.5 px-3 rounded-full bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral font-extrabold text-xs flex items-center justify-center gap-1.5 border border-flandi-salmon"
               >
                 {copiedOrderText ? (
                   <>
-                    <Check className="w-4 h-4" />
-                    <span>Đã sao chép đơn!</span>
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span>Đã sao chép!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-4 h-4" />
-                    <span>Sao chép gửi Zalo</span>
+                    <Copy className="w-4 h-4 shrink-0" />
+                    <span>Sao chép đơn</span>
                   </>
                 )}
               </button>
@@ -1238,10 +1238,19 @@ export default function FlandiLandingPage() {
                 href={`https://zalo.me/${settings?.zaloPhone || "0909686868"}`}
                 target="_blank"
                 rel="noreferrer"
-                className="py-2.5 px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5"
+                className="py-2.5 px-3 rounded-full bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5"
               >
-                <Phone className="w-3.5 h-3.5" />
-                <span>Mở chat Zalo tiệm</span>
+                <Phone className="w-3.5 h-3.5 shrink-0" />
+                <span>Chat Zalo</span>
+              </a>
+
+              <a
+                href={settings?.facebookUrl || "https://m.me/flandi.dessert"}
+                target="_blank"
+                rel="noreferrer"
+                className="py-2.5 px-3 rounded-full bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5"
+              >
+                <span>Chat Facebook</span>
               </a>
             </div>
 
@@ -1255,6 +1264,53 @@ export default function FlandiLandingPage() {
           </div>
         </div>
       )}
+
+      {/* Floating Quick Chat Buttons: Facebook Messenger & Zalo */}
+      <div className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-3">
+        {/* Zalo Floating Button */}
+        <a
+          href={`https://zalo.me/${settings?.zaloPhone || "0909686868"}`}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Nhắn tin qua Zalo"
+          className="group flex items-center gap-2.5 focus:outline-none"
+        >
+          <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#0068FF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
+            Nhắn Zalo đặt bánh
+          </span>
+          <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#0068FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
+            <span className="absolute inset-0 rounded-full bg-[#0068FF] animate-ping opacity-25" />
+            <div className="relative flex flex-col items-center justify-center leading-none">
+              <span className="font-display text-[13px] sm:text-sm font-black tracking-tight">
+                Zalo
+              </span>
+            </div>
+          </div>
+        </a>
+
+        {/* Facebook Messenger Floating Button */}
+        <a
+          href={settings?.facebookUrl || "https://m.me/flandi.dessert"}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Nhắn tin qua Facebook Messenger"
+          className="group flex items-center gap-2.5 focus:outline-none"
+        >
+          <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#006AFF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
+            Nhắn Facebook tiệm
+          </span>
+          <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#006AFF] via-[#0099FF] to-[#A033FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
+            <span className="absolute inset-0 rounded-full bg-[#0084FF] animate-ping opacity-20" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-6 h-6 sm:w-7 sm:h-7 relative"
+            >
+              <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.912 1.447 5.51 3.713 7.206V22l3.398-1.868c.905.252 1.87.388 2.889.388 5.523 0 10-4.145 10-9.243S17.523 2 12 2zm1.008 12.438l-2.548-2.724-4.97 2.724 5.468-5.805 2.61 2.724 4.908-2.724-5.468 5.805z" />
+            </svg>
+          </div>
+        </a>
+      </div>
     </div>
   );
 }

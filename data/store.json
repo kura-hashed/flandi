@@ -1,0 +1,568 @@
+{
+  "products": [
+    {
+      "id": "prod-flan",
+      "name": "Flan",
+      "subtitle": "Bánh Flan Trứng Sữa Caramel Mềm Mịn",
+      "category": "Flan & Pudding",
+      "description": "Bánh flan truyền thống làm từ trứng gà tươi, sữa kem béo ngậy và lớp sốt caramel đắng nhẹ thơm lừng. Mềm mịn tan ngay trong miệng!",
+      "price": 60000,
+      "costPrice": 3500,
+      "unit": "chục",
+      "badgeText": "60k / chục",
+      "image": "/images/products/flan.png",
+      "stock": 100,
+      "stockUnit": "cái",
+      "lowStockThreshold": 30,
+      "isActive": true,
+      "isBestSeller": true,
+      "variants": [
+        {
+          "id": "var-flan-10",
+          "name": "1 Chục (10 cái)",
+          "price": 60000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
+        },
+        {
+          "id": "var-flan-5",
+          "name": "Set 5 cái",
+          "price": 32000,
+          "unitLabel": "set 5",
+          "stockDeduction": 5
+        },
+        {
+          "id": "var-flan-1",
+          "name": "Lẻ 1 cái",
+          "price": 6500,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        }
+      ]
+    },
+    {
+      "id": "prod-panna-cotta",
+      "name": "Panna Cotta",
+      "subtitle": "Panna Cotta Kem Tươi Sốt Trái Cây Tươi",
+      "category": "Panna Cotta",
+      "description": "Cốt kem sữa Ý núng nính béo thanh, kết hợp cùng lớp sốt trái cây tươi nấu thủ công chua ngọt bắt vị: Chanh dây, Dâu tây, Xoài, Việt quất.",
+      "price": 10000,
+      "costPrice": 5500,
+      "unit": "cái",
+      "badgeText": "10k / cái",
+      "image": "/images/products/panna-cotta.png",
+      "stock": 65,
+      "stockUnit": "cái",
+      "lowStockThreshold": 15,
+      "isActive": true,
+      "isBestSeller": true,
+      "variants": [
+        {
+          "id": "var-pc-passion",
+          "name": "Vị Chanh Dây (Passion Fruit)",
+          "price": 10000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-pc-strawberry",
+          "name": "Vị Dâu Tây (Strawberry)",
+          "price": 10000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-pc-mango",
+          "name": "Vị Xoài Tươi (Mango)",
+          "price": 10000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-pc-blueberry",
+          "name": "Vị Việt Quất (Blueberry)",
+          "price": 10000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-pc-mix10",
+          "name": "Combo 1 Chục Mix Vị (10 cái)",
+          "price": 95000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
+        }
+      ]
+    },
+    {
+      "id": "prod-rau-cau-dua",
+      "name": "Rau Câu Dừa (Flan)",
+      "subtitle": "Rau Câu Nước Dừa Tươi & Nhân Bánh Flan",
+      "category": "Rau Câu",
+      "description": "Rau câu nấu từ 100% nước dừa xiêm ngọt mát với lớp cốt dừa béo phía trên. Có 2 lựa chọn: Rau câu dừa nhân bánh Flan (80k/chục) hoặc Rau câu dừa truyền thống (60k/chục).",
+      "price": 80000,
+      "costPrice": 4200,
+      "unit": "chục",
+      "badgeText": "60k / chục",
+      "secondaryBadgeText": "80k / chục",
+      "image": "/images/products/rau-cau-dua.png",
+      "stock": 80,
+      "stockUnit": "hũ",
+      "lowStockThreshold": 20,
+      "isActive": true,
+      "isBestSeller": true,
+      "variants": [
+        {
+          "id": "var-rcd-flan-10",
+          "name": "Nhân Flan — 1 Chục (10 hũ)",
+          "price": 80000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
+        },
+        {
+          "id": "var-rcd-plain-10",
+          "name": "Truyền Thống — 1 Chục (10 hũ)",
+          "price": 60000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
+        },
+        {
+          "id": "var-rcd-flan-5",
+          "name": "Nhân Flan — Nửa Chục (5 hũ)",
+          "price": 42000,
+          "unitLabel": "set 5",
+          "stockDeduction": 5
+        },
+        {
+          "id": "var-rcd-plain-5",
+          "name": "Truyền Thống — Nửa Chục (5 hũ)",
+          "price": 32000,
+          "unitLabel": "set 5",
+          "stockDeduction": 5
+        }
+      ]
+    },
+    {
+      "id": "prod-rau-cau-la",
+      "name": "Rau Câu Lá",
+      "subtitle": "Rau Câu Lá Dứa & Cà Phê Cốt Dừa",
+      "category": "Rau Câu",
+      "description": "Những chiếc lá rau câu giòn sần sật, đổ nhiều lớp tỉ mỉ từ nước cốt lá dứa tươi tự nhiên, cốt dừa béo ngậy và cà phê thơm lừng.",
+      "price": 40000,
+      "costPrice": 22000,
+      "unit": "hộp",
+      "badgeText": "40k / hộp",
+      "image": "/images/products/rau-cau-la.png",
+      "stock": 18,
+      "stockUnit": "hộp",
+      "lowStockThreshold": 5,
+      "isActive": true,
+      "isBestSeller": false,
+      "variants": [
+        {
+          "id": "var-rcl-box",
+          "name": "Hộp Mix Lá Dứa & Cà Phê",
+          "price": 40000,
+          "unitLabel": "hộp",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-rcl-pandan",
+          "name": "Hộp Chuyên Lá Dứa Cốt Dừa",
+          "price": 40000,
+          "unitLabel": "hộp",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-rcl-combo2",
+          "name": "Combo 2 Hộp Tiết Kiệm",
+          "price": 76000,
+          "unitLabel": "2 hộp",
+          "stockDeduction": 2
+        }
+      ]
+    },
+    {
+      "id": "prod-tau-hu",
+      "name": "Tàu Hũ Singapore",
+      "subtitle": "Tàu Hũ Lạnh Mềm Mướt Tan Ngay",
+      "category": "Tàu Hũ & Yogurt",
+      "description": "Tàu hũ lạnh kiểu Singapore siêu mềm mướt, thơm dịu hương đậu nành non và lá dứa tươi, ít ngọt, thanh mát giải nhiệt cực đã.",
+      "price": 8000,
+      "costPrice": 4000,
+      "unit": "cái",
+      "badgeText": "8k / cái",
+      "image": "/images/products/tau-hu-singapore.png",
+      "stock": 48,
+      "stockUnit": "cái",
+      "lowStockThreshold": 12,
+      "isActive": true,
+      "isBestSeller": false,
+      "variants": [
+        {
+          "id": "var-th-pandan",
+          "name": "Vị Lá Dứa (Pandan)",
+          "price": 8000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-th-soy",
+          "name": "Vị Truyền Thống (Đậu Nành)",
+          "price": 8000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-th-10",
+          "name": "Combo 1 Chục (10 cái)",
+          "price": 75000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
+        }
+      ]
+    },
+    {
+      "id": "prod-yogurt",
+      "name": "Yogurt",
+      "subtitle": "Sữa Chua Nhà Làm Dẻo Mịn Chuẩn Vị",
+      "category": "Tàu Hũ & Yogurt",
+      "description": "Sữa chua ủ men tự nhiên theo công thức nhà Flandi, chất sánh dẻo mịn không bị dăm đá, chua dịu ngọt thanh tốt cho tiêu hoá.",
+      "price": 50000,
+      "costPrice": 2800,
+      "unit": "chục",
+      "badgeText": "50k / chục",
+      "image": "/images/products/yogurt.png",
+      "stock": 90,
+      "stockUnit": "hũ",
+      "lowStockThreshold": 20,
+      "isActive": true,
+      "isBestSeller": false,
+      "variants": [
+        {
+          "id": "var-yg-10",
+          "name": "1 Chục (10 hũ)",
+          "price": 50000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
+        },
+        {
+          "id": "var-yg-5",
+          "name": "Set 5 hũ",
+          "price": 26000,
+          "unitLabel": "set 5",
+          "stockDeduction": 5
+        },
+        {
+          "id": "var-yg-1",
+          "name": "Lẻ 1 hũ",
+          "price": 5500,
+          "unitLabel": "hũ",
+          "stockDeduction": 1
+        }
+      ]
+    }
+  ],
+  "ingredients": [
+    {
+      "id": "ing-1",
+      "name": "Trứng gà ta tươi",
+      "category": "Nguyên liệu",
+      "quantity": 180,
+      "unit": "quả",
+      "minThreshold": 60,
+      "costPerUnit": 3200,
+      "lastUpdated": "2026-10-23T15:05:40.922Z"
+    },
+    {
+      "id": "ing-2",
+      "name": "Sữa tươi nguyên kem",
+      "category": "Nguyên liệu",
+      "quantity": 14,
+      "unit": "lít",
+      "minThreshold": 6,
+      "costPerUnit": 34000,
+      "lastUpdated": "2026-10-23T15:05:40.922Z"
+    },
+    {
+      "id": "ing-3",
+      "name": "Kem tươi Whipping Cream",
+      "category": "Nguyên liệu",
+      "quantity": 4,
+      "unit": "hộp 1L",
+      "minThreshold": 3,
+      "costPerUnit": 135000,
+      "lastUpdated": "2026-10-23T15:05:40.922Z"
+    },
+    {
+      "id": "ing-4",
+      "name": "Nước dừa xiêm tươi",
+      "category": "Nguyên liệu",
+      "quantity": 12,
+      "unit": "lít",
+      "minThreshold": 5,
+      "costPerUnit": 25000,
+      "lastUpdated": "2026-10-23T15:05:40.922Z"
+    },
+    {
+      "id": "ing-5",
+      "name": "Sốt Chanh dây & Dâu tây tươi",
+      "category": "Topping",
+      "quantity": 2.5,
+      "unit": "kg",
+      "minThreshold": 2,
+      "costPerUnit": 85000,
+      "lastUpdated": "2026-10-23T15:05:40.922Z"
+    },
+    {
+      "id": "ing-6",
+      "name": "Hũ nhựa nắp bật (Flan / Panna Cotta)",
+      "category": "Bao bì",
+      "quantity": 340,
+      "unit": "cái",
+      "minThreshold": 100,
+      "costPerUnit": 650,
+      "lastUpdated": "2026-10-23T15:05:40.922Z"
+    },
+    {
+      "id": "ing-7",
+      "name": "Hũ Sữa chua nắp vặn",
+      "category": "Bao bì",
+      "quantity": 85,
+      "unit": "hũ",
+      "minThreshold": 100,
+      "costPerUnit": 900,
+      "lastUpdated": "2026-10-23T15:05:40.922Z"
+    }
+  ],
+  "stockLogs": [
+    {
+      "id": "log-1792768057580-figk",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 110,
+      "newStock": 100,
+      "reason": "Đơn hàng POS #FL-1004 (1x 1 Chục (10 cái))",
+      "createdAt": "2026-10-23T15:07:37.580Z"
+    },
+    {
+      "id": "log-1792768057580-4znz",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 120,
+      "newStock": 110,
+      "reason": "Đơn hàng POS #FL-1004 (2x Set 5 cái)",
+      "createdAt": "2026-10-23T15:07:37.580Z"
+    },
+    {
+      "id": "log-1",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": 130,
+      "previousStock": 0,
+      "newStock": 130,
+      "reason": "Mẻ bánh mới ra lò buổi sáng",
+      "createdAt": "2026-10-23T12:05:40.922Z"
+    },
+    {
+      "id": "log-2",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 130,
+      "newStock": 120,
+      "reason": "Bán đơn POS #FL-1001",
+      "createdAt": "2026-10-23T13:30:40.922Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord-1792768057580",
+      "code": "FL-1004",
+      "source": "POS",
+      "status": "COMPLETED",
+      "customerName": "Khách lẻ tại quầy",
+      "customerPhone": "",
+      "customerAddress": "",
+      "note": "",
+      "items": [
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-5",
+          "variantName": "Set 5 cái",
+          "quantity": 2,
+          "unitPrice": 32000,
+          "subtotal": 64000,
+          "stockDeductionPerItem": 5
+        },
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-10",
+          "variantName": "1 Chục (10 cái)",
+          "quantity": 1,
+          "unitPrice": 60000,
+          "subtotal": 60000,
+          "stockDeductionPerItem": 10
+        }
+      ],
+      "subtotal": 124000,
+      "discount": 0,
+      "shippingFee": 0,
+      "total": 124000,
+      "paymentMethod": "CASH",
+      "isPaid": true,
+      "cashReceived": 124000,
+      "changeGiven": 0,
+      "createdAt": "2026-10-23T15:07:37.580Z"
+    },
+    {
+      "id": "ord-1001",
+      "code": "FL-1001",
+      "source": "POS",
+      "status": "COMPLETED",
+      "customerName": "Chị Minh Thư",
+      "customerPhone": "0908123456",
+      "note": "Lấy nhiều đá khô giữ lạnh",
+      "items": [
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-10",
+          "variantName": "1 Chục (10 cái)",
+          "quantity": 1,
+          "unitPrice": 60000,
+          "subtotal": 60000,
+          "stockDeductionPerItem": 10
+        },
+        {
+          "productId": "prod-panna-cotta",
+          "productName": "Panna Cotta",
+          "variantId": "var-pc-passion",
+          "variantName": "Vị Chanh Dây (Passion Fruit)",
+          "quantity": 4,
+          "unitPrice": 10000,
+          "subtotal": 40000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 100000,
+      "discount": 0,
+      "shippingFee": 0,
+      "total": 100000,
+      "paymentMethod": "VIETQR",
+      "isPaid": true,
+      "createdAt": "2026-10-23T13:30:40.922Z"
+    },
+    {
+      "id": "ord-1002",
+      "code": "FL-1002",
+      "source": "ONLINE",
+      "status": "COMPLETED",
+      "customerName": "Bạn Ngọc Hân",
+      "customerPhone": "0932888999",
+      "customerAddress": "128 Nguyễn Gia Trí, Q. Bình Thạnh",
+      "note": "Giao giờ nghỉ trưa giúp mình nha",
+      "items": [
+        {
+          "productId": "prod-rau-cau-dua",
+          "productName": "Rau Câu Dừa (Flan)",
+          "variantId": "var-rcd-flan-10",
+          "variantName": "Nhân Flan — 1 Chục (10 hũ)",
+          "quantity": 1,
+          "unitPrice": 80000,
+          "subtotal": 80000,
+          "stockDeductionPerItem": 10
+        },
+        {
+          "productId": "prod-rau-cau-la",
+          "productName": "Rau Câu Lá",
+          "variantId": "var-rcl-box",
+          "variantName": "Hộp Mix Lá Dứa & Cà Phê",
+          "quantity": 1,
+          "unitPrice": 40000,
+          "subtotal": 40000,
+          "stockDeductionPerItem": 1
+        },
+        {
+          "productId": "prod-tau-hu",
+          "productName": "Tàu Hũ Singapore",
+          "variantId": "var-th-pandan",
+          "variantName": "Vị Lá Dứa (Pandan)",
+          "quantity": 5,
+          "unitPrice": 8000,
+          "subtotal": 40000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 160000,
+      "discount": 0,
+      "shippingFee": 0,
+      "total": 160000,
+      "paymentMethod": "VIETQR",
+      "isPaid": true,
+      "createdAt": "2026-10-23T14:20:40.922Z"
+    },
+    {
+      "id": "ord-1003",
+      "code": "FL-1003",
+      "source": "ONLINE",
+      "status": "PENDING",
+      "customerName": "Anh Hoàng Nam",
+      "customerPhone": "0977554433",
+      "customerAddress": "45 Lê Văn Sỹ, Quận 3",
+      "note": "Cho thêm muỗng nhựa nha shop",
+      "items": [
+        {
+          "productId": "prod-yogurt",
+          "productName": "Yogurt",
+          "variantId": "var-yg-10",
+          "variantName": "1 Chục (10 hũ)",
+          "quantity": 1,
+          "unitPrice": 50000,
+          "subtotal": 50000,
+          "stockDeductionPerItem": 10
+        },
+        {
+          "productId": "prod-panna-cotta",
+          "productName": "Panna Cotta",
+          "variantId": "var-pc-strawberry",
+          "variantName": "Vị Dâu Tây (Strawberry)",
+          "quantity": 3,
+          "unitPrice": 10000,
+          "subtotal": 30000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 80000,
+      "discount": 0,
+      "shippingFee": 15000,
+      "total": 95000,
+      "paymentMethod": "COD",
+      "isPaid": false,
+      "createdAt": "2026-10-23T14:53:40.922Z"
+    }
+  ],
+  "settings": {
+    "shopName": "FLANDI",
+    "tagline": "Muốn ăn hãy Flăn vào tớ",
+    "phone": "0909 686 868",
+    "zaloPhone": "0909686868",
+    "address": "Tiệm bánh ngọt nhà làm FLANDI — TP. Hồ Chí Minh",
+    "openHours": "08:00 – 21:30 mỗi ngày",
+    "bankName": "Vietcombank",
+    "bankBin": "970436",
+    "bankAccountNo": "1029384756",
+    "bankAccountName": "TIEM BANH FLANDI",
+    "freeShipMinimum": 150000,
+    "defaultShippingFee": 15000,
+    "announcement": "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!"
+  }
+}

@@ -1756,7 +1756,7 @@ export default function FlandiAdminPage() {
                     </div>
                     <div>
                       <label className="font-bold text-flandi-muted block mb-1">
-                        Hotline / Zalo nhận đơn
+                        Hotline hiển thị
                       </label>
                       <input
                         type="text"
@@ -1764,6 +1764,37 @@ export default function FlandiAdminPage() {
                         onChange={(e) =>
                           setSettings({ ...settings, phone: e.target.value })
                         }
+                        className="w-full px-3 py-2 rounded-xl border border-flandi-pink font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-flandi-muted block mb-1">
+                        SĐT gắn nút Chat Zalo (không khoảng trắng)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.zaloPhone || ""}
+                        onChange={(e) =>
+                          setSettings({ ...settings, zaloPhone: e.target.value })
+                        }
+                        placeholder="0909686868"
+                        className="w-full px-3 py-2 rounded-xl border border-flandi-pink font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-flandi-muted block mb-1">
+                        Link Facebook / Messenger (nút nổi)
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.facebookUrl || ""}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            facebookUrl: e.target.value,
+                          })
+                        }
+                        placeholder="https://m.me/flandi.dessert"
                         className="w-full px-3 py-2 rounded-xl border border-flandi-pink font-bold"
                       />
                     </div>

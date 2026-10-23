@@ -513,6 +513,7 @@ const INITIAL_DB: StoreDatabase = {
     tagline: "Muốn ăn hãy Flăn vào tớ",
     phone: "0909 686 868",
     zaloPhone: "0909686868",
+    facebookUrl: "https://m.me/flandi.dessert",
     address: "Tiệm bánh ngọt nhà làm FLANDI — TP. Hồ Chí Minh",
     openHours: "08:00 – 21:30 mỗi ngày",
     bankName: "Vietcombank",

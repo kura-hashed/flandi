@@ -133,10 +133,27 @@ export interface ShopSettings {
   brandKit?: BrandKit;
 }
 
+export interface ChatMessage {
+  id: string;
+  sender: "CUSTOMER" | "SHOP" | "BOT";
+  text: string;
+  createdAt: string;
+}
+
+export interface ChatSession {
+  id: string;
+  customerName: string;
+  customerPhone?: string;
+  unreadForAdmin: number;
+  updatedAt: string;
+  messages: ChatMessage[];
+}
+
 export interface StoreDatabase {
   products: Product[];
   ingredients: IngredientItem[];
   stockLogs: StockLog[];
   orders: Order[];
   settings: ShopSettings;
+  chats?: ChatSession[];
 }

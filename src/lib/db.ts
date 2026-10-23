@@ -588,6 +588,29 @@ const INITIAL_DB: StoreDatabase = {
     announcement: "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!",
     brandKit: DEFAULT_BRAND_KIT,
   },
+  chats: [
+    {
+      id: "chat-demo-1",
+      customerName: "Bạn Bảo Trân",
+      customerPhone: "0912345678",
+      unreadForAdmin: 1,
+      updatedAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+      messages: [
+        {
+          id: "msg-1",
+          sender: "BOT",
+          text: "Chào bạn! 🍮 Tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”) có thể giúp gì cho bạn hôm nay nè?",
+          createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+        },
+        {
+          id: "msg-2",
+          sender: "CUSTOMER",
+          text: "Shop ơi hôm nay còn Panna Cotta vị chanh dây với Rau câu dừa nhân flan không ạ?",
+          createdAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+        },
+      ],
+    },
+  ],
 };
 
 export function readDb(): StoreDatabase {
@@ -603,6 +626,9 @@ export function readDb(): StoreDatabase {
     const parsed = JSON.parse(raw) as StoreDatabase;
     if (!parsed.settings.brandKit) {
       parsed.settings.brandKit = DEFAULT_BRAND_KIT;
+    }
+    if (!parsed.chats) {
+      parsed.chats = INITIAL_DB.chats;
     }
     return parsed;
   } catch (err) {

@@ -32,6 +32,8 @@ import {
   Check,
   ChefHat,
   Palette,
+  MessageCircle,
+  Send,
 } from "lucide-react";
 import {
   Product,
@@ -43,12 +45,14 @@ import {
   PaymentMethod,
   StockLog,
   ShopSettings,
+  ChatSession,
 } from "@/lib/types";
 import BrandingStudio from "@/components/BrandingStudio";
 
 type AdminTab =
   | "POS"
   | "ORDERS"
+  | "CHAT"
   | "PRODUCTS"
   | "INVENTORY"
   | "BRANDING"
@@ -67,6 +71,9 @@ export default function FlandiAdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stockLogs, setStockLogs] = useState<StockLog[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
+  const [chats, setChats] = useState<ChatSession[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string>("");
+  const [adminReplyText, setAdminReplyText] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -132,6 +139,9 @@ export default function FlandiAdminPage() {
       setOrders(data.orders || []);
       setStockLogs(data.stockLogs || []);
       setSettings(data.settings || null);
+      const loadedChats: ChatSession[] = data.chats || [];
+      setChats(loadedChats);
+      setSelectedChatId((prev) => prev || loadedChats[0]?.id || "");
     } catch (err) {
       console.error("Failed to fetch store:", err);
     } finally {
@@ -556,6 +566,23 @@ export default function FlandiAdminPage() {
             {pendingOrdersCount > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-flandi-dark text-[10px] font-black">
                 {pendingOrdersCount} mới
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("CHAT")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
+              activeTab === "CHAT"
+                ? "bg-flandi-coral text-white shadow-sm"
+                : "text-flandi-dark hover:bg-flandi-cream"
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Tin Nhắn Web ({chats.length})</span>
+            {chats.reduce((s, c) => s + (c.unreadForAdmin || 0), 0) > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-[#006AFF] text-white text-[10px] font-black">
+                {chats.reduce((s, c) => s + (c.unreadForAdmin || 0), 0)} mới
               </span>
             )}
           </button>
@@ -1912,6 +1939,184 @@ export default function FlandiAdminPage() {
               }
             }}
           />
+        )}
+
+        {/* ==================== TAB 7: LIVE MESSENGER CHAT INBOX ==================== */}
+        {activeTab === "CHAT" && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[74vh] min-h-[520px]">
+            {/* Left 4 cols: Customer Conversation List */}
+            <div className="lg:col-span-4 bg-white rounded-3xl border-2 border-flandi-pink flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-flandi-pink flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-flandi-dark">
+                    Hộp Thư Khách Nhắn Trực Tiếp
+                  </h3>
+                  <p className="text-[11px] text-flandi-muted font-semibold">
+                    Tin nhắn từ khung Messenger trên trang chủ
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchAll}
+                  className="p-2 rounded-xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-coral"
+                  title="Làm mới tin nhắn"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-flandi-pink/60">
+                {chats.map((c) => {
+                  const lastMsg = c.messages[c.messages.length - 1];
+                  const active = selectedChatId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={async () => {
+                        setSelectedChatId(c.id);
+                        if (c.unreadForAdmin > 0) {
+                          await fetch("/api/chat", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              sessionId: c.id,
+                              markReadForAdmin: true,
+                            }),
+                          });
+                          fetchAll();
+                        }
+                      }}
+                      className={`w-full p-4 text-left transition flex items-start justify-between gap-2 ${
+                        active ? "bg-flandi-salmon/15" : "hover:bg-flandi-bg"
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-xs text-flandi-dark truncate">
+                            {c.customerName}
+                          </span>
+                          {c.customerPhone && (
+                            <span className="text-[10px] font-bold text-flandi-coral">
+                              • {c.customerPhone}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-flandi-muted font-medium truncate mt-1">
+                          {lastMsg ? lastMsg.text : "Chưa có tin nhắn"}
+                        </p>
+                      </div>
+                      {c.unreadForAdmin > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-[#006AFF] text-white text-[10px] font-extrabold shrink-0">
+                          {c.unreadForAdmin} mới
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right 8 cols: Active Chat Thread & Reply Input */}
+            <div className="lg:col-span-8 bg-white rounded-3xl border-2 border-flandi-salmon flex flex-col overflow-hidden">
+              {(() => {
+                const activeChat =
+                  chats.find((c) => c.id === selectedChatId) || chats[0];
+                if (!activeChat) {
+                  return (
+                    <div className="m-auto text-center text-xs text-flandi-muted font-bold p-8">
+                      Chưa có cuộc trò chuyện nào.
+                    </div>
+                  );
+                }
+                return (
+                  <>
+                    <div className="p-4 bg-flandi-bg border-b border-flandi-pink flex items-center justify-between">
+                      <div>
+                        <h4 className="font-extrabold text-sm text-flandi-dark">
+                          {activeChat.customerName}
+                        </h4>
+                        <p className="text-xs text-flandi-muted font-semibold">
+                          {activeChat.customerPhone
+                            ? `SĐT / Zalo: ${activeChat.customerPhone}`
+                            : "Khách đang trực tuyến trên Website"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FFF9F8]">
+                      {activeChat.messages.map((m) => {
+                        const isCustomer = m.sender === "CUSTOMER";
+                        return (
+                          <div
+                            key={m.id}
+                            className={`flex flex-col ${
+                              isCustomer ? "items-start" : "items-end"
+                            }`}
+                          >
+                            <div
+                              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs whitespace-pre-line shadow-2xs ${
+                                isCustomer
+                                  ? "bg-white border border-flandi-pink text-flandi-dark font-semibold"
+                                  : m.sender === "SHOP"
+                                  ? "bg-flandi-coral text-white font-semibold"
+                                  : "bg-flandi-cream text-flandi-dark border border-flandi-pink font-medium"
+                              }`}
+                            >
+                              <span className="block text-[10px] font-extrabold opacity-75 mb-0.5">
+                                {isCustomer
+                                  ? activeChat.customerName
+                                  : m.sender === "SHOP"
+                                  ? "Bạn (Chủ tiệm FLANDI)"
+                                  : "Trợ lý tự động FLANDI"}
+                              </span>
+                              {m.text}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!adminReplyText.trim()) return;
+                        const text = adminReplyText.trim();
+                        setAdminReplyText("");
+                        await fetch("/api/chat", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            sessionId: activeChat.id,
+                            sender: "SHOP",
+                            text,
+                          }),
+                        });
+                        notify(`Đã gửi phản hồi cho ${activeChat.customerName}!`);
+                        fetchAll();
+                      }}
+                      className="p-3 bg-white border-t border-flandi-pink flex items-center gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={adminReplyText}
+                        onChange={(e) => setAdminReplyText(e.target.value)}
+                        placeholder={`Nhập phản hồi gửi trực tiếp tới ${activeChat.customerName} trên web...`}
+                        className="flex-1 px-4 py-2.5 rounded-full bg-flandi-bg border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs flex items-center gap-1.5 shadow-cute"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Gửi phản hồi</span>
+                      </button>
+                    </form>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
         )}
       </main>
 

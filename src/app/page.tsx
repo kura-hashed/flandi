@@ -347,17 +347,24 @@ export default function FlandiLandingPage() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/pos"
+              className="relative px-3 py-2 rounded-full bg-white border-2 border-flandi-pink hover:border-flandi-salmon text-flandi-dark text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+              title="Máy Bán Hàng Tại Quầy (/pos)"
+            >
+              <Store className="w-3.5 h-3.5 text-flandi-coral" />
+              <span>POS</span>
+            </Link>
+
             <Link
               href="/admin"
-              className="relative px-3.5 py-2 rounded-full bg-white border-2 border-flandi-pink hover:border-flandi-salmon text-flandi-dark text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm transition"
-              title="Quản lý Cửa Hàng, Kho & POS"
+              className="relative px-3 py-2 rounded-full bg-white border-2 border-flandi-pink hover:border-flandi-salmon text-flandi-dark text-xs font-bold hidden sm:flex items-center gap-1.5 shadow-sm transition"
+              title="Quản Trị Cửa Hàng (/admin)"
             >
-              <Store className="w-4 h-4 text-flandi-coral" />
-              <span className="hidden sm:inline">Quản lý & POS</span>
-              <span className="sm:hidden">POS</span>
+              <span>Admin</span>
               {pendingOrdersCount > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.5 text-[10px] bg-flandi-coral text-white rounded-full font-extrabold">
+                <span className="ml-0.5 px-1.5 py-0.2 text-[10px] bg-flandi-coral text-white rounded-full font-extrabold">
                   {pendingOrdersCount}
                 </span>
               )}
@@ -866,11 +873,17 @@ export default function FlandiLandingPage() {
             </p>
             <div className="flex flex-wrap gap-2">
               <Link
+                href="/pos"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs shadow-xs transition"
+              >
+                <Store className="w-4 h-4" />
+                <span>Máy Bán Hàng (/pos)</span>
+              </Link>
+              <Link
                 href="/admin"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs transition"
               >
-                <Store className="w-4 h-4" />
-                <span>Mở Trang Quản Trị & POS</span>
+                <span>Quản Trị (/admin)</span>
               </Link>
               <Link
                 href="/branding"

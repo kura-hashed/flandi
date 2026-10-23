@@ -65,7 +65,7 @@ interface PosCartItem {
 }
 
 export default function FlandiAdminPage() {
-  const [activeTab, setActiveTab] = useState<AdminTab>("POS");
+  const [activeTab, setActiveTab] = useState<AdminTab>("ORDERS");
   const [products, setProducts] = useState<Product[]>([]);
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -530,10 +530,10 @@ export default function FlandiAdminPage() {
             />
             <div>
               <h1 className="font-display text-xl text-sticker-sm leading-none">
-                FLANDI POS & ADMIN
+                FLANDI ADMIN PORTAL
               </h1>
               <span className="text-[11px] font-bold text-flandi-muted block">
-                Hệ thống Quản lý Bán hàng, Thực đơn & Kho bánh
+                Quản trị Đơn hàng, Thực đơn, Kho bánh & Thương hiệu (/admin)
               </span>
             </div>
           </div>
@@ -541,18 +541,6 @@ export default function FlandiAdminPage() {
 
         {/* Navigation Tabs */}
         <nav className="flex items-center gap-1.5 overflow-x-auto py-1">
-          <button
-            onClick={() => setActiveTab("POS")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "POS"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <Store className="w-4 h-4" />
-            <span>Bán Hàng (POS)</span>
-          </button>
-
           <button
             onClick={() => setActiveTab("ORDERS")}
             className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
@@ -650,10 +638,17 @@ export default function FlandiAdminPage() {
             <RefreshCw className="w-4 h-4" />
           </button>
           <Link
+            href="/pos"
+            className="px-3.5 py-2 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs flex items-center gap-1.5 shadow-2xs"
+          >
+            <Store className="w-3.5 h-3.5" />
+            <span>Máy POS (/pos)</span>
+          </Link>
+          <Link
             href="/"
             className="px-3.5 py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral font-extrabold text-xs"
           >
-            Xem Web Khách
+            Web Khách
           </Link>
         </div>
       </header>

@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit, PageConfig } from "./types";
+import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit, PageConfig, LedgerEntry } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "store.json");
@@ -728,6 +728,44 @@ const INITIAL_DB: StoreDatabase = {
       ],
     },
   ],
+  ledger: [
+    {
+      id: "led-demo-1",
+      code: "SS-1001",
+      type: "EXPENSE",
+      category: "Nguyên liệu",
+      title: "Nhập trứng gà ta, sữa tươi thanh trùng & kem tươi",
+      amount: 420000,
+      paymentMethod: "VIETQR",
+      note: "Hoá đơn nhập nguyên liệu mẻ bánh sáng sớm",
+      imageUrl: "/images/products/flan.png",
+      createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    },
+    {
+      id: "led-demo-2",
+      code: "SS-1002",
+      type: "EXPENSE",
+      category: "Bao bì & Hộp",
+      title: "Mua 500 hũ nhựa nắp trong + túi giữ nhiệt + đá gel",
+      amount: 185000,
+      paymentMethod: "CASH",
+      note: "Đã kiểm đủ số lượng nhập kho bao bì",
+      imageUrl: "/images/products/panna-cotta.png",
+      createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    },
+    {
+      id: "led-demo-3",
+      code: "SS-1003",
+      type: "NOTE_PHOTO",
+      category: "Sổ ghi chép / Kiểm ca",
+      title: "Ảnh chụp phiếu kiểm mẻ bánh & sổ bàn giao ca sáng",
+      amount: 0,
+      paymentMethod: "CASH",
+      note: "Bàn giao đủ 80 Flan, 55 Panna Cotta, 45 Rau câu dừa",
+      imageUrl: "/images/menu-board.png",
+      createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    },
+  ],
 };
 
 export function readDb(): StoreDatabase {
@@ -749,6 +787,9 @@ export function readDb(): StoreDatabase {
     }
     if (!parsed.chats) {
       parsed.chats = INITIAL_DB.chats;
+    }
+    if (!parsed.ledger) {
+      parsed.ledger = INITIAL_DB.ledger;
     }
     return parsed;
   } catch (err) {

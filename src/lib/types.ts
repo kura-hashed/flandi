@@ -73,6 +73,7 @@ export interface Order {
   customerPhone: string;
   customerAddress?: string;
   note?: string;
+  attachmentImage?: string; // Photo of handwritten order, chat screenshot, or payment bill
   items: OrderItem[];
   subtotal: number;
   discount: number;
@@ -82,6 +83,30 @@ export interface Order {
   isPaid: boolean;
   cashReceived?: number;
   changeGiven?: number;
+  createdAt: string;
+}
+
+export type LedgerEntryType = "EXPENSE" | "INCOME" | "NOTE_PHOTO";
+export type LedgerCategory =
+  | "Nguyên liệu"
+  | "Bao bì & Hộp"
+  | "Vận chuyển / Ship"
+  | "Vận hành / Điện nước"
+  | "Doanh thu ngoài"
+  | "Sổ ghi chép / Kiểm ca"
+  | "Khác";
+
+export interface LedgerEntry {
+  id: string;
+  code: string; // e.g. SS-1001
+  type: LedgerEntryType;
+  category: LedgerCategory;
+  title: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  note?: string;
+  imageUrl?: string; // Uploaded photo of invoice, receipt, or handwritten ledger book
+  linkedOrderId?: string;
   createdAt: string;
 }
 
@@ -214,4 +239,5 @@ export interface StoreDatabase {
   orders: Order[];
   settings: ShopSettings;
   chats?: ChatSession[];
+  ledger?: LedgerEntry[];
 }

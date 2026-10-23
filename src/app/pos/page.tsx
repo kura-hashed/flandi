@@ -18,7 +18,13 @@ import {
   Sparkles,
   Settings,
   CheckCircle2,
-  Clock,
+  Camera,
+  BookOpen,
+  Upload,
+  Eye,
+  X,
+  Wand2,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   Product,
@@ -28,7 +34,11 @@ import {
   OrderSource,
   PaymentMethod,
   ShopSettings,
+  LedgerEntry,
 } from "@/lib/types";
+import LedgerBookManager, {
+  compressImageFile,
+} from "@/components/LedgerBookManager";
 
 interface PosCartItem {
   product: Product;
@@ -39,9 +49,12 @@ interface PosCartItem {
 export default function FlandiPosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [posView, setPosView] = useState<"COUNTER" | "RECENT_ORDERS">("COUNTER");
+  const [posView, setPosView] = useState<
+    "COUNTER" | "RECENT_ORDERS" | "LEDGER"
+  >("COUNTER");
 
   // POS Ticket State
   const [posCategory, setPosCategory] = useState<string>("ALL");
@@ -56,7 +69,14 @@ export default function FlandiPosPage() {
     useState<PaymentMethod>("CASH");
   const [posCashReceived, setPosCashReceived] = useState<number>(0);
   const [posNote, setPosNote] = useState("");
+  const [posOrderImage, setPosOrderImage] = useState<string>("");
+  const [showImageOrderHelper, setShowImageOrderHelper] = useState(false);
+  const [quickParseText, setQuickParseText] = useState("");
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
 
   const notify = (msg: string) => {
     setToast(msg);
@@ -76,6 +96,7 @@ export default function FlandiPosPage() {
         (data.products || []).filter((p: Product) => p.isActive !== false)
       );
       setOrders(data.orders || []);
+      setLedger(data.ledger || []);
       setSettings(data.settings || null);
     } catch (err) {
       console.error("Failed to fetch POS data:", err);
@@ -86,8 +107,12 @@ export default function FlandiPosPage() {
     fetchPosData();
   }, []);
 
-  const addToPosCart = (product: Product, variant: ProductVariant) => {
-    if (product.stock < variant.stockDeduction) {
+  const addToPosCart = (
+    product: Product,
+    variant: ProductVariant,
+    qtyToAdd = 1
+  ) => {
+    if (product.stock < variant.stockDeduction * qtyToAdd) {
       notify(
         `⚠️ Món ${product.name} chỉ còn ${product.stock} ${product.stockUnit}!`
       );
@@ -99,10 +124,13 @@ export default function FlandiPosPage() {
       );
       if (idx > -1) {
         const next = [...prev];
-        next[idx] = { ...next[idx], quantity: next[idx].quantity + 1 };
+        next[idx] = {
+          ...next[idx],
+          quantity: next[idx].quantity + qtyToAdd,
+        };
         return next;
       }
-      return [...prev, { product, variant, quantity: 1 }];
+      return [...prev, { product, variant, quantity: qtyToAdd }];
     });
   };
 
@@ -118,6 +146,151 @@ export default function FlandiPosPage() {
         })
         .filter(Boolean) as PosCartItem[]
     );
+  };
+
+  // Upload Order Photo (handwritten order / chat screenshot / payment bill)
+  const handleUploadPosOrderImage = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImageFile(file);
+      setPosOrderImage(compressed);
+      setShowImageOrderHelper(true);
+      notify("📸 Đã tải ảnh đơn hàng lên! Bạn có thể nhìn ảnh để nhặt món.");
+    } catch (err) {
+      console.error(err);
+      notify("Lỗi khi đọc file ảnh!");
+    }
+    e.target.value = "";
+  };
+
+  // Attach / Update Photo on an Existing Order in Shift
+  const handleAttachPhotoToExistingOrder = async (
+    orderId: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImageFile(file);
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, attachmentImage: compressed }),
+      });
+      if (res.ok) {
+        notify("📸 Đã đính kèm ảnh chứng từ vào đơn hàng!");
+        fetchPosData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    e.target.value = "";
+  };
+
+  // Smart Quick-Parse Text from Photo / Chat into POS Cart
+  const handleSmartParseOrderText = () => {
+    const raw = quickParseText.trim();
+    if (!raw) {
+      notify("Vui lòng nhập hoặc dán nội dung món từ ảnh/tin nhắn!");
+      return;
+    }
+
+    const segments = raw
+      .toLowerCase()
+      .split(/[,;\n+]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    let matchedCount = 0;
+
+    segments.forEach((seg) => {
+      const numMatch = seg.match(/(\d+)/);
+      const qty = numMatch ? Math.max(1, parseInt(numMatch[1], 10)) : 1;
+      const isChuc = seg.includes("chục") || seg.includes("chuc") || seg.includes("hộp 10");
+
+      let matchedProduct: Product | undefined;
+      let preferredVariantKeyword = "";
+
+      if (seg.includes("panna")) {
+        matchedProduct = products.find((p) =>
+          p.name.toLowerCase().includes("panna")
+        );
+        if (seg.includes("dâu") || seg.includes("dau"))
+          preferredVariantKeyword = "dâu";
+        else if (seg.includes("kiwi")) preferredVariantKeyword = "kiwi";
+        else if (seg.includes("việt quất") || seg.includes("viet quat"))
+          preferredVariantKeyword = "việt quất";
+        else if (seg.includes("chanh")) preferredVariantKeyword = "chanh";
+      } else if (
+        seg.includes("dừa") ||
+        seg.includes("dua") ||
+        seg.includes("rau câu dừa")
+      ) {
+        matchedProduct = products.find((p) =>
+          p.name.toLowerCase().includes("dừa")
+        );
+        if (seg.includes("flan")) preferredVariantKeyword = "flan";
+      } else if (seg.includes("lá") || seg.includes("rau câu lá")) {
+        matchedProduct = products.find((p) =>
+          p.name.toLowerCase().includes("lá")
+        );
+      } else if (
+        seg.includes("tàu hũ") ||
+        seg.includes("tau hu") ||
+        seg.includes("tào phớ")
+      ) {
+        matchedProduct = products.find((p) =>
+          p.name.toLowerCase().includes("tàu hũ")
+        );
+      } else if (
+        seg.includes("yogurt") ||
+        seg.includes("sữa chua") ||
+        seg.includes("sua chua")
+      ) {
+        matchedProduct = products.find(
+          (p) =>
+            p.name.toLowerCase().includes("yogurt") ||
+            p.name.toLowerCase().includes("sữa chua")
+        );
+      } else if (seg.includes("flan") || seg.includes("bánh flan")) {
+        matchedProduct = products.find(
+          (p) => p.id === "prod-flan" || p.name.toLowerCase() === "bánh flan"
+        );
+      }
+
+      if (matchedProduct && matchedProduct.variants.length > 0) {
+        let variant = matchedProduct.variants[0];
+        if (preferredVariantKeyword) {
+          const foundV = matchedProduct.variants.find((v) =>
+            v.name.toLowerCase().includes(preferredVariantKeyword)
+          );
+          if (foundV) variant = foundV;
+        } else if (isChuc) {
+          const chucV = matchedProduct.variants.find(
+            (v) =>
+              v.name.toLowerCase().includes("chục") ||
+              v.unitLabel.toLowerCase().includes("chục")
+          );
+          if (chucV) variant = chucV;
+        }
+        addToPosCart(matchedProduct, variant, qty);
+        matchedCount += 1;
+      }
+    });
+
+    if (matchedCount > 0) {
+      if (!posNote.trim()) {
+        setPosNote(`Đơn trích từ ảnh/tin nhắn: ${raw}`);
+      }
+      notify(`✨ Đã tự động nhặt ${matchedCount} dòng món vào Phiếu POS!`);
+    } else {
+      notify(
+        "⚠️ Chưa nhận diện được tên món. Bạn có thể chạm trực tiếp vào món bên dưới!"
+      );
+    }
   };
 
   const posSubtotal = useMemo(
@@ -141,6 +314,7 @@ export default function FlandiPosPage() {
         customerName: posCustomerName.trim() || "Khách lẻ tại quầy",
         customerPhone: posCustomerPhone.trim(),
         note: posNote.trim(),
+        attachmentImage: posOrderImage || undefined,
         items: posCart.map((i) => ({
           productId: i.product.id,
           productName: i.product.name,
@@ -177,6 +351,9 @@ export default function FlandiPosPage() {
         setPosShippingFee(0);
         setPosCashReceived(0);
         setPosNote("");
+        setPosOrderImage("");
+        setQuickParseText("");
+        setShowImageOrderHelper(false);
         fetchPosData();
 
         if (shouldPrint) {
@@ -256,19 +433,19 @@ export default function FlandiPosPage() {
               <h1 className="font-display text-xl text-sticker-sm leading-none">
                 FLANDI POS TERMINAL
               </h1>
-              <span className="text-[11px] font-bold text-flandi-muted block">
-                Máy Bán Hàng Tại Quầy & In Hoá Đơn Nhanh (/pos)
+              <span className="text-[11px] font-bold text-flandi-muted hidden sm:block">
+                Máy Bán Hàng, Up Ảnh Lên Đơn & Sổ Sách Thu Chi (/pos)
               </span>
             </div>
           </div>
         </div>
 
-        {/* Center Switch: Counter vs Recent Orders */}
-        <div className="flex items-center gap-1.5 bg-flandi-bg p-1 rounded-xl border border-flandi-pink">
+        {/* Center Switch: Counter vs Recent Orders vs Ledger Bookkeeping */}
+        <div className="flex items-center gap-1.5 bg-flandi-bg p-1 rounded-xl border border-flandi-pink overflow-x-auto">
           <button
             type="button"
             onClick={() => setPosView("COUNTER")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
               posView === "COUNTER"
                 ? "bg-flandi-coral text-white shadow-2xs"
                 : "text-flandi-dark hover:bg-flandi-cream"
@@ -281,7 +458,7 @@ export default function FlandiPosPage() {
           <button
             type="button"
             onClick={() => setPosView("RECENT_ORDERS")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
               posView === "RECENT_ORDERS"
                 ? "bg-flandi-coral text-white shadow-2xs"
                 : "text-flandi-dark hover:bg-flandi-cream"
@@ -294,6 +471,19 @@ export default function FlandiPosPage() {
                 {pendingOrdersCount} chờ
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPosView("LEDGER")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
+              posView === "LEDGER"
+                ? "bg-flandi-coral text-white shadow-2xs"
+                : "text-flandi-dark hover:bg-flandi-cream"
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Sổ Sách & Up Ảnh ({ledger.length})</span>
           </button>
         </div>
 
@@ -308,10 +498,10 @@ export default function FlandiPosPage() {
           </button>
           <Link
             href="/admin"
-            className="px-3.5 py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs hidden md:flex items-center gap-1.5"
           >
             <Settings className="w-3.5 h-3.5" />
-            <span>Trang Quản Trị (/admin)</span>
+            <span>Quản Trị (/admin)</span>
           </Link>
         </div>
       </header>
@@ -319,8 +509,150 @@ export default function FlandiPosPage() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
         {posView === "COUNTER" ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left 7 Cols: Product Selection Grid */}
+            {/* Left 7 Cols: Image-to-Order Assistant + Product Selection Grid */}
             <div className="lg:col-span-7 space-y-4">
+              {/* Smart Image-to-Order Banner & Assistant */}
+              <div className="bg-white rounded-2xl border-2 border-flandi-salmon p-4 shadow-xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-flandi-coral text-white flex items-center justify-center shrink-0">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-xs sm:text-sm text-flandi-dark">
+                        Up Ảnh Lên Đơn Nhanh (Toa viết tay / Ảnh chụp Zalo / Bill)
+                      </h3>
+                      <p className="text-[11px] text-flandi-muted font-semibold">
+                        Tải ảnh đơn khách đặt để vừa nhìn ảnh nhặt món vừa lưu làm chứng từ đơn hàng
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer px-3.5 py-2 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs flex items-center gap-1.5 shadow-2xs transition">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>
+                        {posOrderImage ? "Đổi Ảnh Đơn" : "Tải Ảnh Lên Đơn"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleUploadPosOrderImage}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowImageOrderHelper(!showImageOrderHelper)
+                      }
+                      className="px-3 py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs flex items-center gap-1"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>
+                        {showImageOrderHelper ? "Thu gọn" : "Nhập nhanh"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded Image Preview & Auto-Cart Text Matcher */}
+                {(showImageOrderHelper || posOrderImage) && (
+                  <div className="pt-3 border-t border-flandi-pink grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                    {/* Uploaded Image Box */}
+                    <div className="sm:col-span-5">
+                      {posOrderImage ? (
+                        <div className="relative rounded-2xl border-2 border-flandi-salmon overflow-hidden bg-flandi-bg p-1.5 space-y-1.5">
+                          <div className="relative h-44 rounded-xl overflow-hidden bg-black/5">
+                            <img
+                              src={posOrderImage}
+                              alt="Ảnh đơn hàng"
+                              className="w-full h-full object-contain"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setLightboxImage({
+                                  url: posOrderImage,
+                                  title: "Ảnh đơn hàng đang lên",
+                                })
+                              }
+                              className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/70 text-white text-[11px] font-bold flex items-center gap-1"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>Phóng to</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPosOrderImage("")}
+                              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center shadow"
+                              title="Xoá ảnh đính kèm"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-[11px] font-bold text-emerald-700 text-center">
+                            ✓ Ảnh này sẽ được lưu đính kèm vào đơn POS
+                          </p>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer h-44 rounded-2xl border-2 border-dashed border-flandi-pink hover:border-flandi-coral bg-flandi-bg flex flex-col items-center justify-center p-4 text-center transition">
+                          <ImageIcon className="w-7 h-7 text-flandi-coral mb-1.5" />
+                          <span className="text-xs font-extrabold text-flandi-dark">
+                            Chưa có ảnh đơn
+                          </span>
+                          <span className="text-[11px] text-flandi-muted font-medium mt-0.5">
+                            Bấm để chọn ảnh chụp màn hình chat hoặc giấy ghi món
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleUploadPosOrderImage}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Smart Text-to-Cart Parser */}
+                    <div className="sm:col-span-7 space-y-2">
+                      <label className="text-xs font-extrabold text-flandi-dark block">
+                        Trợ lý đọc nội dung đơn & tự động nhặt món vào giỏ:
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={quickParseText}
+                        onChange={(e) => setQuickParseText(e.target.value)}
+                        placeholder="Gõ hoặc dán nội dung khách nhắn trên ảnh (VD: 1 chục flan, 2 panna chanh dây, 1 rau câu dừa flan, 2 tàu hũ)..."
+                        className="w-full px-3 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
+                      />
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setQuickParseText(
+                              "1 chục flan, 2 panna chanh dây, 1 rau câu dừa flan, 2 tàu hũ"
+                            )
+                          }
+                          className="text-[11px] font-bold text-flandi-coral hover:underline"
+                        >
+                          + Thử mẫu đơn nhanh
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSmartParseOrderText}
+                          className="px-4 py-2 rounded-xl bg-flandi-dark hover:bg-flandi-coral text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-xs"
+                        >
+                          <Wand2 className="w-3.5 h-3.5" />
+                          <span>Tự Động Nhặt Món Vào Giỏ</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Category Filter & Search */}
               <div className="bg-white p-4 rounded-2xl border border-flandi-pink shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
                   {[
@@ -474,7 +806,7 @@ export default function FlandiPosPage() {
                 ))}
               </div>
 
-              {/* Customer Info */}
+              {/* Customer Info & Note */}
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="text"
@@ -492,11 +824,38 @@ export default function FlandiPosPage() {
                 />
               </div>
 
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={posNote}
+                  onChange={(e) => setPosNote(e.target.value)}
+                  placeholder="Ghi chú đơn (VD: Ít đá, giao lúc 15h...)"
+                  className="flex-1 px-3 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
+                />
+                <label
+                  className={`cursor-pointer px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition ${
+                    posOrderImage
+                      ? "bg-emerald-50 border-emerald-400 text-emerald-700"
+                      : "bg-flandi-bg border-flandi-pink text-flandi-coral hover:bg-flandi-pink/40"
+                  }`}
+                  title="Đính kèm ảnh chụp đơn hàng hoặc bill chuyển khoản"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>{posOrderImage ? "Có ảnh" : "Đính ảnh"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadPosOrderImage}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
               {/* Cart Items List */}
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                 {posCart.length === 0 ? (
                   <div className="py-10 text-center text-xs text-flandi-muted font-semibold border border-dashed border-flandi-pink rounded-2xl">
-                    Chạm vào các món bên trái để lên đơn nhanh
+                    Chạm vào các món bên trái hoặc Up Ảnh Lên Đơn để thêm món
                   </div>
                 ) : (
                   posCart.map((item) => (
@@ -747,55 +1106,101 @@ export default function FlandiPosPage() {
               </div>
             </div>
           </div>
-        ) : (
-          /* Recent Orders in Shift View for Quick Receipt Reprint / Confirmation */
+        ) : posView === "RECENT_ORDERS" ? (
+          /* Recent Orders in Shift View with Photo Evidence & Quick Actions */
           <div className="space-y-3">
-            {orders.slice(0, 20).map((order) => (
+            {orders.slice(0, 30).map((order) => (
               <div
                 key={order.id}
                 className="bg-white rounded-2xl border-2 border-flandi-pink p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-flandi-coral">
-                      #{order.code}
-                    </span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-flandi-cream text-flandi-dark">
-                      {order.source}
-                    </span>
-                    <span
-                      className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                        order.status === "COMPLETED"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
+                <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                  {order.attachmentImage && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLightboxImage({
+                          url: order.attachmentImage!,
+                          title: `Ảnh đơn hàng / Bill #${order.code} (${order.customerName})`,
+                        })
+                      }
+                      className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-flandi-salmon shrink-0 group bg-flandi-bg"
+                      title="Bấm để xem ảnh đơn hàng / bill"
                     >
-                      {order.status}
-                    </span>
-                    <span className="text-xs text-flandi-muted">
-                      {new Date(order.createdAt).toLocaleTimeString("vi-VN")}
-                    </span>
-                  </div>
-                  <p className="text-xs font-bold text-flandi-dark">
-                    {order.customerName}{" "}
-                    {order.customerPhone ? `• ${order.customerPhone}` : ""}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {order.items.map((it, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[11px] bg-flandi-bg border border-flandi-pink px-2 py-0.5 rounded-md font-semibold"
-                      >
-                        {it.quantity}x {it.productName} ({it.variantName})
+                      <img
+                        src={order.attachmentImage}
+                        alt={order.code}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition">
+                        <Eye className="w-4 h-4" />
                       </span>
-                    ))}
+                    </button>
+                  )}
+
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-extrabold text-sm text-flandi-coral">
+                        #{order.code}
+                      </span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-flandi-cream text-flandi-dark">
+                        {order.source}
+                      </span>
+                      <span
+                        className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
+                          order.status === "COMPLETED"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                      <span className="text-xs text-flandi-muted">
+                        {new Date(order.createdAt).toLocaleTimeString("vi-VN")}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-flandi-dark">
+                      {order.customerName}{" "}
+                      {order.customerPhone ? `• ${order.customerPhone}` : ""}
+                    </p>
+                    {order.note && (
+                      <p className="text-[11px] text-flandi-muted font-medium">
+                        Ghi chú: {order.note}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {order.items.map((it, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[11px] bg-flandi-bg border border-flandi-pink px-2 py-0.5 rounded-md font-semibold"
+                        >
+                          {it.quantity}x {it.productName} ({it.variantName})
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <span className="font-extrabold text-base text-flandi-coral mr-2">
                     {formatVND(order.total)}
                   </span>
+
+                  <label className="cursor-pointer px-3 py-2 rounded-xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink text-xs font-bold flex items-center gap-1">
+                    <Camera className="w-3.5 h-3.5 text-flandi-coral" />
+                    <span>
+                      {order.attachmentImage ? "Đổi ảnh" : "Up ảnh Bill"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        handleAttachPhotoToExistingOrder(order.id, e)
+                      }
+                      className="hidden"
+                    />
+                  </label>
+
                   {order.status !== "COMPLETED" &&
                     order.status !== "CANCELLED" && (
                       <button
@@ -819,8 +1224,60 @@ export default function FlandiPosPage() {
               </div>
             ))}
           </div>
+        ) : (
+          /* Sổ Sách & Up Ảnh Chứng Từ View */
+          <LedgerBookManager
+            ledger={ledger}
+            orders={orders}
+            notify={notify}
+            onRefresh={fetchPosData}
+            onSendImageToPosOrder={(imgUrl, titleText) => {
+              setPosOrderImage(imgUrl);
+              if (titleText && !posNote) {
+                setPosNote(`Từ ảnh sổ sách: ${titleText}`);
+              }
+              setShowImageOrderHelper(true);
+              setPosView("COUNTER");
+              notify(
+                "📸 Đã chuyển ảnh sang Màn Hình Thu Ngân để bạn nhặt món lên đơn!"
+              );
+            }}
+          />
         )}
       </main>
+
+      {/* Lightbox Modal for Order Photo */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-2xl w-full p-4 space-y-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-flandi-pink pb-2">
+              <h4 className="font-extrabold text-sm text-flandi-dark truncate">
+                {lightboxImage.title}
+              </h4>
+              <button
+                type="button"
+                onClick={() => setLightboxImage(null)}
+                className="p-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="max-h-[75vh] overflow-auto rounded-2xl bg-black/5 flex items-center justify-center">
+              <img
+                src={lightboxImage.url}
+                alt={lightboxImage.title}
+                className="max-w-full max-h-[72vh] object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Thermal Receipt Print Modal */}
       {receiptOrder && (

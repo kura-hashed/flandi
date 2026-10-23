@@ -35,6 +35,8 @@ import {
   MessageCircle,
   Send,
   Layout,
+  BookOpen,
+  Eye,
 } from "lucide-react";
 import {
   Product,
@@ -47,13 +49,16 @@ import {
   StockLog,
   ShopSettings,
   ChatSession,
+  LedgerEntry,
 } from "@/lib/types";
 import BrandingStudio from "@/components/BrandingStudio";
 import PageManager from "@/components/PageManager";
+import LedgerBookManager from "@/components/LedgerBookManager";
 
 type AdminTab =
   | "POS"
   | "ORDERS"
+  | "LEDGER"
   | "CHAT"
   | "PRODUCTS"
   | "INVENTORY"
@@ -72,6 +77,7 @@ export default function FlandiAdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [stockLogs, setStockLogs] = useState<StockLog[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [chats, setChats] = useState<ChatSession[]>([]);
@@ -140,6 +146,7 @@ export default function FlandiAdminPage() {
       setProducts(data.products || []);
       setIngredients(data.ingredients || []);
       setOrders(data.orders || []);
+      setLedger(data.ledger || []);
       setStockLogs(data.stockLogs || []);
       setSettings(data.settings || null);
       const loadedChats: ChatSession[] = data.chats || [];
@@ -559,6 +566,18 @@ export default function FlandiAdminPage() {
                 {pendingOrdersCount} mới
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("LEDGER")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
+              activeTab === "LEDGER"
+                ? "bg-flandi-coral text-white shadow-sm"
+                : "text-flandi-dark hover:bg-flandi-cream"
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Sổ Sách ({ledger.length})</span>
           </button>
 
           <button
@@ -1198,6 +1217,25 @@ export default function FlandiAdminPage() {
                       <p className="text-xs text-amber-800 bg-amber-50 px-3 py-1 rounded-lg inline-block font-semibold">
                         📝 Ghi chú: {order.note}
                       </p>
+                    )}
+
+                    {order.attachmentImage && (
+                      <div className="pt-1">
+                        <a
+                          href={order.attachmentImage}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-flandi-bg border border-flandi-salmon text-flandi-coral text-xs font-extrabold hover:bg-flandi-pink/40 transition"
+                        >
+                          <img
+                            src={order.attachmentImage}
+                            alt="Ảnh đơn"
+                            className="w-6 h-6 rounded-md object-cover border border-flandi-pink"
+                          />
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Xem ảnh đơn hàng / Bill đính kèm</span>
+                        </a>
+                      </div>
                     )}
                   </div>
 
@@ -1930,6 +1968,16 @@ export default function FlandiAdminPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ==================== TAB: LEDGER & BOOKKEEPING ==================== */}
+        {activeTab === "LEDGER" && (
+          <LedgerBookManager
+            ledger={ledger}
+            orders={orders}
+            notify={notify}
+            onRefresh={fetchAll}
+          />
         )}
 
         {/* ==================== TAB: PAGE MANAGEMENT CMS ==================== */}

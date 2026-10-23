@@ -19,6 +19,7 @@ export async function POST(request: Request) {
       customerPhone: body.customerPhone?.trim() || "",
       customerAddress: body.customerAddress?.trim() || "",
       note: body.note?.trim() || "",
+      attachmentImage: body.attachmentImage || undefined,
       items: body.items || [],
       subtotal: Number(body.subtotal) || 0,
       discount: Number(body.discount) || 0,
@@ -68,10 +69,12 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { orderId, status, isPaid } = body as {
+    const { orderId, status, isPaid, attachmentImage, note } = body as {
       orderId: string;
       status?: OrderStatus;
       isPaid?: boolean;
+      attachmentImage?: string;
+      note?: string;
     };
 
     const db = readDb();
@@ -109,6 +112,12 @@ export async function PATCH(request: Request) {
 
     if (typeof isPaid === "boolean") {
       order.isPaid = isPaid;
+    }
+    if (typeof attachmentImage === "string") {
+      order.attachmentImage = attachmentImage || undefined;
+    }
+    if (typeof note === "string") {
+      order.note = note;
     }
 
     writeDb(db);

@@ -115,6 +115,63 @@ export interface BrandKit {
   colors: BrandColor[];
 }
 
+export interface StoryFeatureItem {
+  id: string;
+  icon: "SPARKLES" | "TRUCK" | "SHIELD" | "HEART";
+  title: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface MediaResourceItem {
+  id: string;
+  name: string;
+  url: string;
+  category: "LOGO" | "PRODUCT" | "BANNER";
+}
+
+export interface PageConfig {
+  // Visibility Toggles
+  showAnnouncementBar: boolean;
+  showHeroSection: boolean;
+  showHeroCollage: boolean;
+  showMenuPosterButton: boolean;
+  showMenuSection: boolean;
+  showStorySection: boolean;
+  showStoryPosterPreview: boolean;
+  showFloatingZalo: boolean;
+  showFloatingMessenger: boolean;
+  showOwnerLinks: boolean;
+
+  // Header & Hero Content
+  headerLogoUrl: string;
+  heroBadgeText: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  heroPrimaryCtaText: string;
+  heroSecondaryCtaText: string;
+  heroCollageTitle: string;
+  heroCollageSubtitle: string;
+
+  // Menu Section Content
+  menuTitle: string;
+  menuSubtitle: string;
+  menuSearchPlaceholder: string;
+
+  // Story Section Content
+  storyBadgeText: string;
+  storyTitle: string;
+  storyDescription: string;
+  storyFeatures: StoryFeatureItem[];
+
+  // Footer Content
+  footerDescription: string;
+
+  // Managed Media Resources
+  resources: MediaResourceItem[];
+}
+
 export interface ShopSettings {
   shopName: string;
   tagline: string;
@@ -131,6 +188,7 @@ export interface ShopSettings {
   defaultShippingFee: number;
   announcement: string;
   brandKit?: BrandKit;
+  pageConfig?: PageConfig;
 }
 
 export interface ChatMessage {

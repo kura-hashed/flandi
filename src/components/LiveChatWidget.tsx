@@ -357,51 +357,55 @@ export default function LiveChatWidget({
       {/* Floating Action Buttons Row */}
       <div className="flex flex-col items-end gap-3">
         {/* Zalo Floating Button */}
-        <a
-          href={`https://zalo.me/${zaloPhone}`}
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Nhắn tin qua Zalo"
-          className="group flex items-center gap-2.5 focus:outline-none"
-        >
-          <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#0068FF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
-            Nhắn Zalo: {zaloPhone}
-          </span>
-          <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#0068FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
-            <span className="absolute inset-0 rounded-full bg-[#0068FF] animate-ping opacity-20" />
-            <span className="font-display text-[13px] sm:text-sm font-black tracking-tight relative">
-              Zalo
+        {(settings?.pageConfig?.showFloatingZalo ?? true) && (
+          <a
+            href={`https://zalo.me/${zaloPhone}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Nhắn tin qua Zalo"
+            className="group flex items-center gap-2.5 focus:outline-none"
+          >
+            <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#0068FF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
+              Nhắn Zalo: {zaloPhone}
             </span>
-          </div>
-        </a>
+            <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#0068FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
+              <span className="absolute inset-0 rounded-full bg-[#0068FF] animate-ping opacity-20" />
+              <span className="font-display text-[13px] sm:text-sm font-black tracking-tight relative">
+                Zalo
+              </span>
+            </div>
+          </a>
+        )}
 
         {/* On-Page Messenger Live Chat Toggle Button */}
-        <button
-          type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
-          aria-label="Mở khung chat Messenger trực tiếp trên trang"
-          className="group flex items-center gap-2.5 focus:outline-none"
-        >
-          <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#006AFF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
-            {isOpen ? "Đóng khung chat" : "Chat Messenger trực tiếp"}
-          </span>
-          <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#006AFF] via-[#0099FF] to-[#A033FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
-            {!isOpen && (
-              <span className="absolute inset-0 rounded-full bg-[#0084FF] animate-ping opacity-25" />
-            )}
-            {isOpen ? (
-              <X className="w-6 h-6 relative" />
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="w-6 h-6 sm:w-7 sm:h-7 relative"
-              >
-                <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.912 1.447 5.51 3.713 7.206V22l3.398-1.868c.905.252 1.87.388 2.889.388 5.523 0 10-4.145 10-9.243S17.523 2 12 2zm1.008 12.438l-2.548-2.724-4.97 2.724 5.468-5.805 2.61 2.724 4.908-2.724-5.468 5.805z" />
-              </svg>
-            )}
-          </div>
-        </button>
+        {(settings?.pageConfig?.showFloatingMessenger ?? true) && (
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            aria-label="Mở khung chat Messenger trực tiếp trên trang"
+            className="group flex items-center gap-2.5 focus:outline-none"
+          >
+            <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#006AFF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
+              {isOpen ? "Đóng khung chat" : "Chat Messenger trực tiếp"}
+            </span>
+            <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#006AFF] via-[#0099FF] to-[#A033FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
+              {!isOpen && (
+                <span className="absolute inset-0 rounded-full bg-[#0084FF] animate-ping opacity-25" />
+              )}
+              {isOpen ? (
+                <X className="w-6 h-6 relative" />
+              ) : (
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-6 h-6 sm:w-7 sm:h-7 relative"
+                >
+                  <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.912 1.447 5.51 3.713 7.206V22l3.398-1.868c.905.252 1.87.388 2.889.388 5.523 0 10-4.145 10-9.243S17.523 2 12 2zm1.008 12.438l-2.548-2.724-4.97 2.724 5.468-5.805 2.61 2.724 4.908-2.724-5.468 5.805z" />
+                </svg>
+              )}
+            </div>
+          </button>
+        )}
       </div>
     </div>
   );

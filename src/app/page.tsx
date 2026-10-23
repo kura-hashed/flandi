@@ -28,6 +28,7 @@ import {
 import { Product, ProductVariant, Order, ShopSettings } from "@/lib/types";
 import MenuPoster from "@/components/MenuPoster";
 import LiveChatWidget from "@/components/LiveChatWidget";
+import { FALLBACK_PAGE_CONFIG } from "@/components/PageManager";
 
 interface CartItem {
   product: Product;
@@ -278,6 +279,8 @@ export default function FlandiLandingPage() {
     setTimeout(() => setCopiedOrderText(false), 2500);
   };
 
+  const pageConfig = settings?.pageConfig || FALLBACK_PAGE_CONFIG;
+
   return (
     <div className="min-h-screen bg-flandi-grid relative overflow-x-hidden">
       {/* Decorative Organic Pastel Blobs matching the Menu Poster */}
@@ -294,15 +297,17 @@ export default function FlandiLandingPage() {
       )}
 
       {/* Top Announcement Ribbon */}
-      <div className="bg-gradient-to-r from-flandi-coral via-flandi-salmon to-flandi-coral text-white text-xs sm:text-sm py-2 px-4 text-center font-semibold relative z-20 shadow-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-center gap-2 flex-wrap">
-          <Sparkles className="w-4 h-4 shrink-0" />
-          <span>
-            {settings?.announcement ||
-              "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!"}
-          </span>
+      {pageConfig.showAnnouncementBar && (
+        <div className="bg-gradient-to-r from-flandi-coral via-flandi-salmon to-flandi-coral text-white text-xs sm:text-sm py-2 px-4 text-center font-semibold relative z-20 shadow-sm">
+          <div className="max-w-6xl mx-auto flex items-center justify-center gap-2 flex-wrap">
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span>
+              {settings?.announcement ||
+                "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!"}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Sticky Header */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-[#FFF9F8]/85 border-b border-flandi-pink/70">
@@ -311,6 +316,7 @@ export default function FlandiLandingPage() {
             <div className="w-12 h-12 rounded-full bg-flandi-salmon/20 border-2 border-flandi-salmon flex items-center justify-center shadow-sm overflow-hidden group-hover:scale-105 transition">
               <img
                 src={
+                  pageConfig.headerLogoUrl ||
                   settings?.brandKit?.mascotImage ||
                   "/images/branding/flandi-mascot.png"
                 }
@@ -329,46 +335,56 @@ export default function FlandiLandingPage() {
           </a>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-bold text-flandi-dark/80">
-            <a href="#menu" className="hover:text-flandi-coral transition">
-              Thực Đơn
-            </a>
-            <button
-              onClick={() => setShowPosterModal(true)}
-              className="hover:text-flandi-coral transition flex items-center gap-1.5"
-            >
-              <ImageIcon className="w-4 h-4 text-flandi-coral" />
-              Menu Poster
-            </button>
-            <a href="#story" className="hover:text-flandi-coral transition">
-              Điểm Khác Biệt
-            </a>
+            {pageConfig.showMenuSection && (
+              <a href="#menu" className="hover:text-flandi-coral transition">
+                Thực Đơn
+              </a>
+            )}
+            {pageConfig.showMenuPosterButton && (
+              <button
+                onClick={() => setShowPosterModal(true)}
+                className="hover:text-flandi-coral transition flex items-center gap-1.5"
+              >
+                <ImageIcon className="w-4 h-4 text-flandi-coral" />
+                {pageConfig.heroSecondaryCtaText || "Menu Poster"}
+              </button>
+            )}
+            {pageConfig.showStorySection && (
+              <a href="#story" className="hover:text-flandi-coral transition">
+                Điểm Khác Biệt
+              </a>
+            )}
             <a href="#contact" className="hover:text-flandi-coral transition">
               Liên Hệ & Đặt Tiệc
             </a>
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/pos"
-              className="relative px-3 py-2 rounded-full bg-white border-2 border-flandi-pink hover:border-flandi-salmon text-flandi-dark text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
-              title="Máy Bán Hàng Tại Quầy (/pos)"
-            >
-              <Store className="w-3.5 h-3.5 text-flandi-coral" />
-              <span>POS</span>
-            </Link>
+            {pageConfig.showOwnerLinks && (
+              <>
+                <Link
+                  href="/pos"
+                  className="relative px-3 py-2 rounded-full bg-white border-2 border-flandi-pink hover:border-flandi-salmon text-flandi-dark text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+                  title="Máy Bán Hàng Tại Quầy (/pos)"
+                >
+                  <Store className="w-3.5 h-3.5 text-flandi-coral" />
+                  <span>POS</span>
+                </Link>
 
-            <Link
-              href="/admin"
-              className="relative px-3 py-2 rounded-full bg-white border-2 border-flandi-pink hover:border-flandi-salmon text-flandi-dark text-xs font-bold hidden sm:flex items-center gap-1.5 shadow-sm transition"
-              title="Quản Trị Cửa Hàng (/admin)"
-            >
-              <span>Admin</span>
-              {pendingOrdersCount > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.2 text-[10px] bg-flandi-coral text-white rounded-full font-extrabold">
-                  {pendingOrdersCount}
-                </span>
-              )}
-            </Link>
+                <Link
+                  href="/admin"
+                  className="relative px-3 py-2 rounded-full bg-white border-2 border-flandi-pink hover:border-flandi-salmon text-flandi-dark text-xs font-bold hidden sm:flex items-center gap-1.5 shadow-sm transition"
+                  title="Quản Trị Cửa Hàng (/admin)"
+                >
+                  <span>Admin</span>
+                  {pendingOrdersCount > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.2 text-[10px] bg-flandi-coral text-white rounded-full font-extrabold">
+                      {pendingOrdersCount}
+                    </span>
+                  )}
+                </Link>
+              </>
+            )}
 
             <button
               onClick={() => setIsCartOpen(true)}
@@ -385,177 +401,182 @@ export default function FlandiLandingPage() {
       </header>
 
       {/* Hero Section Inspired by the Original Menu */}
-      <section className="relative z-10 pt-8 pb-14 sm:pt-12 sm:pb-20 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          {/* Left Column: Brand Story & CTA */}
-          <div className="lg:col-span-6 text-center lg:text-left space-y-5">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-flandi-pink/50 border border-flandi-salmon/40 text-flandi-coral text-xs sm:text-sm font-bold">
-              <Heart className="w-4 h-4 fill-flandi-coral text-flandi-coral" />
-              <span>Tiệm Tráng Miệng Thủ Công Tươi Mới Mỗi Ngày</span>
-            </div>
+      {pageConfig.showHeroSection && (
+        <section className="relative z-10 pt-8 pb-14 sm:pt-12 sm:pb-20 px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            {/* Left Column: Brand Story & CTA */}
+            <div
+              className={`${
+                pageConfig.showHeroCollage
+                  ? "lg:col-span-6 text-center lg:text-left"
+                  : "lg:col-span-12 text-center max-w-3xl mx-auto"
+              } space-y-5`}
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-flandi-pink/50 border border-flandi-salmon/40 text-flandi-coral text-xs sm:text-sm font-bold">
+                <Heart className="w-4 h-4 fill-flandi-coral text-flandi-coral" />
+                <span>{pageConfig.heroBadgeText}</span>
+              </div>
 
-            <div className="space-y-2">
-              <h1 className="font-display text-5xl sm:text-7xl tracking-wide text-sticker-lg leading-tight select-none">
-                FLANDI
-              </h1>
-              <p className="font-display text-2xl sm:text-4xl text-sticker leading-snug">
-                Muốn ăn hãy Flăn vào tớ
-              </p>
-            </div>
-
-            <p className="text-flandi-dark/85 text-base sm:text-lg font-medium max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Từ những chiếc <strong className="text-flandi-coral">Bánh Flan</strong> trứng sữa mềm mịn,{" "}
-              <strong className="text-flandi-coral">Panna Cotta</strong> sốt trái cây tươi chua ngọt, đến{" "}
-              <strong className="text-flandi-coral">Rau Câu Dừa Nhân Flan</strong>,{" "}
-              <strong className="text-flandi-coral">Rau Câu Lá</strong>,{" "}
-              <strong className="text-flandi-coral">Tàu Hũ Singapore</strong> &{" "}
-              <strong className="text-flandi-coral">Yogurt</strong> nhà làm béo thanh!
-            </p>
-
-            {/* Quick Price Highlights matching the Menu */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-2 pt-1">
-              {[
-                { name: "Flan", badge: "60k / chục" },
-                { name: "Panna Cotta", badge: "10k / cái" },
-                { name: "Rau Câu Dừa (Flan)", badge: "80k - 60k / chục" },
-                { name: "Rau Câu Lá", badge: "40k / hộp" },
-                { name: "Tàu Hũ Singapore", badge: "8k / cái" },
-                { name: "Yogurt", badge: "50k / chục" },
-              ].map((tag) => (
-                <a
-                  key={tag.name}
-                  href="#menu"
-                  className="px-3 py-1.5 rounded-full bg-white/90 border border-flandi-pink shadow-sm text-xs font-bold text-flandi-dark hover:border-flandi-coral hover:scale-105 transition flex items-center gap-1.5"
-                >
-                  <span>{tag.name}:</span>
-                  <span className="text-flandi-coral font-extrabold">{tag.badge}</span>
-                </a>
-              ))}
-            </div>
-
-            <div className="pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
-              <a
-                href="#menu"
-                className="px-7 py-3.5 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-base shadow-cute-lg flex items-center gap-2 transition transform hover:-translate-y-0.5"
-              >
-                <span>Flăn vào chọn món ngay</span>
-                <ArrowRight className="w-5 h-5" />
-              </a>
-              <button
-                onClick={() => setShowPosterModal(true)}
-                className="px-6 py-3.5 rounded-full bg-white hover:bg-flandi-cream text-flandi-coral border-2 border-flandi-salmon font-bold text-base shadow-sm flex items-center gap-2 transition"
-              >
-                <ImageIcon className="w-5 h-5" />
-                <span>Menu Poster</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Right Column: Cute Interactive 6-Dish Menu Collage matching the uploaded poster */}
-          <div className="lg:col-span-6">
-            <div className="relative bg-white/75 backdrop-blur-md rounded-[2.5rem] p-5 sm:p-7 border-2 border-flandi-pink shadow-cute-lg">
-              <div className="text-center mb-5">
-                <span className="font-display text-2xl sm:text-3xl text-sticker-sm">
-                  Menu Nhà FLANDI
-                </span>
-                <p className="text-xs font-bold text-flandi-muted mt-0.5">
-                  Chạm vào món bất kỳ để thêm nhanh vào giỏ bánh!
+              <div className="space-y-2">
+                <h1 className="font-display text-5xl sm:text-7xl tracking-wide text-sticker-lg leading-tight select-none">
+                  {pageConfig.heroTitle}
+                </h1>
+                <p className="font-display text-2xl sm:text-4xl text-sticker leading-snug">
+                  {pageConfig.heroSubtitle}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                {products.slice(0, 6).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleAddToCart(item)}
-                    className="group relative flex flex-col items-center text-center focus:outline-none"
+              <p className="text-flandi-dark/85 text-base sm:text-lg font-medium max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                {pageConfig.heroDescription}
+              </p>
+
+              {/* Quick Price Highlights matching the Menu */}
+              <div className="flex flex-wrap justify-center lg:justify-start gap-2 pt-1">
+                {products.slice(0, 6).map((p) => (
+                  <a
+                    key={p.id}
+                    href="#menu"
+                    className="px-3 py-1.5 rounded-full bg-white/90 border border-flandi-pink shadow-sm text-xs font-bold text-flandi-dark hover:border-flandi-coral hover:scale-105 transition flex items-center gap-1.5"
                   >
-                    <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1.5 bg-flandi-salmon shadow-cute group-hover:scale-105 transition duration-300">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover rounded-full border-2 border-white"
-                      />
-                      {/* Primary Top-Right Price Circle just like the Menu Poster */}
-                      <div className="absolute -top-2 -right-2 w-14 h-14 rounded-full bg-flandi-salmon text-white border-2 border-white shadow-md flex flex-col items-center justify-center leading-tight p-1">
-                        <span className="text-[11px] font-extrabold">
-                          {item.badgeText.split("/")[0]?.trim()}
-                        </span>
-                        <span className="text-[10px] font-semibold opacity-95">
-                          / {item.badgeText.split("/")[1]?.trim()}
-                        </span>
-                      </div>
-
-                      {/* Secondary Top-Left Price Circle for Rau Câu Dừa (Flan) 80k / chục */}
-                      {item.secondaryBadgeText && (
-                        <div className="absolute -top-2 -left-2 w-14 h-14 rounded-full bg-flandi-coral text-white border-2 border-white shadow-md flex flex-col items-center justify-center leading-tight p-1">
-                          <span className="text-[11px] font-extrabold">
-                            {item.secondaryBadgeText.split("/")[0]?.trim()}
-                          </span>
-                          <span className="text-[10px] font-semibold opacity-95">
-                            / {item.secondaryBadgeText.split("/")[1]?.trim()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <span className="font-display text-lg sm:text-xl text-sticker-sm -mt-2.5 z-10 group-hover:scale-105 transition">
-                      {item.name}
+                    <span>{p.name}:</span>
+                    <span className="text-flandi-coral font-extrabold">
+                      {p.secondaryBadgeText
+                        ? `${p.secondaryBadgeText.split("/")[0]?.trim()} - ${p.badgeText}`
+                        : p.badgeText}
                     </span>
-                    <span className="text-[11px] font-bold text-flandi-muted group-hover:text-flandi-coral transition mt-0.5">
-                      + Thêm nhanh
-                    </span>
-                  </button>
+                  </a>
                 ))}
               </div>
+
+              <div className="pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
+                <a
+                  href="#menu"
+                  className="px-7 py-3.5 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-base shadow-cute-lg flex items-center gap-2 transition transform hover:-translate-y-0.5"
+                >
+                  <span>{pageConfig.heroPrimaryCtaText}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </a>
+                {pageConfig.showMenuPosterButton && (
+                  <button
+                    onClick={() => setShowPosterModal(true)}
+                    className="px-6 py-3.5 rounded-full bg-white hover:bg-flandi-cream text-flandi-coral border-2 border-flandi-salmon font-bold text-base shadow-sm flex items-center gap-2 transition"
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                    <span>{pageConfig.heroSecondaryCtaText}</span>
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Right Column: Cute Interactive 6-Dish Menu Collage matching the uploaded poster */}
+            {pageConfig.showHeroCollage && (
+              <div className="lg:col-span-6">
+                <div className="relative bg-white/75 backdrop-blur-md rounded-[2.5rem] p-5 sm:p-7 border-2 border-flandi-pink shadow-cute-lg">
+                  <div className="text-center mb-5">
+                    <span className="font-display text-2xl sm:text-3xl text-sticker-sm">
+                      {pageConfig.heroCollageTitle}
+                    </span>
+                    <p className="text-xs font-bold text-flandi-muted mt-0.5">
+                      {pageConfig.heroCollageSubtitle}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                    {products.slice(0, 6).map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleAddToCart(item)}
+                        className="group relative flex flex-col items-center text-center focus:outline-none"
+                      >
+                        <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1.5 bg-flandi-salmon shadow-cute group-hover:scale-105 transition duration-300">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-full object-cover rounded-full border-2 border-white"
+                          />
+                          {/* Primary Top-Right Price Circle just like the Menu Poster */}
+                          <div className="absolute -top-2 -right-2 w-14 h-14 rounded-full bg-flandi-salmon text-white border-2 border-white shadow-md flex flex-col items-center justify-center leading-tight p-1">
+                            <span className="text-[11px] font-extrabold">
+                              {item.badgeText.split("/")[0]?.trim()}
+                            </span>
+                            <span className="text-[10px] font-semibold opacity-95">
+                              / {item.badgeText.split("/")[1]?.trim()}
+                            </span>
+                          </div>
+
+                          {/* Secondary Top-Left Price Circle for Rau Câu Dừa (Flan) 80k / chục */}
+                          {item.secondaryBadgeText && (
+                            <div className="absolute -top-2 -left-2 w-14 h-14 rounded-full bg-flandi-coral text-white border-2 border-white shadow-md flex flex-col items-center justify-center leading-tight p-1">
+                              <span className="text-[11px] font-extrabold">
+                                {item.secondaryBadgeText.split("/")[0]?.trim()}
+                              </span>
+                              <span className="text-[10px] font-semibold opacity-95">
+                                / {item.secondaryBadgeText.split("/")[1]?.trim()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="font-display text-lg sm:text-xl text-sticker-sm -mt-2.5 z-10 group-hover:scale-105 transition">
+                          {item.name}
+                        </span>
+                        <span className="text-[11px] font-bold text-flandi-muted group-hover:text-flandi-coral transition mt-0.5">
+                          + Thêm nhanh
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Interactive Menu Section */}
-      <section id="menu" className="relative z-10 py-12 px-4 sm:px-6 max-w-6xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-          <h2 className="font-display text-3xl sm:text-5xl text-sticker">
-            Thực Đơn Ngọt Ngào
-          </h2>
-          <p className="text-sm sm:text-base text-flandi-muted font-semibold">
-            Chọn vị yêu thích, đặt theo cái lẻ hoặc theo chục/hộp siêu tiết kiệm!
-          </p>
-        </div>
-
-        {/* Category Filter & Search */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-9">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
-            {categories.map((cat) => {
-              const active = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap transition ${
-                    active
-                      ? "bg-flandi-coral text-white shadow-cute"
-                      : "bg-white text-flandi-dark border border-flandi-pink hover:border-flandi-salmon"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
+      {pageConfig.showMenuSection && (
+        <section id="menu" className="relative z-10 py-12 px-4 sm:px-6 max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
+            <h2 className="font-display text-3xl sm:text-5xl text-sticker">
+              {pageConfig.menuTitle}
+            </h2>
+            <p className="text-sm sm:text-base text-flandi-muted font-semibold">
+              {pageConfig.menuSubtitle}
+            </p>
           </div>
 
-          <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 text-flandi-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm Flan, Panna Cotta, Rau câu..."
-              className="w-full pl-10 pr-4 py-2 rounded-full bg-white border border-flandi-pink focus:border-flandi-coral focus:outline-none text-sm font-semibold text-flandi-dark"
-            />
+          {/* Category Filter & Search */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-9">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto no-scrollbar">
+              {categories.map((cat) => {
+                const active = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-extrabold whitespace-nowrap transition ${
+                      active
+                        ? "bg-flandi-coral text-white shadow-cute"
+                        : "bg-white text-flandi-dark border border-flandi-pink hover:border-flandi-salmon"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="relative w-full md:w-72">
+              <Search className="w-4 h-4 text-flandi-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={pageConfig.menuSearchPlaceholder}
+                className="w-full pl-10 pr-4 py-2 rounded-full bg-white border border-flandi-pink focus:border-flandi-coral focus:outline-none text-sm font-semibold text-flandi-dark"
+              />
+            </div>
           </div>
-        </div>
 
         {/* Product Grid */}
         {loading ? (
@@ -728,83 +749,55 @@ export default function FlandiLandingPage() {
           </div>
         )}
       </section>
+      )}
 
       {/* Why FLANDI & Original Menu Poster Section */}
+      {pageConfig.showStorySection && (
       <section
         id="story"
         className="relative z-10 py-14 px-4 sm:px-6 max-w-6xl mx-auto"
       >
         <div className="bg-white/90 rounded-[2.5rem] border-2 border-flandi-pink p-6 sm:p-10 shadow-cute grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-7 space-y-5">
+          <div className={`${pageConfig.showStoryPosterPreview ? "lg:col-span-7" : "lg:col-span-12"} space-y-5`}>
             <span className="inline-block px-3.5 py-1 rounded-full bg-flandi-pink/60 text-flandi-coral text-xs font-extrabold">
-              CÂU CHUYỆN BẾP NHÀ FLANDI
+              {pageConfig.storyBadgeText}
             </span>
             <h2 className="font-display text-3xl sm:text-4xl text-sticker">
-              Ngọt Dịu Tự Nhiên — Làm Mới Mỗi Sáng
+              {pageConfig.storyTitle}
             </h2>
             <p className="text-flandi-dark/85 text-sm sm:text-base font-medium leading-relaxed">
-              Tại <strong>FLANDI</strong>, mỗi hũ bánh Flan, Panna Cotta, Tàu Hũ Singapore hay từng chiếc lá Rau Câu đều được tụi mình tự tay chuẩn bị mỗi sáng sớm. Công thức giảm ngọt vừa vặn để bạn ăn hoài không ngán!
+              {pageConfig.storyDescription}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-flandi-salmon/20 text-flandi-coral flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-extrabold text-sm text-flandi-dark">
-                    100% Nguyên Liệu Tươi
-                  </h4>
-                  <p className="text-xs text-flandi-muted font-medium mt-0.5">
-                    Trứng gà ta, sữa tươi, nước dừa xiêm, lá dứa tươi & trái cây thật.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-flandi-salmon/20 text-flandi-coral flex items-center justify-center shrink-0">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-extrabold text-sm text-flandi-dark">
-                    Giữ Lạnh Chuẩn Vị Khi Giao
-                  </h4>
-                  <p className="text-xs text-flandi-muted font-medium mt-0.5">
-                    Đóng gói cẩn thận kèm đá gel giữ lạnh để bánh luôn mát mịn.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-flandi-salmon/20 text-flandi-coral flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-extrabold text-sm text-flandi-dark">
-                    Không Chất Bảo Quản
-                  </h4>
-                  <p className="text-xs text-flandi-muted font-medium mt-0.5">
-                    Mẻ bánh làm mới trong ngày, an toàn cho cả bé nhỏ & gia đình.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-flandi-salmon/20 text-flandi-coral flex items-center justify-center shrink-0">
-                  <Heart className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-extrabold text-sm text-flandi-dark">
-                    Nhận Đặt Tiệc & Liên Hoan
-                  </h4>
-                  <p className="text-xs text-flandi-muted font-medium mt-0.5">
-                    Ưu đãi hấp dẫn cho đơn đặt tiệc sinh nhật, họp mặt, trà chiều công ty.
-                  </p>
-                </div>
-              </div>
+              {pageConfig.storyFeatures
+                .filter((feat) => feat.enabled)
+                .map((feat, idx) => {
+                  const icons = [Sparkles, Truck, ShieldCheck, Heart];
+                  const IconComp = icons[idx % icons.length];
+                  return (
+                    <div
+                      key={feat.id}
+                      className="p-4 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-start gap-3"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-flandi-salmon/20 text-flandi-coral flex items-center justify-center shrink-0">
+                        <IconComp className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-sm text-flandi-dark">
+                          {feat.title}
+                        </h4>
+                        <p className="text-xs text-flandi-muted font-medium mt-0.5">
+                          {feat.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </div>
 
+          {pageConfig.showStoryPosterPreview && (
           <div className="lg:col-span-5 flex flex-col items-center w-full">
             <div className="w-full max-w-md relative group">
               <MenuPoster
@@ -813,6 +806,7 @@ export default function FlandiLandingPage() {
                 compact
                 onSelectProduct={(p) => handleAddToCart(p)}
               />
+              {pageConfig.showMenuPosterButton && (
               <div className="mt-3 text-center">
                 <button
                   type="button"
@@ -823,10 +817,13 @@ export default function FlandiLandingPage() {
                   <span>Phóng to Menu Poster</span>
                 </button>
               </div>
+              )}
             </div>
           </div>
+          )}
         </div>
       </section>
+      )}
 
       {/* Footer / Contact */}
       <footer
@@ -836,13 +833,13 @@ export default function FlandiLandingPage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-3">
             <span className="font-display text-3xl text-sticker-sm block">
-              FLANDI
+              {settings?.shopName || "FLANDI"}
             </span>
             <p className="text-sm font-bold text-flandi-coral">
-              “Muốn ăn hãy Flăn vào tớ”
+              “{settings?.tagline || "Muốn ăn hãy Flăn vào tớ"}”
             </p>
             <p className="text-xs text-flandi-muted font-medium leading-relaxed">
-              Tiệm bánh Flan, Panna Cotta, Rau câu dừa, Rau câu lá, Tàu hũ Singapore & Sữa chua nhà làm.
+              {pageConfig.footerDescription}
             </p>
           </div>
 
@@ -864,6 +861,7 @@ export default function FlandiLandingPage() {
             </p>
           </div>
 
+          {pageConfig.showOwnerLinks && (
           <div className="space-y-3">
             <h4 className="font-extrabold text-flandi-dark uppercase tracking-wider text-xs">
               Dành Cho Chủ Tiệm
@@ -894,6 +892,7 @@ export default function FlandiLandingPage() {
               </Link>
             </div>
           </div>
+          )}
         </div>
       </footer>
 

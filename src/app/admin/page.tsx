@@ -34,6 +34,7 @@ import {
   Palette,
   MessageCircle,
   Send,
+  Layout,
 } from "lucide-react";
 import {
   Product,
@@ -48,6 +49,7 @@ import {
   ChatSession,
 } from "@/lib/types";
 import BrandingStudio from "@/components/BrandingStudio";
+import PageManager from "@/components/PageManager";
 
 type AdminTab =
   | "POS"
@@ -55,6 +57,7 @@ type AdminTab =
   | "CHAT"
   | "PRODUCTS"
   | "INVENTORY"
+  | "PAGE_CMS"
   | "BRANDING"
   | "ANALYTICS";
 
@@ -602,6 +605,18 @@ export default function FlandiAdminPage() {
                 {lowStockCount} sắp hết
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("PAGE_CMS")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
+              activeTab === "PAGE_CMS"
+                ? "bg-flandi-coral text-white shadow-sm"
+                : "text-flandi-dark hover:bg-flandi-cream"
+            }`}
+          >
+            <Layout className="w-4 h-4" />
+            <span>Quản Lý Trang</span>
           </button>
 
           <button
@@ -1915,6 +1930,35 @@ export default function FlandiAdminPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ==================== TAB: PAGE MANAGEMENT CMS ==================== */}
+        {activeTab === "PAGE_CMS" && settings && (
+          <PageManager
+            products={products}
+            settings={settings}
+            notify={notify}
+            onSaveSettings={async (nextSettings) => {
+              const res = await fetch("/api/store", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ settings: nextSettings }),
+              });
+              if (res.ok) {
+                await fetchAll();
+              }
+            }}
+            onUpdateProductImage={async (product, newImageUrl) => {
+              const res = await fetch("/api/products", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...product, image: newImageUrl }),
+              });
+              if (res.ok) {
+                await fetchAll();
+              }
+            }}
+          />
         )}
 
         {/* ==================== TAB 6: BRANDING STUDIO FULL HD ==================== */}

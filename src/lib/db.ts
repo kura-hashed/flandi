@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit } from "./types";
+import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit, PageConfig } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "store.json");
@@ -64,6 +64,122 @@ export const DEFAULT_BRAND_KIT: BrandKit = {
       name: "Cocoa Brown (Văn bản)",
       hex: "#4A2E2B",
       usage: "Chữ nội dung chính dễ đọc, ấm áp hơn màu đen thuần",
+    },
+  ],
+};
+
+export const DEFAULT_PAGE_CONFIG: PageConfig = {
+  showAnnouncementBar: true,
+  showHeroSection: true,
+  showHeroCollage: true,
+  showMenuPosterButton: true,
+  showMenuSection: true,
+  showStorySection: true,
+  showStoryPosterPreview: true,
+  showFloatingZalo: true,
+  showFloatingMessenger: true,
+  showOwnerLinks: true,
+
+  headerLogoUrl: "/images/branding/flandi-mascot.png",
+  heroBadgeText: "Tiệm Tráng Miệng Thủ Công Tươi Mới Mỗi Ngày",
+  heroTitle: "FLANDI",
+  heroSubtitle: "Muốn ăn hãy Flăn vào tớ",
+  heroDescription:
+    "Từ những chiếc Bánh Flan trứng sữa mềm mịn, Panna Cotta sốt trái cây tươi chua ngọt, đến Rau Câu Dừa Nhân Flan, Rau Câu Lá, Tàu Hũ Singapore & Yogurt nhà làm béo thanh!",
+  heroPrimaryCtaText: "Flăn vào chọn món ngay",
+  heroSecondaryCtaText: "Menu Poster",
+  heroCollageTitle: "Menu Nhà FLANDI",
+  heroCollageSubtitle: "Chạm vào món bất kỳ để thêm nhanh vào giỏ bánh!",
+
+  menuTitle: "Thực Đơn Ngọt Ngào",
+  menuSubtitle:
+    "Chọn vị yêu thích, đặt theo cái lẻ hoặc theo chục/hộp siêu tiết kiệm!",
+  menuSearchPlaceholder: "Tìm Flan, Panna Cotta, Rau câu...",
+
+  storyBadgeText: "CÂU CHUYỆN BẾP NHÀ FLANDI",
+  storyTitle: "Ngọt Dịu Tự Nhiên — Làm Mới Mỗi Sáng",
+  storyDescription:
+    "Tại FLANDI, mỗi hũ bánh Flan, Panna Cotta, Tàu Hũ Singapore hay từng chiếc lá Rau Câu đều được tụi mình tự tay chuẩn bị mỗi sáng sớm. Công thức giảm ngọt vừa vặn để bạn ăn hoài không ngán!",
+  storyFeatures: [
+    {
+      id: "feat-1",
+      icon: "SPARKLES",
+      title: "100% Nguyên Liệu Tươi",
+      description:
+        "Trứng gà ta, sữa tươi, nước dừa xiêm, lá dứa tươi & trái cây thật.",
+      enabled: true,
+    },
+    {
+      id: "feat-2",
+      icon: "TRUCK",
+      title: "Giữ Lạnh Chuẩn Vị Khi Giao",
+      description:
+        "Đóng gói cẩn thận kèm đá gel giữ lạnh để bánh luôn mát mịn.",
+      enabled: true,
+    },
+    {
+      id: "feat-3",
+      icon: "SHIELD",
+      title: "Không Chất Bảo Quản",
+      description:
+        "Mẻ bánh làm mới trong ngày, an toàn cho cả bé nhỏ & gia đình.",
+      enabled: true,
+    },
+    {
+      id: "feat-4",
+      icon: "HEART",
+      title: "Nhận Đặt Tiệc & Liên Hoan",
+      description:
+        "Ưu đãi hấp dẫn cho đơn đặt tiệc sinh nhật, họp mặt, trà chiều công ty.",
+      enabled: true,
+    },
+  ],
+
+  footerDescription:
+    "Tiệm bánh Flan, Panna Cotta, Rau câu dừa, Rau câu lá, Tàu hũ Singapore & Sữa chua nhà làm.",
+
+  resources: [
+    {
+      id: "res-mascot",
+      name: "Logo Mascot FLANDI (1080p)",
+      url: "/images/branding/flandi-mascot.png",
+      category: "LOGO",
+    },
+    {
+      id: "res-flan",
+      name: "Ảnh Bánh Flan Truyền Thống",
+      url: "/images/products/flan.png",
+      category: "PRODUCT",
+    },
+    {
+      id: "res-pc",
+      name: "Ảnh Panna Cotta Trái Cây",
+      url: "/images/products/panna-cotta.png",
+      category: "PRODUCT",
+    },
+    {
+      id: "res-rcd",
+      name: "Ảnh Rau Câu Dừa (Flan)",
+      url: "/images/products/rau-cau-dua.png",
+      category: "PRODUCT",
+    },
+    {
+      id: "res-rcl",
+      name: "Ảnh Rau Câu Lá Dứa Cà Phê",
+      url: "/images/products/rau-cau-la.png",
+      category: "PRODUCT",
+    },
+    {
+      id: "res-th",
+      name: "Ảnh Tàu Hũ Singapore",
+      url: "/images/products/tau-hu-singapore.png",
+      category: "PRODUCT",
+    },
+    {
+      id: "res-yg",
+      name: "Ảnh Sữa Chua Nhà Làm (Yogurt)",
+      url: "/images/products/yogurt.png",
+      category: "PRODUCT",
     },
   ],
 };
@@ -587,6 +703,7 @@ const INITIAL_DB: StoreDatabase = {
     defaultShippingFee: 15000,
     announcement: "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!",
     brandKit: DEFAULT_BRAND_KIT,
+    pageConfig: DEFAULT_PAGE_CONFIG,
   },
   chats: [
     {
@@ -626,6 +743,9 @@ export function readDb(): StoreDatabase {
     const parsed = JSON.parse(raw) as StoreDatabase;
     if (!parsed.settings.brandKit) {
       parsed.settings.brandKit = DEFAULT_BRAND_KIT;
+    }
+    if (!parsed.settings.pageConfig) {
+      parsed.settings.pageConfig = DEFAULT_PAGE_CONFIG;
     }
     if (!parsed.chats) {
       parsed.chats = INITIAL_DB.chats;

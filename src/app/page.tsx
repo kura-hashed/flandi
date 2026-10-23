@@ -1266,7 +1266,7 @@ export default function FlandiLandingPage() {
               </a>
 
               <a
-                href={settings?.facebookUrl || "https://m.me/flandi.dessert"}
+                href={settings?.facebookUrl || "https://www.facebook.com/tiem.flandi"}
                 target="_blank"
                 rel="noreferrer"
                 className="py-2.5 px-3 rounded-full bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5"
@@ -1311,7 +1311,7 @@ export default function FlandiLandingPage() {
 
         {/* Facebook Messenger Floating Button */}
         <a
-          href={settings?.facebookUrl || "https://m.me/flandi.dessert"}
+          href={settings?.facebookUrl || "https://www.facebook.com/tiem.flandi"}
           target="_blank"
           rel="noreferrer"
           aria-label="Nhắn tin qua Facebook Messenger"

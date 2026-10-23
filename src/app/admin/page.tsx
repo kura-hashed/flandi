@@ -1817,7 +1817,7 @@ export default function FlandiAdminPage() {
                             facebookUrl: e.target.value,
                           })
                         }
-                        placeholder="https://m.me/flandi.dessert"
+                        placeholder="https://www.facebook.com/tiem.flandi"
                         className="w-full px-3 py-2 rounded-xl border border-flandi-pink font-bold"
                       />
                     </div>

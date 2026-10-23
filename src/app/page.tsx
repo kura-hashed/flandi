@@ -308,17 +308,20 @@ export default function FlandiLandingPage() {
           <a href="#" className="flex items-center gap-3 group">
             <div className="w-12 h-12 rounded-full bg-flandi-salmon/20 border-2 border-flandi-salmon flex items-center justify-center shadow-sm overflow-hidden group-hover:scale-105 transition">
               <img
-                src="/images/products/flan.png"
+                src={
+                  settings?.brandKit?.mascotImage ||
+                  "/images/branding/flandi-mascot.png"
+                }
                 alt="FLANDI"
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
               <span className="font-display text-2xl sm:text-3xl tracking-wider text-sticker-sm block leading-none">
-                FLANDI
+                {settings?.shopName || "FLANDI"}
               </span>
               <span className="text-xs font-bold text-flandi-coral block mt-1">
-                Muốn ăn hãy Flăn vào tớ
+                {settings?.tagline || "Muốn ăn hãy Flăn vào tớ"}
               </span>
             </div>
           </a>

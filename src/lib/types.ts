@@ -85,6 +85,36 @@ export interface Order {
   createdAt: string;
 }
 
+export interface BrandColor {
+  id: string;
+  name: string;
+  hex: string;
+  usage: string;
+}
+
+export interface BrandKit {
+  brandName: string;
+  tagline: string;
+  subTagline: string;
+  brandStory: string;
+  logoStyle: "ARCHED_STICKER" | "MASCOT_EMBLEM" | "MINIMAL_STAMP";
+  mascotImage: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  bgColor: string;
+  darkColor: string;
+  headingFont: string;
+  bodyFont: string;
+  stickerNote: string;
+  thankYouTitle: string;
+  thankYouMessage: string;
+  storageInstruction: string;
+  promoHeadline: string;
+  promoSubheadline: string;
+  colors: BrandColor[];
+}
+
 export interface ShopSettings {
   shopName: string;
   tagline: string;
@@ -100,6 +130,7 @@ export interface ShopSettings {
   freeShipMinimum: number;
   defaultShippingFee: number;
   announcement: string;
+  brandKit?: BrandKit;
 }
 
 export interface StoreDatabase {

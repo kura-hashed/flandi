@@ -31,6 +31,7 @@ import {
   History,
   Check,
   ChefHat,
+  Palette,
 } from "lucide-react";
 import {
   Product,
@@ -43,8 +44,15 @@ import {
   StockLog,
   ShopSettings,
 } from "@/lib/types";
+import BrandingStudio from "@/components/BrandingStudio";
 
-type AdminTab = "POS" | "ORDERS" | "PRODUCTS" | "INVENTORY" | "ANALYTICS";
+type AdminTab =
+  | "POS"
+  | "ORDERS"
+  | "PRODUCTS"
+  | "INVENTORY"
+  | "BRANDING"
+  | "ANALYTICS";
 
 interface PosCartItem {
   product: Product;
@@ -503,7 +511,10 @@ export default function FlandiAdminPage() {
           </Link>
           <div className="flex items-center gap-2.5">
             <img
-              src="/images/products/flan.png"
+              src={
+                settings?.brandKit?.mascotImage ||
+                "/images/branding/flandi-mascot.png"
+              }
               alt="FLANDI"
               className="w-9 h-9 rounded-full object-cover border-2 border-flandi-salmon"
             />
@@ -576,6 +587,18 @@ export default function FlandiAdminPage() {
                 {lowStockCount} sắp hết
               </span>
             )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("BRANDING")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
+              activeTab === "BRANDING"
+                ? "bg-flandi-coral text-white shadow-sm"
+                : "text-flandi-dark hover:bg-flandi-cream"
+            }`}
+          >
+            <Palette className="w-4 h-4" />
+            <span>Bộ Nhận Diện HD</span>
           </button>
 
           <button
@@ -1870,6 +1893,25 @@ export default function FlandiAdminPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ==================== TAB 6: BRANDING STUDIO FULL HD ==================== */}
+        {activeTab === "BRANDING" && settings && (
+          <BrandingStudio
+            products={products}
+            settings={settings}
+            notify={notify}
+            onUpdateSettings={async (nextSettings) => {
+              const res = await fetch("/api/store", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ settings: nextSettings }),
+              });
+              if (res.ok) {
+                await fetchAll();
+              }
+            }}
+          />
         )}
       </main>
 

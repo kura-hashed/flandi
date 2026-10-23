@@ -1,9 +1,72 @@
 import fs from "fs";
 import path from "path";
-import { StoreDatabase, Product, IngredientItem, Order, StockLog } from "./types";
+import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "store.json");
+
+export const DEFAULT_BRAND_KIT: BrandKit = {
+  brandName: "FLANDI",
+  tagline: "Muốn ăn hãy Flăn vào tớ",
+  subTagline: "Tiệm Tráng Miệng Thủ Công Tươi Mới Mỗi Ngày",
+  brandStory:
+    "FLANDI mang đến những mẻ bánh Flan trứng sữa, Panna Cotta trái cây tươi, Rau câu dừa nhân Flan, Rau câu lá dứa cà phê, Tàu hũ Singapore và Yogurt nhà làm ngọt dịu tự nhiên mỗi sáng.",
+  logoStyle: "MASCOT_EMBLEM",
+  mascotImage: "/images/branding/flandi-mascot.png",
+  primaryColor: "#E86F5F",
+  secondaryColor: "#F48B7E",
+  accentColor: "#FFD6D1",
+  bgColor: "#FFF9F8",
+  darkColor: "#4A2E2B",
+  headingFont: "Coiny (Display Sticker)",
+  bodyFont: "Quicksand (Rounded Sans)",
+  stickerNote: "100% Làm Mới Mỗi Sáng • Không Chất Bảo Quản",
+  thankYouTitle: "Cảm ơn bạn đã “Flăn” vào FLANDI ♥",
+  thankYouMessage:
+    "Mỗi chiếc bánh đều được bếp nhà FLANDI chuẩn bị tỉ mỉ với nguyên liệu tươi mới trong ngày. Chúc bạn có một bữa tráng miệng ngọt ngào và mát lành nha!",
+  storageInstruction:
+    "Bảo quản ngăn mát tủ lạnh (2°C – 6°C) ngay khi nhận bánh. Ngon nhất khi dùng trong vòng 2 – 3 ngày.",
+  promoHeadline: "MẺ BÁNH MỚI RA LÒ MỖI SÁNG!",
+  promoSubheadline: "Freeship đơn từ 150k • Đặt nhanh qua Zalo 0366053058",
+  colors: [
+    {
+      id: "col-coral",
+      name: "Flandi Coral (Chủ đạo)",
+      hex: "#E86F5F",
+      usage: "Viền chữ Sticker, Nút kêu gọi hành động (CTA), Điểm nhấn chính",
+    },
+    {
+      id: "col-salmon",
+      name: "Pastel Salmon (Màu thương hiệu)",
+      hex: "#F48B7E",
+      usage: "Khung tròn sản phẩm, Nhãn giá tròn, Badge nổi bật",
+    },
+    {
+      id: "col-pink",
+      name: "Soft Blush Pink (Màu bổ trợ)",
+      hex: "#FFD6D1",
+      usage: "Viền thẻ bài, Mảng màu nước trang trí, Tag phân loại",
+    },
+    {
+      id: "col-cream",
+      name: "Cream Grid (Nền đặc trưng)",
+      hex: "#FFF9F8",
+      usage: "Nền giấy kẻ ô vuông nhẹ nhàng tạo cảm giác tiệm bánh thủ công",
+    },
+    {
+      id: "col-caramel",
+      name: "Caramel Amber (Sốt bánh Flan)",
+      hex: "#D97724",
+      usage: "Chi tiết minh hoạ caramel, Nhãn Best Seller",
+    },
+    {
+      id: "col-dark",
+      name: "Cocoa Brown (Văn bản)",
+      hex: "#4A2E2B",
+      usage: "Chữ nội dung chính dễ đọc, ấm áp hơn màu đen thuần",
+    },
+  ],
+};
 
 const INITIAL_PRODUCTS: Product[] = [
   {
@@ -523,6 +586,7 @@ const INITIAL_DB: StoreDatabase = {
     freeShipMinimum: 150000,
     defaultShippingFee: 15000,
     announcement: "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!",
+    brandKit: DEFAULT_BRAND_KIT,
   },
 };
 
@@ -537,6 +601,9 @@ export function readDb(): StoreDatabase {
     }
     const raw = fs.readFileSync(DB_PATH, "utf-8");
     const parsed = JSON.parse(raw) as StoreDatabase;
+    if (!parsed.settings.brandKit) {
+      parsed.settings.brandKit = DEFAULT_BRAND_KIT;
+    }
     return parsed;
   } catch (err) {
     console.error("Failed to read DB, returning initial DB:", err);

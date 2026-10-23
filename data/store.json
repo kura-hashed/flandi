@@ -6,10 +6,10 @@
       "subtitle": "Bánh Flan Trứng Sữa Caramel Mềm Mịn",
       "category": "Flan & Pudding",
       "description": "Bánh flan truyền thống làm từ trứng gà tươi, sữa kem béo ngậy và lớp sốt caramel đắng nhẹ thơm lừng. Mềm mịn tan ngay trong miệng!",
-      "price": 60000,
+      "price": 6000,
       "costPrice": 3500,
-      "unit": "chục",
-      "badgeText": "60k / chục",
+      "unit": "cái",
+      "badgeText": "6k / cái",
       "image": "/images/products/flan.png",
       "stock": 100,
       "stockUnit": "cái",
@@ -18,25 +18,25 @@
       "isBestSeller": true,
       "variants": [
         {
+          "id": "var-flan-1",
+          "name": "Lẻ 1 cái",
+          "price": 6000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-flan-5",
+          "name": "Set 5 cái",
+          "price": 30000,
+          "unitLabel": "set 5",
+          "stockDeduction": 5
+        },
+        {
           "id": "var-flan-10",
           "name": "1 Chục (10 cái)",
           "price": 60000,
           "unitLabel": "chục",
           "stockDeduction": 10
-        },
-        {
-          "id": "var-flan-5",
-          "name": "Set 5 cái",
-          "price": 32000,
-          "unitLabel": "set 5",
-          "stockDeduction": 5
-        },
-        {
-          "id": "var-flan-1",
-          "name": "Lẻ 1 cái",
-          "price": 6500,
-          "unitLabel": "cái",
-          "stockDeduction": 1
         }
       ]
     },
@@ -99,45 +99,45 @@
       "name": "Rau Câu Dừa (Flan)",
       "subtitle": "Rau Câu Nước Dừa Tươi & Nhân Bánh Flan",
       "category": "Rau Câu",
-      "description": "Rau câu nấu từ 100% nước dừa xiêm ngọt mát với lớp cốt dừa béo phía trên. Có 2 lựa chọn: Rau câu dừa nhân bánh Flan (80k/chục) hoặc Rau câu dừa truyền thống (60k/chục).",
-      "price": 60000,
+      "description": "Rau câu nấu từ 100% nước dừa xiêm ngọt mát với lớp cốt dừa béo phía trên. Có 2 lựa chọn: Rau câu dừa truyền thống (6k/cái) hoặc Rau câu dừa nhân bánh Flan (8k/cái).",
+      "price": 6000,
       "costPrice": 4200,
-      "unit": "chục",
-      "badgeText": "60k / chục",
+      "unit": "cái",
+      "badgeText": "6k / cái",
       "image": "/images/products/rau-cau-dua.png",
       "stock": 80,
-      "stockUnit": "hũ",
+      "stockUnit": "cái",
       "lowStockThreshold": 20,
       "isActive": true,
       "isBestSeller": true,
       "variants": [
         {
-          "id": "var-rcd-flan-10",
-          "name": "Nhân Flan — 1 Chục (10 hũ)",
-          "price": 80000,
-          "unitLabel": "chục",
-          "stockDeduction": 10
+          "id": "var-rcd-plain-1",
+          "name": "Truyền Thống — 1 cái",
+          "price": 6000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-rcd-flan-1",
+          "name": "Nhân Flan — 1 cái",
+          "price": 8000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
         },
         {
           "id": "var-rcd-plain-10",
-          "name": "Truyền Thống — 1 Chục (10 hũ)",
+          "name": "Truyền Thống — 1 Chục (10 cái)",
           "price": 60000,
           "unitLabel": "chục",
           "stockDeduction": 10
         },
         {
-          "id": "var-rcd-flan-5",
-          "name": "Nhân Flan — Nửa Chục (5 hũ)",
-          "price": 42000,
-          "unitLabel": "set 5",
-          "stockDeduction": 5
-        },
-        {
-          "id": "var-rcd-plain-5",
-          "name": "Truyền Thống — Nửa Chục (5 hũ)",
-          "price": 32000,
-          "unitLabel": "set 5",
-          "stockDeduction": 5
+          "id": "var-rcd-flan-10",
+          "name": "Nhân Flan — 1 Chục (10 cái)",
+          "price": 80000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
         }
       ]
     },
@@ -149,34 +149,34 @@
       "description": "Những chiếc lá rau câu giòn sần sật, đổ nhiều lớp tỉ mỉ từ nước cốt lá dứa tươi tự nhiên, cốt dừa béo ngậy và cà phê thơm lừng.",
       "price": 40000,
       "costPrice": 22000,
-      "unit": "hộp",
-      "badgeText": "40k / hộp",
+      "unit": "chục",
+      "badgeText": "40k / chục",
       "image": "/images/products/rau-cau-la.png",
       "stock": 18,
-      "stockUnit": "hộp",
+      "stockUnit": "chục",
       "lowStockThreshold": 5,
       "isActive": true,
       "isBestSeller": false,
       "variants": [
         {
           "id": "var-rcl-box",
-          "name": "Hộp Mix Lá Dứa & Cà Phê",
+          "name": "1 Chục Mix Lá Dứa & Cà Phê",
           "price": 40000,
-          "unitLabel": "hộp",
+          "unitLabel": "chục",
           "stockDeduction": 1
         },
         {
           "id": "var-rcl-pandan",
-          "name": "Hộp Chuyên Lá Dứa Cốt Dừa",
+          "name": "1 Chục Chuyên Lá Dứa Cốt Dừa",
           "price": 40000,
-          "unitLabel": "hộp",
+          "unitLabel": "chục",
           "stockDeduction": 1
         },
         {
           "id": "var-rcl-combo2",
-          "name": "Combo 2 Hộp Tiết Kiệm",
+          "name": "Combo 2 Chục Tiết Kiệm",
           "price": 76000,
-          "unitLabel": "2 hộp",
+          "unitLabel": "2 chục",
           "stockDeduction": 2
         }
       ]
@@ -227,37 +227,37 @@
       "subtitle": "Sữa Chua Nhà Làm Dẻo Mịn Chuẩn Vị",
       "category": "Tàu Hũ & Yogurt",
       "description": "Sữa chua ủ men tự nhiên theo công thức nhà Flandi, chất sánh dẻo mịn không bị dăm đá, chua dịu ngọt thanh tốt cho tiêu hoá.",
-      "price": 50000,
+      "price": 5000,
       "costPrice": 2800,
-      "unit": "chục",
-      "badgeText": "50k / chục",
+      "unit": "cái",
+      "badgeText": "5k / cái",
       "image": "/images/products/yogurt.png",
       "stock": 90,
-      "stockUnit": "hũ",
+      "stockUnit": "cái",
       "lowStockThreshold": 20,
       "isActive": true,
       "isBestSeller": false,
       "variants": [
         {
-          "id": "var-yg-10",
-          "name": "1 Chục (10 hũ)",
-          "price": 50000,
-          "unitLabel": "chục",
-          "stockDeduction": 10
+          "id": "var-yg-1",
+          "name": "Lẻ 1 cái",
+          "price": 5000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
         },
         {
           "id": "var-yg-5",
-          "name": "Set 5 hũ",
-          "price": 26000,
+          "name": "Set 5 cái",
+          "price": 25000,
           "unitLabel": "set 5",
           "stockDeduction": 5
         },
         {
-          "id": "var-yg-1",
-          "name": "Lẻ 1 hũ",
-          "price": 5500,
-          "unitLabel": "hũ",
-          "stockDeduction": 1
+          "id": "var-yg-10",
+          "name": "1 Chục (10 cái)",
+          "price": 50000,
+          "unitLabel": "chục",
+          "stockDeduction": 10
         }
       ]
     }

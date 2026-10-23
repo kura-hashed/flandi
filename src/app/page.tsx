@@ -862,13 +862,22 @@ export default function FlandiLandingPage() {
             <p className="text-xs text-flandi-muted font-medium">
               Truy cập hệ thống POS bán hàng tại quầy, quản lý thực đơn, kiểm kho mẻ bánh và báo cáo doanh thu.
             </p>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs transition"
-            >
-              <Store className="w-4 h-4" />
-              <span>Mở Trang Quản Trị & POS</span>
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs transition"
+              >
+                <Store className="w-4 h-4" />
+                <span>Mở Trang Quản Trị & POS</span>
+              </Link>
+              <Link
+                href="/branding"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white hover:bg-flandi-cream text-flandi-dark border border-flandi-pink font-extrabold text-xs transition"
+              >
+                <Sparkles className="w-4 h-4 text-flandi-coral" />
+                <span>Bộ Nhận Diện HD</span>
+              </Link>
+            </div>
           </div>
         </div>
       </footer>

@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --flandi-bg: #fff9f8;
+  --flandi-salmon: #f48b7e;
+  --flandi-coral: #e86f5f;
+}
+
+body {
+  background-color: #fff9f8;
+  color: #4a2e2b;
+  font-family: var(--font-quicksand), sans-serif;
+}
+
+/* Cute pastel grid background inspired by the FLANDI menu */
+.bg-flandi-grid {
+  background-color: #fff9f8;
+  background-image:
+    linear-gradient(to right, rgba(244, 139, 126, 0.11) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(244, 139, 126, 0.11) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* White bubbly text with thick coral/salmon sticker outline */
+.text-sticker {
+  color: #ffffff;
+  -webkit-text-stroke: 6px #e86f5f;
+  paint-order: stroke fill;
+  text-shadow: 0 4px 10px rgba(232, 111, 95, 0.25);
+}
+
+.text-sticker-lg {
+  color: #ffffff;
+  -webkit-text-stroke: 9px #e86f5f;
+  paint-order: stroke fill;
+  text-shadow: 0 6px 16px rgba(232, 111, 95, 0.28);
+}
+
+.text-sticker-sm {
+  color: #ffffff;
+  -webkit-text-stroke: 4.5px #e86f5f;
+  paint-order: stroke fill;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #fff3f0;
+}
+::-webkit-scrollbar-thumb {
+  background: #f9b5ac;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #f48b7e;
+}
+
+/* Print styles for thermal POS receipt */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-receipt,
+  #printable-receipt * {
+    visibility: visible;
+  }
+  #printable-receipt {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 320px;
+    margin: 0;
+    padding: 12px;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+}

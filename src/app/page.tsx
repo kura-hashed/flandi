@@ -1045,7 +1045,7 @@ export default function FlandiLandingPage() {
                           required
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value)}
-                          placeholder="0909 xxx xxx"
+                          placeholder="0366 053 058"
                           className="w-full px-3 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
                         />
                       </div>

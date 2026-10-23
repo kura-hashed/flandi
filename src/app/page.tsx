@@ -26,6 +26,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { Product, ProductVariant, Order, ShopSettings } from "@/lib/types";
+import MenuPoster from "@/components/MenuPoster";
 
 interface CartItem {
   product: Product;
@@ -331,7 +332,7 @@ export default function FlandiLandingPage() {
               className="hover:text-flandi-coral transition flex items-center gap-1.5"
             >
               <ImageIcon className="w-4 h-4 text-flandi-coral" />
-              Menu Poster Gốc
+              Menu Poster
             </button>
             <a href="#story" className="hover:text-flandi-coral transition">
               Điểm Khác Biệt
@@ -433,7 +434,7 @@ export default function FlandiLandingPage() {
                 className="px-6 py-3.5 rounded-full bg-white hover:bg-flandi-cream text-flandi-coral border-2 border-flandi-salmon font-bold text-base shadow-sm flex items-center gap-2 transition"
               >
                 <ImageIcon className="w-5 h-5" />
-                <span>Xem Menu Gốc</span>
+                <span>Menu Poster</span>
               </button>
             </div>
           </div>
@@ -792,20 +793,23 @@ export default function FlandiLandingPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-5 flex flex-col items-center">
-            <div
-              onClick={() => setShowPosterModal(true)}
-              className="cursor-pointer group relative rounded-3xl overflow-hidden border-4 border-flandi-salmon shadow-cute-lg max-w-xs"
-            >
-              <img
-                src="/images/menu-original.png"
-                alt="Menu Gốc FLANDI"
-                className="w-full h-auto group-hover:scale-103 transition duration-300"
+          <div className="lg:col-span-5 flex flex-col items-center w-full">
+            <div className="w-full max-w-md relative group">
+              <MenuPoster
+                products={products}
+                settings={settings}
+                compact
+                onSelectProduct={(p) => handleAddToCart(p)}
               />
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                <span className="px-4 py-2 rounded-full bg-white text-flandi-coral font-extrabold text-xs shadow">
-                  Phóng to Menu Gốc
-                </span>
+              <div className="mt-3 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowPosterModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs shadow-xs transition"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Phóng to Menu Poster</span>
+                </button>
               </div>
             </div>
           </div>
@@ -866,27 +870,32 @@ export default function FlandiLandingPage() {
         </div>
       </footer>
 
-      {/* Poster Lightbox Modal */}
+      {/* Responsive Coded Menu Poster Lightbox Modal */}
       {showPosterModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
           onClick={() => setShowPosterModal(false)}
         >
           <div
-            className="relative max-w-md w-full bg-white rounded-3xl p-3 shadow-2xl"
+            className="relative max-w-2xl w-full my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowPosterModal(false)}
-              className="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-flandi-coral text-white flex items-center justify-center shadow-lg"
+              aria-label="Đóng Menu Poster"
+              className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 z-30 w-10 h-10 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-lg border-2 border-white transition"
             >
               <X className="w-5 h-5" />
             </button>
-            <img
-              src="/images/menu-original.png"
-              alt="FLANDI Menu"
-              className="w-full h-auto rounded-2xl"
-            />
+            <div className="max-h-[90vh] overflow-y-auto rounded-[2rem] sm:rounded-[2.5rem]">
+              <MenuPoster
+                products={products}
+                settings={settings}
+                onSelectProduct={(p) => {
+                  handleAddToCart(p);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

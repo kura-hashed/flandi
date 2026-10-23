@@ -1777,7 +1777,7 @@ export default function FlandiAdminPage() {
                         onChange={(e) =>
                           setSettings({ ...settings, zaloPhone: e.target.value })
                         }
-                        placeholder="0909686868"
+                        placeholder="0366053058"
                         className="w-full px-3 py-2 rounded-xl border border-flandi-pink font-bold"
                       />
                     </div>
@@ -2369,7 +2369,7 @@ export default function FlandiAdminPage() {
                   “{settings?.tagline || "Muốn ăn hãy Flăn vào tớ"}”
                 </p>
                 <p className="text-[10px] text-gray-600">
-                  SĐT/Zalo: {settings?.phone || "0909 686 868"}
+                  SĐT/Zalo: {settings?.phone || "0366053058"}
                 </p>
               </div>
 

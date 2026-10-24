@@ -660,14 +660,14 @@ export default function QuickSingleScreenOrderPage() {
                     cartItems.map((item) => (
                       <div
                         key={item.product.id}
-                        className="p-2 sm:p-2.5 rounded-xl bg-flandi-bg border border-flandi-pink flex items-center justify-between gap-3 shadow-2xs"
+                        className="py-1.5 px-3 rounded-xl bg-flandi-bg border border-flandi-pink/70 flex items-center justify-between gap-2 shadow-2xs"
                       >
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-black text-flandi-dark truncate">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          <span className="text-xs font-black text-flandi-dark truncate">
                             {item.product.name}
-                          </h4>
-                          <span className="text-[11px] font-bold text-flandi-muted">
-                            {formatVND(item.product.price)} / {item.product.unit || "cái"}
+                          </span>
+                          <span className="text-[11px] font-bold text-flandi-muted shrink-0">
+                            ({formatVND(item.product.price)})
                           </span>
                         </div>
 
@@ -983,12 +983,12 @@ export default function QuickSingleScreenOrderPage() {
                           key={item.product.id}
                           className="bg-white rounded-xl py-1.5 px-2.5 border border-flandi-pink/60 flex items-center justify-between gap-2 shadow-2xs"
                         >
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-black text-flandi-dark truncate">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <span className="text-xs font-black text-flandi-dark truncate">
                               {item.product.name}
-                            </h4>
-                            <span className="text-[10px] font-bold text-flandi-muted">
-                              {formatVND(item.product.price)} / {item.product.unit || "cái"}
+                            </span>
+                            <span className="text-[10px] font-bold text-flandi-muted shrink-0">
+                              ({formatVND(item.product.price)})
                             </span>
                           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
+import Link from "next/link";
 import {
   Plus,
   Minus,
@@ -535,7 +536,11 @@ export default function QuickSingleScreenOrderPage() {
 
       {/* Header with comfortable breathing room */}
       <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink/80 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between shrink-0 z-20 shadow-xs">
-        <div className="flex items-center gap-3">
+        <Link
+          href="/"
+          className="flex items-center gap-3 group transition"
+          title="Về trang chủ FLANDI"
+        >
           <img
             src={
               settings?.pageConfig?.headerLogoUrl ||
@@ -543,17 +548,17 @@ export default function QuickSingleScreenOrderPage() {
               "/images/branding/flandi-mascot.png"
             }
             alt="FLANDI"
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-flandi-salmon shadow-xs shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-flandi-salmon shadow-xs shrink-0 group-hover:scale-105 transition-transform"
           />
           <div>
-            <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-snug">
+            <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-snug group-hover:text-flandi-coral transition-colors">
               ĐẶT BÁNH NHANH
             </h1>
             <p className="text-[10px] sm:text-[11px] font-bold text-flandi-muted leading-tight">
               {settings?.tagline || "Muốn ăn hãy Flăn vào tớ"}
             </p>
           </div>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-2 text-xs">
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink/80 shadow-2xs">

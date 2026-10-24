@@ -457,21 +457,21 @@ export default function QuickSingleScreenOrderPage() {
       <div
         key={product.id}
         onClick={() => openKeypad(product)}
-        className={`rounded-xl sm:rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 cursor-pointer select-none gap-3 shrink-0 ${
+        className={`rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3.5 sm:px-4 lg:px-4.5 xl:px-5 py-2 sm:py-2.5 lg:py-2.5 xl:py-3 cursor-pointer select-none gap-3 sm:gap-4 shrink-0 ${
           isDesktopMenu
-            ? "lg:h-[70px] lg:min-h-[70px]"
-            : "flex-1 min-h-[48px] sm:min-h-[54px] max-h-[64px] sm:max-h-[74px]"
+            ? "lg:h-[76px] xl:h-[82px] lg:min-h-[76px] xl:min-h-[82px]"
+            : "min-h-[52px] sm:min-h-[58px] max-h-[68px] sm:max-h-[76px]"
         } ${
           isKeypadTarget
             ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-coral/60"
             : isSelected
             ? "bg-white border-flandi-coral shadow-cute ring-1.5 ring-flandi-salmon/40 hover:border-flandi-coral"
-            : "bg-white/95 border-flandi-pink/60 hover:border-flandi-salmon/60 shadow-2xs hover:bg-white"
+            : "bg-white/95 border-flandi-pink/70 hover:border-flandi-salmon/70 shadow-2xs hover:bg-white"
         }`}
       >
         {/* Left: Product image + Product Name + Price badge */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="relative w-11 h-11 sm:w-13 sm:h-13 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+          <div className="relative w-12 h-12 sm:w-13 sm:h-13 lg:w-15 lg:h-15 xl:w-16 xl:h-16 rounded-xl lg:rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
             <img
               src={product.image}
               alt={product.name}
@@ -480,15 +480,15 @@ export default function QuickSingleScreenOrderPage() {
           </div>
 
           <div className="min-w-0 flex flex-col justify-center">
-            <h2 className="font-display text-sm sm:text-base lg:text-lg font-black text-flandi-dark leading-tight truncate">
+            <h2 className="font-display text-sm sm:text-base lg:text-lg xl:text-xl font-black text-flandi-dark leading-tight truncate">
               {product.name}
             </h2>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-xs sm:text-sm lg:text-base font-black text-flandi-coral leading-tight tracking-tight">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-black text-flandi-coral leading-tight tracking-tight">
                 {product.badgeText}
               </span>
               {isSelected && (
-                <span className="text-xs sm:text-xs lg:text-sm font-extrabold text-flandi-coral bg-flandi-cream px-2 py-0.5 rounded-md border border-flandi-pink/80 shadow-2xs">
+                <span className="text-xs sm:text-xs lg:text-sm font-extrabold text-flandi-coral bg-flandi-cream px-2.5 py-0.5 rounded-lg border border-flandi-pink/80 shadow-2xs">
                   = {formatVND(product.price * currentQty)}
                 </span>
               )}
@@ -502,14 +502,14 @@ export default function QuickSingleScreenOrderPage() {
             e.stopPropagation();
             openKeypad(product);
           }}
-          className={`h-9 sm:h-10 lg:h-11 px-3 sm:px-3.5 lg:px-4 rounded-xl lg:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
+          className={`h-9 sm:h-10 lg:h-11 xl:h-12 px-3 sm:px-4 lg:px-4.5 xl:px-5 rounded-xl lg:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
             isSelected
               ? "bg-flandi-coral border-flandi-coral text-white shadow-cute ring-1.5 ring-flandi-salmon/40"
               : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-dark/70 hover:text-flandi-coral"
           }`}
           title="Nhấn để nhập số lượng"
         >
-          <span className="font-display text-base sm:text-lg lg:text-xl font-black leading-none">
+          <span className="font-display text-base sm:text-lg lg:text-xl xl:text-2xl font-black leading-none">
             {currentQty}
           </span>
           <span
@@ -576,13 +576,13 @@ export default function QuickSingleScreenOrderPage() {
       </header>
 
       {/* Main Product Cards Workspace (Strictly 1 screen without scrolling) */}
-      <main className="flex-1 min-h-0 max-w-2xl lg:max-w-6xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-1.5 sm:py-2.5 flex flex-col justify-between overflow-hidden">
+      <main className="flex-1 min-h-0 max-w-2xl lg:max-w-6xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3 flex flex-col overflow-hidden">
         {loading ? (
-          <div className="flex-1 flex flex-col justify-between gap-2 min-h-0">
+          <div className="flex-1 flex flex-col gap-2 min-h-0">
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
               <div
                 key={n}
-                className="flex-1 min-h-[48px] rounded-2xl bg-white/70 border border-flandi-pink animate-pulse"
+                className="h-16 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse"
               />
             ))}
           </div>
@@ -591,8 +591,8 @@ export default function QuickSingleScreenOrderPage() {
             {/* DESKTOP 2-COLUMN LAYOUT (lg: screens) */}
             <div className="hidden lg:grid lg:grid-cols-12 gap-6 h-full min-h-0 overflow-hidden">
               {/* CỘT TRÁI: THỰC ĐƠN (7 cột) */}
-              <div className="lg:col-span-7 flex flex-col min-h-0 justify-between">
-                <div className="flex items-center justify-between px-1 pb-1.5 shrink-0">
+              <div className="lg:col-span-7 flex flex-col min-h-0">
+                <div className="flex items-center justify-between px-1 pb-2 shrink-0">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-flandi-salmon" />
                     <h2 className="font-display text-base font-black text-flandi-muted uppercase tracking-wider">
@@ -604,13 +604,13 @@ export default function QuickSingleScreenOrderPage() {
                   </span>
                 </div>
 
-                <div className="flex-1 flex flex-col justify-between gap-2 min-h-0">
+                <div className="flex-1 flex flex-col gap-2 xl:gap-2.5 min-h-0 overflow-y-auto no-scrollbar pr-1 py-0.5">
                   {sortedProducts.map((p) => renderProductCard(p, true))}
                 </div>
               </div>
 
               {/* CỘT PHẢI: LÊN ĐƠN & THÔNG TIN CHỐT ĐƠN (5 cột) */}
-              <div className="lg:col-span-5 flex flex-col min-h-0 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-flandi-salmon shadow-cute-lg p-5 justify-between overflow-hidden">
+              <div className="lg:col-span-5 flex flex-col min-h-0 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-flandi-salmon shadow-cute-lg p-5 overflow-hidden">
                 {/* Header Cột Phải */}
                 <div className="flex items-center justify-between border-b border-flandi-pink pb-2.5 shrink-0">
                   <div className="flex items-center gap-2.5">
@@ -835,7 +835,7 @@ export default function QuickSingleScreenOrderPage() {
             </div>
 
             {/* MOBILE LAYOUT (< lg screens) */}
-            <div className="lg:hidden flex-1 flex flex-col justify-between gap-1.5 sm:gap-2 min-h-0">
+            <div className="lg:hidden flex-1 flex flex-col gap-2 min-h-0">
               {/* PHẦN 1: THỰC ĐƠN (Các món chưa chọn) */}
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between px-1 pb-1 shrink-0">
@@ -857,7 +857,7 @@ export default function QuickSingleScreenOrderPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col justify-between gap-1.5 min-h-0">
+                  <div className="flex-1 flex flex-col gap-1.5 min-h-0 overflow-y-auto no-scrollbar">
                     {unselectedProducts.map((p) => renderProductCard(p))}
                   </div>
                 )}
@@ -883,7 +883,7 @@ export default function QuickSingleScreenOrderPage() {
                     </button>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 max-h-[190px] overflow-y-auto no-scrollbar">
                     {selectedProducts.map((p) => renderProductCard(p))}
                   </div>
                 </div>

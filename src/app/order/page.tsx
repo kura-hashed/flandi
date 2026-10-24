@@ -17,6 +17,8 @@ import {
   X,
   Zap,
   Share2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import LiveChatWidget, {
@@ -36,6 +38,7 @@ export default function QuickSingleScreenOrderPage() {
 
   // Cart keyed by productId
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Compact customer info
   const [customerName, setCustomerName] = useState("");
@@ -347,7 +350,7 @@ export default function QuickSingleScreenOrderPage() {
   };
 
   return (
-    <div className="min-h-dvh lg:h-dvh lg:overflow-hidden bg-[#FFF9F8] bg-grid-pattern flex flex-col justify-between">
+    <div className="min-h-dvh bg-[#FFF9F8] bg-grid-pattern flex flex-col justify-start relative">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 bg-flandi-dark text-white px-4 py-3 rounded-2xl shadow-cute-lg flex items-center gap-2.5 max-w-md animate-bounce">
@@ -357,7 +360,7 @@ export default function QuickSingleScreenOrderPage() {
       )}
 
       {/* Compact Top Header (No back-to-home button) */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink px-3 sm:px-6 h-13 flex items-center justify-between shrink-0 z-20">
+      <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink px-3 sm:px-6 h-13 flex items-center justify-between shrink-0 z-20 sticky top-0">
         <div className="flex items-center gap-2.5">
           <img
             src={
@@ -390,308 +393,386 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       </header>
 
-      {/* Main 1-Screen Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-2.5 sm:p-4 lg:overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
-        {/* Left 8 Columns: Ultra-Compact Horizontal Row Product Cards */}
-        <div className="lg:col-span-8 flex flex-col justify-start lg:overflow-y-auto pr-0.5">
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+      {/* Main Product Cards Workspace */}
+      <main className="flex-1 max-w-4xl w-full mx-auto p-2.5 sm:p-4 pb-28 sm:pb-32">
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <div
+                key={n}
+                className="h-20 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse p-2.5"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 content-start">
+            {products.map((product) => {
+              const currentQty = getQtyForProduct(product.id);
+              const unitLabel = product.unit || "cái";
+              const isBoxProduct =
+                unitLabel.toLowerCase() === "hộp" ||
+                product.id === "prod-rau-cau-la";
+              const preset1 = isBoxProduct ? 1 : 5;
+              const preset2 = isBoxProduct ? 2 : 10;
+
+              const isSelected = currentQty > 0;
+
+              return (
                 <div
-                  key={n}
-                  className="h-20 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse p-2.5"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 content-start">
-              {products.map((product) => {
-                const currentQty = getQtyForProduct(product.id);
-                const unitLabel = product.unit || "cái";
-                const isBoxProduct =
-                  unitLabel.toLowerCase() === "hộp" ||
-                  product.id === "prod-rau-cau-la";
-                const preset1 = isBoxProduct ? 1 : 5;
-                const preset2 = isBoxProduct ? 2 : 10;
-
-                const isSelected = currentQty > 0;
-
-                return (
+                  key={product.id}
+                  className={`rounded-2xl border-2 px-2.5 py-2 transition-all duration-200 flex items-center gap-2.5 relative ${
+                    isSelected
+                      ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/40 opacity-100 scale-[1.01]"
+                      : "bg-stone-100/75 border-stone-200/80 opacity-55 saturate-[0.3] shadow-none"
+                  }`}
+                >
+                  {/* Left: Compact Circular Product Photo (non-clickable) */}
                   <div
-                    key={product.id}
-                    className={`rounded-2xl border-2 px-2.5 py-2 transition-all duration-200 flex items-center gap-2.5 relative ${
+                    className={`relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 shrink-0 transition-all duration-200 ${
                       isSelected
-                        ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/40 opacity-100 scale-[1.01]"
-                        : "bg-stone-100/75 border-stone-200/80 opacity-55 saturate-[0.3] shadow-none"
+                        ? "bg-gradient-to-tr from-flandi-coral to-flandi-salmon shadow-xs"
+                        : "bg-stone-300"
                     }`}
                   >
-                    {/* Left: Compact Circular Product Photo (non-clickable) */}
-                    <div
-                      className={`relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 shrink-0 transition-all duration-200 ${
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className={`w-full h-full object-cover rounded-full border-2 border-white transition-all duration-200 ${
                         isSelected
-                          ? "bg-gradient-to-tr from-flandi-coral to-flandi-salmon shadow-xs"
-                          : "bg-stone-300"
+                          ? "grayscale-0 brightness-100 opacity-100"
+                          : "grayscale-[80%] brightness-90 opacity-70"
+                      }`}
+                    />
+                    <span
+                      className={`absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded-full text-white text-[9px] font-extrabold border border-white shadow-2xs leading-tight transition-colors ${
+                        isSelected ? "bg-flandi-coral" : "bg-stone-400"
                       }`}
                     >
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className={`w-full h-full object-cover rounded-full border-2 border-white transition-all duration-200 ${
-                          isSelected
-                            ? "grayscale-0 brightness-100 opacity-100"
-                            : "grayscale-[80%] brightness-90 opacity-70"
-                        }`}
-                      />
-                      <span
-                        className={`absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded-full text-white text-[9px] font-extrabold border border-white shadow-2xs leading-tight transition-colors ${
-                          isSelected ? "bg-flandi-coral" : "bg-stone-400"
+                      {product.badgeText}
+                    </span>
+                  </div>
+
+                  {/* Right: 2 Compact Rows (Row 1: Product Name, Row 2: 5 | 10 | Direct Input | Trash on same row) */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                    {/* Row 1: Full Product Name + Selected Status */}
+                    <div className="flex items-center justify-between gap-1.5">
+                      <h2
+                        className={`font-display text-sm sm:text-base leading-none break-words transition-all ${
+                          isSelected ? "text-sticker-sm" : "text-stone-400"
                         }`}
                       >
-                        {product.badgeText}
-                      </span>
+                        {product.name}
+                      </h2>
+                      {isSelected && (
+                        <span className="shrink-0 px-2 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black leading-none shadow-2xs">
+                          {currentQty} {unitLabel} •{" "}
+                          {formatVND(product.price * currentQty)}
+                        </span>
+                      )}
                     </div>
 
-                    {/* Right: 2 Compact Rows (Row 1: Product Name, Row 2: 5 | 10 | Direct Input | Trash on same row) */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                      {/* Row 1: Full Product Name + Selected Status */}
-                      <div className="flex items-center justify-between gap-1.5">
-                        <h2
-                          className={`font-display text-sm sm:text-base leading-none break-words transition-all ${
-                            isSelected
-                              ? "text-sticker-sm"
-                              : "text-stone-400"
-                          }`}
-                        >
-                          {product.name}
-                        </h2>
-                        {isSelected && (
-                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black leading-none shadow-2xs">
-                            {currentQty} {unitLabel} •{" "}
-                            {formatVND(product.price * currentQty)}
-                          </span>
-                        )}
-                      </div>
+                    {/* Row 2: [5 cái / 1 hộp] + [10 cái / 2 hộp] + [Direct Number Input] + [Trash Clear Button] all on 1 single line */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExactQty(
+                            product,
+                            currentQty === preset1 ? 0 : preset1
+                          )
+                        }
+                        className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                          currentQty === preset1
+                            ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                            : isSelected
+                            ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                            : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
+                        }`}
+                      >
+                        {isBoxProduct ? "1 hộp" : "5 cái"}
+                      </button>
 
-                      {/* Row 2: [5 cái / 1 hộp] + [10 cái / 2 hộp] + [Direct Number Input] + [Trash Clear Button] all on 1 single line */}
-                      <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExactQty(
+                            product,
+                            currentQty === preset2 ? 0 : preset2
+                          )
+                        }
+                        className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                          currentQty === preset2
+                            ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                            : isSelected
+                            ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                            : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
+                        }`}
+                      >
+                        {isBoxProduct ? "2 hộp" : "10 cái"}
+                      </button>
+
+                      {/* Direct Quantity Input on the same row (placeholder "0") */}
+                      <div
+                        className={`flex-1 min-w-0 h-8 flex items-center rounded-xl px-1 border transition ${
+                          isSelected
+                            ? "bg-flandi-bg border-flandi-pink"
+                            : "bg-stone-200/60 border-stone-300/80"
+                        }`}
+                      >
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => updateQty(product, -1)}
+                          disabled={currentQty <= 0}
+                          className="w-6 h-6 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+
+                        <input
+                          type="number"
+                          min={0}
+                          value={currentQty || ""}
+                          placeholder="0"
+                          onChange={(e) =>
                             setExactQty(
                               product,
-                              currentQty === preset1 ? 0 : preset1
+                              parseInt(e.target.value, 10) || 0
                             )
                           }
-                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
-                            currentQty === preset1
-                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : isSelected
-                              ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                              : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
+                          className={`w-full min-w-0 mx-1 text-center font-extrabold text-xs rounded-md border h-6 px-1 focus:outline-none transition ${
+                            isSelected
+                              ? "text-flandi-coral bg-white border-flandi-pink/70 focus:border-flandi-coral"
+                              : "text-stone-500 bg-white/70 border-stone-300/70 placeholder:text-stone-400"
                           }`}
-                        >
-                          {isBoxProduct ? "1 hộp" : "5 cái"}
-                        </button>
+                        />
 
                         <button
                           type="button"
-                          onClick={() =>
-                            setExactQty(
-                              product,
-                              currentQty === preset2 ? 0 : preset2
-                            )
-                          }
-                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
-                            currentQty === preset2
-                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : isSelected
-                              ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                              : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
-                          }`}
-                        >
-                          {isBoxProduct ? "2 hộp" : "10 cái"}
-                        </button>
-
-                        {/* Direct Quantity Input on the same row (placeholder "0") */}
-                        <div
-                          className={`flex-1 min-w-0 h-8 flex items-center rounded-xl px-1 border transition ${
+                          onClick={() => updateQty(product, 1)}
+                          className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0 ${
                             isSelected
-                              ? "bg-flandi-bg border-flandi-pink"
-                              : "bg-stone-200/60 border-stone-300/80"
+                              ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
+                              : "bg-stone-300 hover:bg-stone-400 text-stone-600"
                           }`}
                         >
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, -1)}
-                            disabled={currentQty <= 0}
-                            className="w-6 h-6 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-
-                          <input
-                            type="number"
-                            min={0}
-                            value={currentQty || ""}
-                            placeholder="0"
-                            onChange={(e) =>
-                              setExactQty(
-                                product,
-                                parseInt(e.target.value, 10) || 0
-                              )
-                            }
-                            className={`w-full min-w-0 mx-1 text-center font-extrabold text-xs rounded-md border h-6 px-1 focus:outline-none transition ${
-                              isSelected
-                                ? "text-flandi-coral bg-white border-flandi-pink/70 focus:border-flandi-coral"
-                                : "text-stone-500 bg-white/70 border-stone-300/70 placeholder:text-stone-400"
-                            }`}
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, 1)}
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0 ${
-                              isSelected
-                                ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
-                                : "bg-stone-300 hover:bg-stone-400 text-stone-600"
-                            }`}
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-
-                        {/* Trash button to clear quantity of this product */}
-                        <button
-                          type="button"
-                          onClick={() => setExactQty(product, 0)}
-                          disabled={!isSelected}
-                          title="Xoá số lượng món này"
-                          className={`shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center transition active:scale-90 ${
-                            isSelected
-                              ? "bg-red-50 hover:bg-red-100 text-red-500 border-red-200"
-                              : "bg-stone-200/50 text-stone-400/50 border-stone-300/60 cursor-not-allowed"
-                          }`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3" />
                         </button>
                       </div>
+
+                      {/* Trash button to clear quantity of this product */}
+                      <button
+                        type="button"
+                        onClick={() => setExactQty(product, 0)}
+                        disabled={!isSelected}
+                        title="Xoá số lượng món này"
+                        className={`shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center transition active:scale-90 ${
+                          isSelected
+                            ? "bg-red-50 hover:bg-red-100 text-red-500 border-red-200"
+                            : "bg-stone-200/50 text-stone-400/50 border-stone-300/60 cursor-not-allowed"
+                        }`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* Backdrop when expanded */}
+      {isExpanded && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-xs transition-opacity"
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
+
+      {/* Fixed Bottom Order Bar (Collapse / Expand) */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 p-2 sm:p-3 pointer-events-none">
+        <div className="max-w-4xl mx-auto w-full pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-flandi-salmon shadow-cute-lg overflow-hidden transition-all duration-300">
+          {!isExpanded ? (
+            /* COLLAPSED STATE: Chỉ hiện thông tin đã chọn, thành tiền và nút expand ở cuối */
+            <div
+              onClick={() => setIsExpanded(true)}
+              className="px-3.5 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-extrabold text-flandi-dark truncate">
+                      {totalItemsCount > 0
+                        ? `Đã chọn: ${totalItemsCount} phần`
+                        : "Chưa chọn món nào"}
+                    </span>
+                    {subtotal > 0 && subtotal >= freeShipMin && (
+                      <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                        Freeship
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[11px] text-flandi-muted font-bold">
+                      Thành tiền:
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-flandi-coral">
+                      {formatVND(grandTotal)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nút expand ở cuối */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(true);
+                }}
+                className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-2xl font-extrabold text-xs flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 ${
+                  totalItemsCount > 0
+                    ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
+                    : "bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink"
+                }`}
+              >
+                <span>{totalItemsCount > 0 ? "Gửi đơn" : "Xem thêm"}</span>
+                <ChevronUp className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            /* EXPANDED STATE: Hiển thị thêm thông tin (nhập tên, SĐT, địa chỉ, ghi chú, các nút gửi) */
+            <div className="p-3.5 sm:p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+              {/* Header của trạng thái expand: Thông tin tóm tắt + nút collapse ở cuối */}
+              <div className="flex items-center justify-between border-b border-flandi-pink pb-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-flandi-coral text-white flex items-center justify-center shrink-0">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-extrabold text-flandi-dark">
+                        Đã chọn: {totalItemsCount} phần
+                      </span>
+                      {cartItems.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCartMap({})}
+                          className="text-[11px] font-extrabold text-red-500 hover:underline flex items-center gap-0.5"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Xoá tất cả</span>
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[11px] text-flandi-muted font-bold">
+                        Tổng thanh toán:
+                      </span>
+                      <span className="text-base sm:text-lg font-black text-flandi-coral">
+                        {formatVND(grandTotal)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nút collapse ở cuối */}
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  className="px-3 py-1.5 rounded-xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink font-extrabold text-xs flex items-center gap-1 transition"
+                >
+                  <span>Thu gọn</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Freeship Progress */}
+              {subtotal > 0 && subtotal < freeShipMin && (
+                <div className="px-3 py-1.5 rounded-xl bg-flandi-cream text-flandi-coral text-[11px] font-extrabold flex items-center justify-between border border-flandi-pink/60">
+                  <span>+{formatVND(freeShipMin - subtotal)} để Freeship!</span>
+                  <span>Phí ship: {formatVND(shippingFee)}</span>
+                </div>
+              )}
+
+              {/* Customer Info Inputs */}
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Tên của bạn (tuỳ chọn)"
+                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                  />
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Số điện thoại nhận bánh"
+                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="text"
+                    value={customerAddress}
+                    onChange={(e) => setCustomerAddress(e.target.value)}
+                    placeholder="Địa chỉ giao / Giờ lấy"
+                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                  />
+                  <input
+                    type="text"
+                    value={customerNote}
+                    onChange={(e) => setCustomerNote(e.target.value)}
+                    placeholder="Ghi chú (ít ngọt, lấy muỗng...)"
+                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Primary Action Buttons: Send via Messenger & Send via Zalo */}
+              <div className="space-y-1.5 pt-1">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={cartItems.length === 0 || sendingChannel !== null}
+                    onClick={() => handleSendOrderVia("MESSENGER")}
+                    className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-white/20 shrink-0" />
+                    <span>Gửi qua Messenger</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={cartItems.length === 0 || sendingChannel !== null}
+                    onClick={() => handleSendOrderVia("ZALO")}
+                    className="py-2.5 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                  >
+                    <Send className="w-4 h-4 shrink-0" />
+                    <span>Gửi qua Zalo</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={cartItems.length === 0 || sendingChannel !== null}
+                  onClick={() => handleSendOrderVia("DIRECT")}
+                  className="w-full py-2 px-3 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Chốt Đơn Trực Tiếp & Hiện Mã QR</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Right 4 Columns: Compact Checkout & Send via Messenger / Zalo (No duplicate item list) */}
-        <div className="lg:col-span-4 bg-white rounded-3xl border-2 border-flandi-salmon shadow-cute p-3.5 sm:p-4 flex flex-col justify-between gap-3 h-fit">
-          {/* Compact Total Summary Header */}
-          <div className="flex items-center justify-between border-b border-flandi-pink pb-2.5">
-            <div>
-              <span className="text-[11px] text-flandi-muted font-bold block">
-                Đã chọn <strong className="text-flandi-dark">{totalItemsCount} phần</strong>{" "}
-                {shippingFee > 0
-                  ? `• Ship ${formatVND(shippingFee)}`
-                  : subtotal > 0
-                  ? "• Miễn phí ship"
-                  : ""}
-              </span>
-              <span className="text-2xl font-extrabold text-flandi-coral leading-tight">
-                {formatVND(grandTotal)}
-              </span>
-            </div>
-
-            <div className="flex flex-col items-end gap-1">
-              {cartItems.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setCartMap({})}
-                  className="text-[11px] font-extrabold text-red-500 hover:underline flex items-center gap-1"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Xoá tất cả</span>
-                </button>
-              )}
-              {subtotal > 0 && subtotal < freeShipMin && (
-                <span className="px-2 py-0.5 rounded-lg bg-flandi-cream text-flandi-coral text-[10px] font-extrabold">
-                  +{formatVND(freeShipMin - subtotal)} để Freeship
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Compact Customer Info Inputs */}
-          <div className="space-y-1.5">
-            <div className="grid grid-cols-2 gap-1.5">
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Tên của bạn (tuỳ chọn)"
-                className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
-              />
-              <input
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="Số điện thoại nhận bánh"
-                className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <input
-                type="text"
-                value={customerAddress}
-                onChange={(e) => setCustomerAddress(e.target.value)}
-                placeholder="Địa chỉ giao / Giờ lấy"
-                className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
-              />
-              <input
-                type="text"
-                value={customerNote}
-                onChange={(e) => setCustomerNote(e.target.value)}
-                placeholder="Ghi chú (ít ngọt, lấy muỗng...)"
-                className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Primary Action Buttons: Send via Messenger & Send via Zalo */}
-          <div className="space-y-1.5">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled={cartItems.length === 0 || sendingChannel !== null}
-                onClick={() => handleSendOrderVia("MESSENGER")}
-                className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
-              >
-                <MessageCircle className="w-4 h-4 fill-white/20 shrink-0" />
-                <span>Gửi qua Messenger</span>
-              </button>
-
-              <button
-                type="button"
-                disabled={cartItems.length === 0 || sendingChannel !== null}
-                onClick={() => handleSendOrderVia("ZALO")}
-                className="py-2.5 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
-              >
-                <Send className="w-4 h-4 shrink-0" />
-                <span>Gửi qua Zalo</span>
-              </button>
-            </div>
-
-            <button
-              type="button"
-              disabled={cartItems.length === 0 || sendingChannel !== null}
-              onClick={() => handleSendOrderVia("DIRECT")}
-              className="w-full py-2 px-3 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Chốt Đơn Trực Tiếp & Hiện Mã QR</span>
-            </button>
-          </div>
-        </div>
-      </main>
+      </div>
 
       {/* Embedded On-Page Messenger & Zalo Chat Widget */}
       <LiveChatWidget

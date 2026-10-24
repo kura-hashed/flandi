@@ -247,11 +247,6 @@ export default function QuickSingleScreenOrderPage() {
 
   const cartItems = useMemo(() => Object.values(cartMap), [cartMap]);
 
-  const totalItemsCount = useMemo(
-    () => cartItems.reduce((s, i) => s + i.quantity, 0),
-    [cartItems]
-  );
-
   const subtotal = useMemo(
     () => cartItems.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cartItems]
@@ -624,8 +619,8 @@ export default function QuickSingleScreenOrderPage() {
                         Lên Đơn
                       </h3>
                       <p className="text-xs font-bold text-flandi-muted">
-                        {totalItemsCount > 0
-                          ? `${cartItems.length} món • ${totalItemsCount} phần`
+                        {cartItems.length > 0
+                          ? `${cartItems.length} món đã chọn`
                           : "Chưa chọn món nào"}
                       </p>
                     </div>
@@ -905,12 +900,12 @@ export default function QuickSingleScreenOrderPage() {
                 setIsExpanded(true);
               }}
               className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 ${
-                totalItemsCount > 0
+                cartItems.length > 0
                   ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
                   : "bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink"
               }`}
             >
-              <span>{totalItemsCount > 0 ? "Gửi đơn" : "Xem thêm"}</span>
+              <span>{cartItems.length > 0 ? "Gửi đơn" : "Xem thêm"}</span>
               <ChevronUp className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
           </div>
@@ -949,8 +944,8 @@ export default function QuickSingleScreenOrderPage() {
                       Chi Tiết Đơn Hàng
                     </h3>
                     <p className="text-[10px] font-bold text-flandi-muted">
-                      {totalItemsCount > 0
-                        ? `${cartItems.length} món • ${totalItemsCount} phần bánh`
+                      {cartItems.length > 0
+                        ? `${cartItems.length} món đã chọn`
                         : "Chưa chọn món nào"}
                     </p>
                   </div>
@@ -973,7 +968,7 @@ export default function QuickSingleScreenOrderPage() {
                   <div className="bg-flandi-bg/80 rounded-2xl p-2 sm:p-2.5 border border-flandi-pink/70 space-y-1">
                     <div className="flex items-center justify-between px-1 pb-0.5">
                       <span className="text-[10px] sm:text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider">
-                        Món bạn đã chọn ({totalItemsCount} phần)
+                        Món bạn đã chọn ({cartItems.length} món)
                       </span>
                       <button
                         type="button"
@@ -1201,7 +1196,7 @@ export default function QuickSingleScreenOrderPage() {
       {/* Embedded On-Page Messenger & Zalo Chat Widget */}
       <LiveChatWidget
         settings={settings}
-        cartCount={totalItemsCount}
+        cartCount={cartItems.length}
         externalOpenTrigger={openChatTrigger}
         preferredChannel={preferredChatChannel}
         refreshTrigger={chatRefreshTrigger}

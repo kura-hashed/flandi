@@ -662,14 +662,9 @@ export default function QuickSingleScreenOrderPage() {
                         key={item.product.id}
                         className="py-1.5 px-3 rounded-xl bg-flandi-bg border border-flandi-pink/70 flex items-center justify-between gap-2 shadow-2xs"
                       >
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <span className="text-xs font-black text-flandi-dark truncate">
-                            {item.product.name}
-                          </span>
-                          <span className="text-[11px] font-bold text-flandi-muted shrink-0">
-                            ({formatVND(item.product.price)})
-                          </span>
-                        </div>
+                        <span className="text-xs font-black text-flandi-dark truncate flex-1 min-w-0">
+                          {item.product.name}
+                        </span>
 
                         {/* Stepper +/- */}
                         <div className="flex items-center gap-2 shrink-0">
@@ -725,42 +720,27 @@ export default function QuickSingleScreenOrderPage() {
 
                 {/* Phần Tổng Tiền & Form Chốt Đơn */}
                 <div className="border-t border-flandi-pink/80 pt-2.5 space-y-2.5 shrink-0">
-                  {/* Tạm tính & Freeship */}
-                  <div className="space-y-1">
-                    {subtotal > 0 && subtotal < freeShipMin ? (
-                      <div className="px-3 py-1.5 rounded-xl bg-flandi-cream text-flandi-coral text-xs font-extrabold flex items-center justify-between border border-flandi-pink/60">
-                        <span>+{formatVND(freeShipMin - subtotal)} để Freeship!</span>
-                        <span>Phí ship: {formatVND(shippingFee)}</span>
-                      </div>
-                    ) : subtotal >= freeShipMin ? (
-                      <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-extrabold flex items-center justify-between border border-emerald-200">
-                        <span>🎉 Đơn của bạn được FREESHIP!</span>
-                        <span>0k</span>
-                      </div>
-                    ) : null}
-
-                    {/* Thành tiền 2 dòng */}
-                    <div className="flex items-center justify-between pt-0.5">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-extrabold text-flandi-muted leading-none">
-                            Thành tiền
-                          </span>
-                          {subtotal > 0 && subtotal >= freeShipMin ? (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-black leading-none shadow-2xs">
-                              Freeship
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-black leading-none shadow-2xs">
-                              +15k ship
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-2xl font-black text-flandi-coral tracking-tight leading-none">
-                          {formatVND(grandTotal)}
-                        </span>
-                      </div>
+                  {/* Chi tiết tiền */}
+                  <div className="space-y-1 text-xs font-bold text-flandi-muted">
+                    <div className="flex items-center justify-between">
+                      <span>Tạm tính bánh:</span>
+                      <span className="font-extrabold text-flandi-dark">{formatVND(subtotal)}</span>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span>Phí giao hàng:</span>
+                      <span className={shippingFee === 0 ? "font-black text-emerald-700" : "font-extrabold text-flandi-dark"}>
+                        {shippingFee === 0 ? "0k (Freeship)" : formatVND(shippingFee)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-baseline justify-between pt-1.5 border-t border-dashed border-flandi-pink">
+                    <span className="text-xs font-black text-flandi-dark uppercase tracking-wider">
+                      Tổng thanh toán:
+                    </span>
+                    <span className="text-2xl font-black text-flandi-coral tracking-tight leading-none">
+                      {formatVND(grandTotal)}
+                    </span>
                   </div>
 
                   {/* Form Nhập Thông Tin Khách */}
@@ -983,14 +963,9 @@ export default function QuickSingleScreenOrderPage() {
                           key={item.product.id}
                           className="bg-white rounded-xl py-1.5 px-2.5 border border-flandi-pink/60 flex items-center justify-between gap-2 shadow-2xs"
                         >
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <span className="text-xs font-black text-flandi-dark truncate">
-                              {item.product.name}
-                            </span>
-                            <span className="text-[10px] font-bold text-flandi-muted shrink-0">
-                              ({formatVND(item.product.price)})
-                            </span>
-                          </div>
+                          <span className="text-xs font-black text-flandi-dark truncate flex-1 min-w-0">
+                            {item.product.name}
+                          </span>
 
                           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                             {/* Stepper +/- */}
@@ -1046,21 +1021,9 @@ export default function QuickSingleScreenOrderPage() {
                   </div>
                 )}
 
-                {/* 2. Chi Tiết Tiền & Freeship */}
+                {/* 2. Chi Tiết Tiền */}
                 <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-flandi-pink/70 space-y-1 shadow-2xs">
-                  {subtotal > 0 && subtotal < freeShipMin ? (
-                    <div className="px-2.5 py-1 rounded-xl bg-flandi-cream text-flandi-coral text-[11px] sm:text-xs font-extrabold flex items-center justify-between border border-flandi-pink/60">
-                      <span>+{formatVND(freeShipMin - subtotal)} để Freeship!</span>
-                      <span>Phí ship: {formatVND(shippingFee)}</span>
-                    </div>
-                  ) : subtotal >= freeShipMin ? (
-                    <div className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] sm:text-xs font-extrabold flex items-center justify-between border border-emerald-200">
-                      <span>🎉 Đơn của bạn được FREESHIP!</span>
-                      <span>0k</span>
-                    </div>
-                  ) : null}
-
-                  <div className="flex items-center justify-between text-xs font-bold text-flandi-muted pt-0.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-flandi-muted">
                     <span>Tạm tính bánh:</span>
                     <span className="font-extrabold text-flandi-dark">{formatVND(subtotal)}</span>
                   </div>
@@ -1075,22 +1038,9 @@ export default function QuickSingleScreenOrderPage() {
                     <span className="text-xs font-black text-flandi-dark uppercase tracking-wider">
                       Tổng thanh toán:
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      {subtotal > 0 && (
-                        subtotal >= freeShipMin ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black">
-                            Freeship
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black">
-                            +15k ship
-                          </span>
-                        )
-                      )}
-                      <span className="font-display text-lg sm:text-xl font-black text-flandi-coral leading-none">
-                        {formatVND(grandTotal)}
-                      </span>
-                    </div>
+                    <span className="font-display text-lg sm:text-xl font-black text-flandi-coral leading-none">
+                      {formatVND(grandTotal)}
+                    </span>
                   </div>
                 </div>
 

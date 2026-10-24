@@ -39,13 +39,10 @@ export default function QuickSingleScreenOrderPage() {
   // Cart keyed by productId
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
   const [isExpanded, setIsExpanded] = useState(false);
-  const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
 
   const toggleProductExpand = (id: string) => {
-    setExpandedProductIds((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    setExpandedProductId((prev) => (prev === id ? null : id));
   };
 
   // Compact customer info
@@ -358,7 +355,7 @@ export default function QuickSingleScreenOrderPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#FFF9F8] bg-grid-pattern flex flex-col justify-start relative">
+    <div className="min-h-dvh h-dvh flex flex-col bg-[#FFF9F8] bg-grid-pattern relative overflow-hidden">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 bg-flandi-dark text-white px-4 py-3 rounded-2xl shadow-cute-lg flex items-center gap-2.5 max-w-md animate-bounce">
@@ -367,9 +364,9 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       )}
 
-      {/* Compact Top Header (No back-to-home button) */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink px-3 sm:px-6 h-13 flex items-center justify-between shrink-0 z-20 sticky top-0">
-        <div className="flex items-center gap-2.5">
+      {/* Header with comfortable breathing room */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink/80 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between shrink-0 z-20 shadow-xs">
+        <div className="flex items-center gap-3">
           <img
             src={
               settings?.pageConfig?.headerLogoUrl ||
@@ -377,23 +374,26 @@ export default function QuickSingleScreenOrderPage() {
               "/images/branding/flandi-mascot.png"
             }
             alt="FLANDI"
-            className="w-8 h-8 rounded-full object-cover border-2 border-flandi-salmon"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-flandi-salmon shadow-xs shrink-0"
           />
           <div>
-            <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-none">
+            <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-snug">
               ĐẶT BÁNH NHANH
             </h1>
+            <p className="text-[10px] sm:text-[11px] font-bold text-flandi-muted leading-tight">
+              {settings?.tagline || "Muốn ăn hãy Flăn vào tớ"}
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="hidden md:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink">
+          <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink/80 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5" />
             Freeship đơn từ {formatVND(freeShipMin)}
           </span>
           <a
             href={`tel:${settings?.phone || "0703166903"}`}
-            className="px-3 py-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark font-extrabold border border-flandi-pink flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark font-extrabold border border-flandi-pink flex items-center gap-1.5 shadow-2xs transition"
           >
             <Phone className="w-3.5 h-3.5 text-flandi-coral" />
             <span>{settings?.phone || "0703166903"}</span>
@@ -401,19 +401,19 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       </header>
 
-      {/* Main Product Cards Workspace (Minimalist 1-screen rows with inline expand) */}
-      <main className="flex-1 max-w-2xl w-full mx-auto p-2 sm:p-3 pb-24 sm:pb-28">
+      {/* Main Product Cards Workspace (Scales harmoniously with available vertical height) */}
+      <main className="flex-1 max-w-2xl w-full mx-auto px-3 sm:px-4 py-2 sm:py-3 pb-24 sm:pb-28 flex flex-col justify-start overflow-y-auto">
         {loading ? (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex-1 flex flex-col justify-between gap-1.5 sm:gap-2 min-h-0">
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
               <div
                 key={n}
-                className="h-12 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse"
+                className="flex-1 min-h-[46px] max-h-[70px] rounded-2xl bg-white/70 border border-flandi-pink animate-pulse"
               />
             ))}
           </div>
         ) : (
-          <div className="flex flex-col gap-1.5 sm:gap-2">
+          <div className="flex-1 flex flex-col justify-between gap-1.5 sm:gap-2.5 min-h-0">
             {products.map((product) => {
               const currentQty = getQtyForProduct(product.id);
               const unitLabel = product.unit || "cái";
@@ -424,25 +424,29 @@ export default function QuickSingleScreenOrderPage() {
               const preset2 = isBoxProduct ? 2 : 10;
 
               const isSelected = currentQty > 0;
-              const isCardExpanded = !!expandedProductIds[product.id];
+              const isCardExpanded = expandedProductId === product.id;
 
               return (
                 <div
                   key={product.id}
-                  className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
-                    isSelected
-                      ? "bg-white border-flandi-coral shadow-cute ring-1.5 ring-flandi-salmon/40"
+                  className={`rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col justify-center ${
+                    isCardExpanded
+                      ? "bg-white border-flandi-coral shadow-cute ring-1.5 ring-flandi-salmon/40 shrink-0"
+                      : isSelected
+                      ? "bg-white border-flandi-coral/90 shadow-cute ring-1 ring-flandi-salmon/30"
                       : "bg-white/95 border-flandi-pink/50 hover:border-flandi-salmon/60 shadow-2xs"
+                  } ${
+                    !expandedProductId ? "flex-1 min-h-[46px] max-h-[72px]" : ""
                   }`}
                 >
                   {/* Collapsed Header Row (Always visible, tap to toggle expand) */}
                   <div
                     onClick={() => toggleProductExpand(product.id)}
-                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between gap-2.5 cursor-pointer select-none hover:bg-flandi-cream/25 transition"
+                    className="px-3 py-2 sm:py-2.5 md:py-3 flex items-center justify-between gap-2.5 cursor-pointer select-none hover:bg-flandi-cream/25 transition"
                   >
                     {/* Left: Mini product image + Product Name + Price badge */}
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="relative w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
                         <img
                           src={product.image}
                           alt={product.name}
@@ -451,10 +455,10 @@ export default function QuickSingleScreenOrderPage() {
                       </div>
 
                       <div className="min-w-0 flex flex-col justify-center">
-                        <h2 className="font-display text-sm sm:text-base text-flandi-dark leading-tight truncate">
+                        <h2 className="font-display text-sm sm:text-base md:text-[17px] text-flandi-dark leading-tight truncate">
                           {product.name}
                         </h2>
-                        <span className="text-[11px] font-extrabold text-flandi-coral leading-tight">
+                        <span className="text-[11px] sm:text-xs font-extrabold text-flandi-coral leading-tight">
                           {product.badgeText}
                         </span>
                       </div>
@@ -473,7 +477,7 @@ export default function QuickSingleScreenOrderPage() {
                       )}
 
                       <div
-                        className={`w-7 h-7 rounded-xl flex items-center justify-center transition-transform duration-200 ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform duration-200 ${
                           isCardExpanded
                             ? "rotate-180 bg-flandi-cream text-flandi-coral"
                             : "bg-flandi-bg text-flandi-muted"
@@ -486,8 +490,8 @@ export default function QuickSingleScreenOrderPage() {
 
                   {/* Expanded Quantity Controls Section */}
                   {isCardExpanded && (
-                    <div className="px-3 pb-2.5 pt-1.5 border-t border-flandi-pink/40 bg-flandi-cream/15">
-                      <div className="flex items-center gap-1.5">
+                    <div className="px-3 pb-2.5 pt-1.5 border-t border-flandi-pink/40 bg-flandi-cream/15 animate-in slide-in-from-top-1 duration-150">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <button
                           type="button"
                           onClick={() =>
@@ -496,7 +500,7 @@ export default function QuickSingleScreenOrderPage() {
                               currentQty === preset1 ? 0 : preset1
                             )
                           }
-                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                          className={`shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold border transition whitespace-nowrap ${
                             currentQty === preset1
                               ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
                               : "bg-white hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
@@ -513,7 +517,7 @@ export default function QuickSingleScreenOrderPage() {
                               currentQty === preset2 ? 0 : preset2
                             )
                           }
-                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                          className={`shrink-0 h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold border transition whitespace-nowrap ${
                             currentQty === preset2
                               ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
                               : "bg-white hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
@@ -522,15 +526,15 @@ export default function QuickSingleScreenOrderPage() {
                           {isBoxProduct ? "2 hộp" : "10 cái"}
                         </button>
 
-                        {/* Direct Quantity Input on the same row (placeholder "0") */}
-                        <div className="flex-1 min-w-0 h-8 flex items-center bg-white rounded-xl px-1 border border-flandi-pink">
+                        {/* Direct Quantity Input on the same row */}
+                        <div className="flex-1 min-w-0 h-8 sm:h-9 flex items-center bg-white rounded-xl px-1.5 border border-flandi-pink">
                           <button
                             type="button"
                             onClick={() => updateQty(product, -1)}
                             disabled={currentQty <= 0}
-                            className="w-6 h-6 rounded-lg bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                            className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
                           >
-                            <Minus className="w-3 h-3" />
+                            <Minus className="w-3.5 h-3.5" />
                           </button>
 
                           <input
@@ -544,15 +548,15 @@ export default function QuickSingleScreenOrderPage() {
                                 parseInt(e.target.value, 10) || 0
                               )
                             }
-                            className="w-full min-w-0 mx-1 text-center font-extrabold text-xs text-flandi-coral bg-transparent h-6 px-1 placeholder:text-xs placeholder:font-bold placeholder:text-flandi-muted focus:outline-none"
+                            className="w-full min-w-0 mx-1 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-transparent h-6 sm:h-7 px-1 placeholder:text-xs placeholder:font-bold placeholder:text-flandi-muted focus:outline-none"
                           />
 
                           <button
                             type="button"
                             onClick={() => updateQty(product, 1)}
-                            className="w-6 h-6 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                            className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
@@ -562,7 +566,7 @@ export default function QuickSingleScreenOrderPage() {
                             type="button"
                             onClick={() => setExactQty(product, 0)}
                             title="Xoá số lượng món này"
-                            className="shrink-0 w-8 h-8 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition active:scale-90"
+                            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition active:scale-90"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

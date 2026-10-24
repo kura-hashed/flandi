@@ -21,6 +21,7 @@ interface LiveChatWidgetProps {
   externalOpenTrigger?: number;
   preferredChannel?: "MESSENGER" | "ZALO";
   refreshTrigger?: number;
+  hideFloatingButton?: boolean;
 }
 
 export function copyToClipboardInstant(text: string): boolean {
@@ -61,6 +62,7 @@ export default function LiveChatWidget({
   externalOpenTrigger = 0,
   preferredChannel = "MESSENGER",
   refreshTrigger = 0,
+  hideFloatingButton = false,
 }: LiveChatWidgetProps) {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -215,7 +217,7 @@ export default function LiveChatWidget({
 
   const isZaloMode = activeChannel === "ZALO";
 
-  if (!mounted) return null;
+  if (!mounted || (hideFloatingButton && !isOpen)) return null;
 
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-3">

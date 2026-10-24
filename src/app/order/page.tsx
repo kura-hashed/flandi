@@ -21,6 +21,8 @@ import {
   ChevronUp,
   ChevronDown,
   Delete,
+  User,
+  MapPin,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import LiveChatWidget, {
@@ -864,214 +866,319 @@ export default function QuickSingleScreenOrderPage() {
 
       {/* Footer bar chỉ hiện trên Mobile (< lg) vì Desktop đã có cột phải trực tiếp */}
       <div className="lg:hidden">
-        {/* Backdrop when expanded */}
-        {isExpanded && (
+        {/* COLLAPSED BOTTOM BAR (Luôn nằm ở chân trang, gọn gàng, 1 màn hình) */}
+        <footer className="shrink-0 z-20 px-3 sm:px-4 pb-2 sm:pb-3 pt-1 pointer-events-auto">
           <div
-            className="fixed inset-0 z-30 bg-black/40 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsExpanded(false)}
-          />
-        )}
+            onClick={() => setIsExpanded(true)}
+            className="max-w-4xl mx-auto w-full bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-flandi-salmon shadow-cute-lg px-4 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
+                    Thành tiền
+                  </span>
+                  {subtotal > 0 && subtotal >= freeShipMin ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
+                      Freeship
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
+                      +15k ship
+                    </span>
+                  )}
+                </div>
+                <div className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight leading-tight">
+                  {formatVND(grandTotal)}
+                </div>
+              </div>
+            </div>
 
-        {/* Bottom Order Bar: In-flow shrink-0 when collapsed, fixed bottom drawer when expanded */}
-        <footer
-          className={`${
-            isExpanded
-              ? "fixed bottom-0 left-0 right-0 z-40 p-2 sm:p-3 pointer-events-auto"
-              : "shrink-0 z-20 px-3 sm:px-4 pb-2 sm:pb-3 pt-1 pointer-events-auto"
-          }`}
-        >
-          <div className="max-w-4xl mx-auto w-full bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-flandi-salmon shadow-cute-lg overflow-hidden transition-all duration-300">
-            {!isExpanded ? (
-              /* COLLAPSED STATE: Chỉ hiện thành tiền (2 dòng) và nút expand ở cuối */
+            {/* Nút expand ở cuối */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(true);
+              }}
+              className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 ${
+                totalItemsCount > 0
+                  ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
+                  : "bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink"
+              }`}
+            >
+              <span>{totalItemsCount > 0 ? "Gửi đơn" : "Xem thêm"}</span>
+              <ChevronUp className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            </button>
+          </div>
+        </footer>
+
+        {/* EXPANDED BOTTOM SHEET (NATIVE MOBILE SHEET) */}
+        {isExpanded && (
+          <div className="fixed inset-0 z-50 flex flex-col justify-end">
+            {/* Backdrop overlay */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+              onClick={() => setIsExpanded(false)}
+            />
+
+            {/* Bottom Sheet Container */}
+            <div
+              className="relative w-full max-w-lg mx-auto bg-white rounded-t-[28px] border-t-2 border-x-2 border-flandi-salmon shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-in slide-in-from-bottom duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drag Handle Bar */}
               <div
-                onClick={() => setIsExpanded(true)}
-                className="px-4 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none"
+                className="pt-2 pb-0.5 flex justify-center cursor-pointer shrink-0"
+                onClick={() => setIsExpanded(false)}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <ShoppingBag className="w-5 h-5" />
+                <div className="w-10 h-1 rounded-full bg-slate-300 hover:bg-flandi-coral/50 transition" />
+              </div>
+
+              {/* Sheet Header: Chi tiết đơn hàng + nút Đóng (X) */}
+              <div className="px-4 py-2 flex items-center justify-between border-b border-flandi-pink/60 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-flandi-coral/15 text-flandi-coral flex items-center justify-center shadow-2xs">
+                    <ShoppingBag className="w-4 h-4" />
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
-                        Thành tiền
-                      </span>
-                      {subtotal > 0 && subtotal >= freeShipMin ? (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
-                          Freeship
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
-                          +15k ship
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight leading-tight">
-                      {formatVND(grandTotal)}
-                    </div>
+                  <div>
+                    <h3 className="font-display text-sm font-black text-flandi-dark leading-tight">
+                      Chi Tiết Đơn Hàng
+                    </h3>
+                    <p className="text-[10px] font-bold text-flandi-muted">
+                      {totalItemsCount > 0
+                        ? `${cartItems.length} món • ${totalItemsCount} phần bánh`
+                        : "Chưa chọn món nào"}
+                    </p>
                   </div>
                 </div>
 
-                {/* Nút expand ở cuối */}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsExpanded(true);
-                  }}
-                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 ${
-                    totalItemsCount > 0
-                      ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
-                      : "bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink"
-                  }`}
+                  onClick={() => setIsExpanded(false)}
+                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition active:scale-95"
+                  title="Đóng"
                 >
-                  <span>{totalItemsCount > 0 ? "Gửi đơn" : "Xem thêm"}</span>
-                  <ChevronUp className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : (
-              /* EXPANDED STATE: Hiển thị thêm thông tin (nhập tên, SĐT, địa chỉ, ghi chú, các nút gửi) */
-              <div className="p-4 sm:p-6 space-y-3.5 max-h-[85vh] overflow-y-auto">
-                {/* Header của trạng thái expand: Thành tiền 2 dòng + icon collapse ở cuối */}
-                <div className="flex items-center justify-between border-b border-flandi-pink pb-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
-                      <ShoppingBag className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
-                          Thành tiền
-                        </span>
-                        {subtotal > 0 && subtotal >= freeShipMin ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
-                            Freeship
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
-                            +15k ship
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight leading-tight">
-                        {formatVND(grandTotal)}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Nút collapse icon ở cuối */}
-                  <button
-                    type="button"
-                    onClick={() => setIsExpanded(false)}
-                    aria-label="Thu gọn"
-                    title="Thu gọn"
-                    className="w-10 h-10 rounded-xl sm:rounded-2xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink flex items-center justify-center transition active:scale-95 shrink-0"
-                  >
-                    <ChevronDown className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Freeship Progress */}
-                {subtotal > 0 && subtotal < freeShipMin && (
-                  <div className="px-3.5 py-2 rounded-xl bg-flandi-cream text-flandi-coral text-xs sm:text-sm font-extrabold flex items-center justify-between border border-flandi-pink/60">
-                    <span>+{formatVND(freeShipMin - subtotal)} để Freeship!</span>
-                    <span>Phí ship: {formatVND(shippingFee)}</span>
-                  </div>
-                )}
-
-                {/* Tóm tắt các món đã chọn trong Drawer */}
+              {/* Sheet Scrollable Body */}
+              <div className="p-3 sm:p-4 space-y-2.5 overflow-y-auto no-scrollbar">
+                {/* 1. Danh Sách Món Đã Chọn (Có stepper +/- chỉnh số lượng trực tiếp) */}
                 {cartItems.length > 0 && (
-                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto no-scrollbar py-0.5">
-                    {cartItems.map((item) => (
-                      <div
-                        key={item.product.id}
-                        className="p-2 rounded-xl bg-flandi-bg border border-flandi-pink flex items-center justify-between gap-2"
+                  <div className="bg-flandi-bg/80 rounded-2xl p-2 sm:p-2.5 border border-flandi-pink/70 space-y-1">
+                    <div className="flex items-center justify-between px-1 pb-0.5">
+                      <span className="text-[10px] sm:text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider">
+                        Món bạn đã chọn ({totalItemsCount} phần)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCartMap({})}
+                        className="text-[10px] sm:text-[11px] font-extrabold text-red-500 hover:text-red-600 flex items-center gap-1 transition"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <img
-                            src={item.product.image}
-                            alt={item.product.name}
-                            className="w-8 h-8 rounded-lg object-cover border border-white shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-black text-flandi-dark truncate">
-                              {item.product.name}
-                            </h4>
-                            <span className="text-[10px] font-bold text-flandi-muted">
-                              {formatVND(item.product.price)} / {item.product.unit || "cái"}
+                        <Trash2 className="w-3 h-3" />
+                        <span>Xoá hết</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-1 max-h-[135px] overflow-y-auto no-scrollbar">
+                      {cartItems.map((item) => (
+                        <div
+                          key={item.product.id}
+                          className="bg-white rounded-xl p-1.5 sm:p-2 border border-flandi-pink/60 flex items-center justify-between gap-2 shadow-2xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <img
+                              src={item.product.image}
+                              alt={item.product.name}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover border border-flandi-pink/40 shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-flandi-dark truncate">
+                                {item.product.name}
+                              </h4>
+                              <span className="text-[10px] font-bold text-flandi-muted">
+                                {formatVND(item.product.price)} / {item.product.unit || "cái"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            {/* Stepper +/- */}
+                            <div className="flex items-center bg-flandi-bg rounded-lg border border-flandi-pink p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = item.quantity - 1;
+                                  if (next <= 0) {
+                                    setCartMap((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[item.product.id];
+                                      return copy;
+                                    });
+                                  } else {
+                                    setCartMap((prev) => ({
+                                      ...prev,
+                                      [item.product.id]: { ...item, quantity: next },
+                                    }));
+                                  }
+                                }}
+                                className="w-5 h-5 flex items-center justify-center text-slate-500 hover:text-flandi-coral transition"
+                              >
+                                <Minus className="w-2.5 h-2.5" />
+                              </button>
+                              <span className="w-5 text-center text-xs font-black text-flandi-coral">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCartMap((prev) => ({
+                                    ...prev,
+                                    [item.product.id]: {
+                                      ...item,
+                                      quantity: item.quantity + 1,
+                                    },
+                                  }));
+                                }}
+                                className="w-5 h-5 flex items-center justify-center text-flandi-coral transition"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+
+                            <span className="text-xs font-black text-flandi-dark min-w-[50px] text-right">
+                              {formatVND(item.product.price * item.quantity)}
                             </span>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs font-black text-flandi-coral">
-                            {item.quantity} {item.product.unit || "cái"}
-                          </span>
-                          <span className="text-xs font-black text-flandi-dark min-w-[50px] text-right">
-                            = {formatVND(item.product.price * item.quantity)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Customer Info Inputs */}
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Tên của bạn (tuỳ chọn)"
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
-                    />
-                    <input
-                      type="tel"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="Số điện thoại nhận bánh"
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
-                    />
+                {/* 2. Chi Tiết Tiền & Freeship */}
+                <div className="bg-white rounded-2xl p-2.5 sm:p-3 border border-flandi-pink/70 space-y-1 shadow-2xs">
+                  {subtotal > 0 && subtotal < freeShipMin ? (
+                    <div className="px-2.5 py-1 rounded-xl bg-flandi-cream text-flandi-coral text-[11px] sm:text-xs font-extrabold flex items-center justify-between border border-flandi-pink/60">
+                      <span>+{formatVND(freeShipMin - subtotal)} để Freeship!</span>
+                      <span>Phí ship: {formatVND(shippingFee)}</span>
+                    </div>
+                  ) : subtotal >= freeShipMin ? (
+                    <div className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] sm:text-xs font-extrabold flex items-center justify-between border border-emerald-200">
+                      <span>🎉 Đơn của bạn được FREESHIP!</span>
+                      <span>0đ</span>
+                    </div>
+                  ) : null}
+
+                  <div className="flex items-center justify-between text-xs font-bold text-flandi-muted pt-0.5">
+                    <span>Tạm tính bánh:</span>
+                    <span className="font-extrabold text-flandi-dark">{formatVND(subtotal)}</span>
                   </div>
-                  <div>
+                  <div className="flex items-center justify-between text-xs font-bold text-flandi-muted">
+                    <span>Phí giao hàng:</span>
+                    <span className={shippingFee === 0 ? "font-black text-emerald-700" : "font-extrabold text-flandi-dark"}>
+                      {shippingFee === 0 ? "0đ (Freeship)" : formatVND(shippingFee)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between pt-1.5 border-t border-dashed border-flandi-pink">
+                    <span className="text-xs font-black text-flandi-dark uppercase tracking-wider">
+                      Tổng thanh toán:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {subtotal > 0 && (
+                        subtotal >= freeShipMin ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black">
+                            Freeship
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black">
+                            +15k ship
+                          </span>
+                        )
+                      )}
+                      <span className="font-display text-lg sm:text-xl font-black text-flandi-coral leading-none">
+                        {formatVND(grandTotal)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Form Thông Tin Nhận Bánh (Không bị cắt chữ, có icon chỉ dẫn trực quan) */}
+                <div className="space-y-1.5">
+                  <div className="grid grid-cols-12 gap-2">
+                    {/* Số điện thoại (Bắt buộc) - 7 cột để không bị cắt chữ */}
+                    <div className="col-span-7 relative">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
+                        <Phone className="w-3.5 h-3.5" />
+                      </div>
+                      <input
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="Số điện thoại *"
+                        autoComplete="tel"
+                        className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
+                      />
+                    </div>
+
+                    {/* Tên khách (Tuỳ chọn) - 5 cột */}
+                    <div className="col-span-5 relative">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-muted">
+                        <User className="w-3.5 h-3.5" />
+                      </div>
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Tên bạn"
+                        autoComplete="name"
+                        className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Địa chỉ giao hàng - Full width */}
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
+                      <MapPin className="w-3.5 h-3.5" />
+                    </div>
                     <input
                       type="text"
                       value={customerAddress}
                       onChange={(e) => setCustomerAddress(e.target.value)}
-                      placeholder="Địa chỉ giao nhận bánh (hoặc giờ lấy)"
-                      autoComplete="off"
-                      spellCheck={false}
-                      className="w-full px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
+                      placeholder="Địa chỉ giao hàng (hoặc giờ ghé lấy bánh)"
+                      className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
                     />
                   </div>
                 </div>
 
-                {/* Primary Action Buttons: Send via Messenger & Send via Zalo */}
-                <div className="space-y-2 pt-1">
+                {/* 4. Các Nút Gửi Đơn (Zalo, Messenger, QR) */}
+                <div className="space-y-1.5 pt-0.5 pb-2">
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       disabled={cartItems.length === 0 || sendingChannel !== null}
-                      onClick={() => handleSendOrderVia("MESSENGER")}
-                      className="py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-40"
+                      onClick={() => handleSendOrderVia("ZALO")}
+                      className="py-2.5 sm:py-3 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
                     >
-                      <MessageCircle className="w-4.5 h-4.5 fill-white/20 shrink-0" />
-                      <span>Gửi qua Messenger</span>
+                      <Send className="w-4 h-4 shrink-0" />
+                      <span>Gửi qua Zalo</span>
                     </button>
 
                     <button
                       type="button"
                       disabled={cartItems.length === 0 || sendingChannel !== null}
-                      onClick={() => handleSendOrderVia("ZALO")}
-                      className="py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-40"
+                      onClick={() => handleSendOrderVia("MESSENGER")}
+                      className="py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
                     >
-                      <Send className="w-4.5 h-4.5 shrink-0" />
-                      <span>Gửi qua Zalo</span>
+                      <MessageCircle className="w-4 h-4 shrink-0" />
+                      <span>Gửi Messenger</span>
                     </button>
                   </div>
 
@@ -1079,16 +1186,16 @@ export default function QuickSingleScreenOrderPage() {
                     type="button"
                     disabled={cartItems.length === 0 || sendingChannel !== null}
                     onClick={() => handleSendOrderVia("DIRECT")}
-                    className="w-full py-2.5 sm:py-3 px-4 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-black text-xs sm:text-sm shadow-cute flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-40"
+                    className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white font-black text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
                   >
-                    <Zap className="w-4 h-4" />
-                    <span>Chốt Đơn Trực Tiếp & Hiện Mã QR</span>
+                    <QrCode className="w-4 h-4 shrink-0" />
+                    <span>Chốt Đơn Trực Tiếp & Mã QR</span>
                   </button>
                 </div>
               </div>
-            )}
+            </div>
           </div>
-        </footer>
+        )}
       </div>
 
       {/* Embedded On-Page Messenger & Zalo Chat Widget */}
@@ -1099,6 +1206,7 @@ export default function QuickSingleScreenOrderPage() {
         preferredChannel={preferredChatChannel}
         refreshTrigger={chatRefreshTrigger}
         cartSummaryText={liveOrderPreviewText || undefined}
+        hideFloatingButton={isExpanded}
       />
 
       {/* Custom Virtual Numeric Keypad Modal (Bàn phím ảo nhập số lượng) */}

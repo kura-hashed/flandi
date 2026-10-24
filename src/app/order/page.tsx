@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import Link from "next/link";
 import {
   Plus,
   Minus,
@@ -9,7 +8,6 @@ import {
   Copy,
   Check,
   Sparkles,
-  ArrowLeft,
   Send,
   MessageCircle,
   Phone,
@@ -19,7 +17,6 @@ import {
   X,
   Zap,
   Share2,
-  Edit3,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import LiveChatWidget, {
@@ -37,20 +34,7 @@ export default function QuickSingleScreenOrderPage() {
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Selected variant per product ID
-  const [selectedVariantByProd, setSelectedVariantByProd] = useState<
-    Record<string, string>
-  >({});
-
-  // Track which product has "CUSTOM" ("Tự nhập") mode active
-  const [customModeByProd, setCustomModeByProd] = useState<
-    Record<string, boolean>
-  >({});
-
-  // Refs for focusing the custom quantity input when user clicks "Tự nhập"
-  const qtyInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  // Cart keyed by `${productId}__${variantId}`
+  // Cart keyed by productId
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
 
   // Compact customer info
@@ -101,14 +85,6 @@ export default function QuickSingleScreenOrderPage() {
         );
         setProducts(activeProds);
         setSettings(data.settings || null);
-
-        const defaultVars: Record<string, string> = {};
-        activeProds.forEach((p) => {
-          if (p.variants?.[0]) {
-            defaultVars[p.id] = p.variants[0].id;
-          }
-        });
-        setSelectedVariantByProd(defaultVars);
       } catch (e) {
         console.error(e);
       } finally {
@@ -118,54 +94,45 @@ export default function QuickSingleScreenOrderPage() {
     load();
   }, []);
 
-  const getActiveVariant = (product: Product): ProductVariant => {
-    const vId = selectedVariantByProd[product.id];
+  const getBaseVariant = (product: Product): ProductVariant => {
     return (
-      product.variants.find((v) => v.id === vId) || product.variants[0]
+      product.variants?.[0] || {
+        id: `${product.id}-base`,
+        name: product.name,
+        price: product.price,
+        unitLabel: product.unit || "cái",
+        stockDeduction: 1,
+      }
     );
   };
 
-  const getQtyFor = (productId: string, variantId: string): number => {
-    return cartMap[`${productId}__${variantId}`]?.quantity || 0;
+  const getQtyForProduct = (productId: string): number => {
+    return cartMap[productId]?.quantity || 0;
   };
 
-  const getTotalQtyForProduct = (productId: string): number => {
-    return Object.values(cartMap)
-      .filter((item) => item.product.id === productId)
-      .reduce((s, item) => s + item.quantity, 0);
-  };
-
-  const updateQty = (
-    product: Product,
-    variant: ProductVariant,
-    delta: number
-  ) => {
-    const key = `${product.id}__${variant.id}`;
+  const updateQty = (product: Product, delta: number) => {
+    const variant = getBaseVariant(product);
     setCartMap((prev) => {
-      const current = prev[key]?.quantity || 0;
+      const current = prev[product.id]?.quantity || 0;
       const nextQty = Math.max(0, current + delta);
       const copy = { ...prev };
       if (nextQty <= 0) {
-        delete copy[key];
+        delete copy[product.id];
       } else {
-        copy[key] = { product, variant, quantity: nextQty };
+        copy[product.id] = { product, variant, quantity: nextQty };
       }
       return copy;
     });
   };
 
-  const setExactQty = (
-    product: Product,
-    variant: ProductVariant,
-    qty: number
-  ) => {
-    const key = `${product.id}__${variant.id}`;
+  const setExactQty = (product: Product, qty: number) => {
+    const variant = getBaseVariant(product);
     setCartMap((prev) => {
       const copy = { ...prev };
       if (qty <= 0) {
-        delete copy[key];
+        delete copy[product.id];
       } else {
-        copy[key] = { product, variant, quantity: qty };
+        copy[product.id] = { product, variant, quantity: qty };
       }
       return copy;
     });
@@ -179,7 +146,7 @@ export default function QuickSingleScreenOrderPage() {
   );
 
   const subtotal = useMemo(
-    () => cartItems.reduce((s, i) => s + i.variant.price * i.quantity, 0),
+    () => cartItems.reduce((s, i) => s + i.product.price * i.quantity, 0),
     [cartItems]
   );
 
@@ -192,7 +159,7 @@ export default function QuickSingleScreenOrderPage() {
       : settings?.defaultShippingFee || 15000;
   const grandTotal = subtotal + shippingFee;
 
-  // Build formatted text message for Messenger / Zalo
+  // Build formatted text message for Messenger / Zalo (clean, without extra category/variant labels)
   const buildOrderMessageText = (code?: string) => {
     const lines: string[] = [];
     lines.push(
@@ -201,10 +168,10 @@ export default function QuickSingleScreenOrderPage() {
     lines.push("------------------------");
     cartItems.forEach((item, idx) => {
       lines.push(
-        `${idx + 1}. ${item.product.name} (${item.variant.name}): ${
-          item.quantity
-        } ${item.variant.unitLabel} x ${formatVND(item.variant.price)} = ${formatVND(
-          item.variant.price * item.quantity
+        `${idx + 1}. ${item.product.name}: ${item.quantity} ${
+          item.product.unit || "cái"
+        } x ${formatVND(item.product.price)} = ${formatVND(
+          item.product.price * item.quantity
         )}`
       );
     });
@@ -308,11 +275,11 @@ export default function QuickSingleScreenOrderPage() {
           productId: i.product.id,
           productName: i.product.name,
           variantId: i.variant.id,
-          variantName: i.variant.name,
+          variantName: i.product.unit || "cái",
           quantity: i.quantity,
-          unitPrice: i.variant.price,
-          subtotal: i.variant.price * i.quantity,
-          stockDeductionPerItem: i.variant.stockDeduction,
+          unitPrice: i.product.price,
+          subtotal: i.product.price * i.quantity,
+          stockDeductionPerItem: 1,
         })),
         subtotal,
         discount: 0,
@@ -389,31 +356,22 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       )}
 
-      {/* Compact Top Header */}
+      {/* Compact Top Header (No back-to-home button) */}
       <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink px-3 sm:px-6 h-13 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/"
-            className="px-2.5 py-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-coral border border-flandi-pink text-xs font-extrabold flex items-center gap-1 transition"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Trang chủ</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <img
-              src={
-                settings?.pageConfig?.headerLogoUrl ||
-                settings?.brandKit?.mascotImage ||
-                "/images/branding/flandi-mascot.png"
-              }
-              alt="FLANDI"
-              className="w-8 h-8 rounded-full object-cover border-2 border-flandi-salmon"
-            />
-            <div>
-              <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-none">
-                ĐẶT BÁNH NHANH
-              </h1>
-            </div>
+          <img
+            src={
+              settings?.pageConfig?.headerLogoUrl ||
+              settings?.brandKit?.mascotImage ||
+              "/images/branding/flandi-mascot.png"
+            }
+            alt="FLANDI"
+            className="w-8 h-8 rounded-full object-cover border-2 border-flandi-salmon"
+          />
+          <div>
+            <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-none">
+              ĐẶT BÁNH NHANH
+            </h1>
           </div>
         </div>
 
@@ -448,45 +406,36 @@ export default function QuickSingleScreenOrderPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 h-full content-between">
               {products.map((product) => {
-                const activeVar = getActiveVariant(product);
-                const currentQty = activeVar
-                  ? getQtyFor(product.id, activeVar.id)
-                  : 0;
-                const totalProdQty = getTotalQtyForProduct(product.id);
-                const isCustomActive =
-                  customModeByProd[product.id] ||
-                  (currentQty > 0 && currentQty !== 5 && currentQty !== 10);
+                const currentQty = getQtyForProduct(product.id);
 
                 return (
                   <div
                     key={product.id}
                     className={`rounded-3xl border-2 p-2.5 sm:p-3 transition-all flex flex-col justify-between relative ${
-                      totalProdQty > 0
+                      currentQty > 0
                         ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/30"
                         : "bg-white/95 border-flandi-pink hover:border-flandi-salmon shadow-2xs"
                     }`}
                   >
                     {/* Selected Count Ribbon */}
-                    {totalProdQty > 0 && (
+                    {currentQty > 0 && (
                       <span className="absolute -top-2 right-2 z-20 px-2.5 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black shadow-sm border border-white">
-                        Đã chọn: {totalProdQty}
+                        Đã chọn: {currentQty}
                       </span>
                     )}
 
-                    {/* 1. Full-Width Product Name on Top (Never truncated!) */}
+                    {/* 1. Full-Width Product Name on Top */}
                     <div className="w-full text-center pb-1.5 border-b border-flandi-pink/50">
                       <h2 className="font-display text-base sm:text-lg text-sticker-sm leading-snug w-full break-words">
                         {product.name}
                       </h2>
                     </div>
 
-                    {/* 2. Center Row: Product Photo + Price Badge + Optional Flavor Pills */}
-                    <div className="flex items-center gap-2.5 my-2">
+                    {/* 2. Center: Circular Product Photo + Price Badge (No category/flavor pills) */}
+                    <div className="flex flex-col items-center justify-center my-2">
                       <div
-                        onClick={() =>
-                          activeVar && updateQty(product, activeVar, 1)
-                        }
-                        className="cursor-pointer relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group"
+                        onClick={() => updateQty(product, 1)}
+                        className="cursor-pointer relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group shadow-xs"
                         title="Chạm để +1 nhanh"
                       >
                         <img
@@ -494,201 +443,78 @@ export default function QuickSingleScreenOrderPage() {
                           alt={product.name}
                           className="w-full h-full object-cover rounded-full border-2 border-white group-hover:scale-105 transition"
                         />
-                      </div>
-
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-flandi-salmon text-white text-xs font-extrabold shadow-2xs">
-                            {product.badgeText}
-                          </span>
-                          {activeVar &&
-                            activeVar.price !== product.price && (
-                              <span className="text-[11px] font-extrabold text-flandi-coral">
-                                ({formatVND(activeVar.price)}/{activeVar.unitLabel})
-                              </span>
-                            )}
-                        </div>
-
-                        {/* Flavor Selector Pills (when product has >1 flavor) */}
-                        {product.variants.length > 1 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {product.variants.map((v) => {
-                              const isSelected = activeVar?.id === v.id;
-                              const vQty = getQtyFor(product.id, v.id);
-                              const shortName = v.name
-                                .replace("Vị ", "")
-                                .trim();
-
-                              return (
-                                <button
-                                  key={v.id}
-                                  type="button"
-                                  onClick={() =>
-                                    setSelectedVariantByProd((prev) => ({
-                                      ...prev,
-                                      [product.id]: v.id,
-                                    }))
-                                  }
-                                  className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold border transition flex items-center gap-1 ${
-                                    isSelected
-                                      ? "bg-flandi-coral text-white border-flandi-coral"
-                                      : vQty > 0
-                                      ? "bg-flandi-cream text-flandi-coral border-flandi-salmon"
-                                      : "bg-flandi-bg text-flandi-dark border-flandi-pink hover:border-flandi-salmon"
-                                  }`}
-                                >
-                                  <span>{shortName}</span>
-                                  {vQty > 0 && (
-                                    <span
-                                      className={`px-1 rounded-full text-[9px] font-black ${
-                                        isSelected
-                                          ? "bg-white text-flandi-coral"
-                                          : "bg-flandi-coral text-white"
-                                      }`}
-                                    >
-                                      {vQty}
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <p className="text-[11px] text-flandi-muted font-semibold line-clamp-1">
-                            {product.subtitle}
-                          </p>
-                        )}
+                        <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-flandi-salmon text-white text-[11px] font-extrabold border-2 border-white shadow-sm">
+                          {product.badgeText}
+                        </span>
                       </div>
                     </div>
 
-                    {/* 3. Quantity Option Selector: [ 5 cái ] [ 10 cái ] [ Tự nhập ] + Stepper */}
-                    {activeVar && (
-                      <div className="pt-1.5 border-t border-flandi-pink/60 space-y-1.5 mt-auto">
-                        {/* 3 Option Buttons: 5 cái | 10 cái | Tự nhập */}
-                        <div className="grid grid-cols-3 gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCustomModeByProd((prev) => ({
-                                ...prev,
-                                [product.id]: false,
-                              }));
-                              setExactQty(
-                                product,
-                                activeVar,
-                                currentQty === 5 ? 0 : 5
-                              );
-                            }}
-                            className={`py-1.5 px-1 rounded-xl text-[11px] font-extrabold border transition ${
-                              currentQty === 5 && !customModeByProd[product.id]
-                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                            }`}
-                          >
-                            5 cái
-                          </button>
+                    {/* 3. Quantity Selector: [ 5 cái ] [ 10 cái ] + Direct Number Input Box */}
+                    <div className="pt-2 border-t border-flandi-pink/60 space-y-1.5 mt-auto">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExactQty(product, currentQty === 5 ? 0 : 5)
+                          }
+                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
+                            currentQty === 5
+                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                          }`}
+                        >
+                          5 cái
+                        </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCustomModeByProd((prev) => ({
-                                ...prev,
-                                [product.id]: false,
-                              }));
-                              setExactQty(
-                                product,
-                                activeVar,
-                                currentQty === 10 ? 0 : 10
-                              );
-                            }}
-                            className={`py-1.5 px-1 rounded-xl text-[11px] font-extrabold border transition ${
-                              currentQty === 10 && !customModeByProd[product.id]
-                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                            }`}
-                          >
-                            10 cái
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCustomModeByProd((prev) => ({
-                                ...prev,
-                                [product.id]: true,
-                              }));
-                              if (currentQty === 0) {
-                                setExactQty(product, activeVar, 1);
-                              }
-                              setTimeout(() => {
-                                const inp = qtyInputRefs.current[product.id];
-                                if (inp) {
-                                  inp.focus();
-                                  inp.select();
-                                }
-                              }, 20);
-                            }}
-                            className={`py-1.5 px-1 rounded-xl text-[11px] font-extrabold border transition flex items-center justify-center gap-0.5 ${
-                              isCustomActive
-                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                            }`}
-                          >
-                            <Edit3 className="w-3 h-3 shrink-0" />
-                            <span>Tự nhập</span>
-                          </button>
-                        </div>
-
-                        {/* Direct Quantity Input & Stepper [-][Số lượng][+] */}
-                        <div className="flex items-center justify-between bg-flandi-bg rounded-xl px-1.5 py-1 border border-flandi-pink">
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, activeVar, -1)}
-                            disabled={currentQty <= 0}
-                            className="w-6 h-6 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-
-                          <div className="flex items-center gap-1">
-                            <input
-                              ref={(el) => {
-                                qtyInputRefs.current[product.id] = el;
-                              }}
-                              type="number"
-                              min={0}
-                              value={currentQty || ""}
-                              placeholder="0"
-                              onFocus={() =>
-                                setCustomModeByProd((prev) => ({
-                                  ...prev,
-                                  [product.id]: true,
-                                }))
-                              }
-                              onChange={(e) =>
-                                setExactQty(
-                                  product,
-                                  activeVar,
-                                  parseInt(e.target.value, 10) || 0
-                                )
-                              }
-                              className="w-12 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-md border border-flandi-pink/80 py-0.5 focus:border-flandi-coral focus:outline-none"
-                            />
-                            <span className="text-[10px] font-bold text-flandi-muted">
-                              {activeVar.unitLabel}
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, activeVar, 1)}
-                            className="w-6 h-6 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExactQty(product, currentQty === 10 ? 0 : 10)
+                          }
+                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
+                            currentQty === 10
+                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                          }`}
+                        >
+                          10 cái
+                        </button>
                       </div>
-                    )}
+
+                      {/* Direct Number Input Box (Always visible, no need to click "Tự nhập") */}
+                      <div className="flex items-center justify-between bg-flandi-bg rounded-xl px-1.5 py-1 border border-flandi-pink">
+                        <button
+                          type="button"
+                          onClick={() => updateQty(product, -1)}
+                          disabled={currentQty <= 0}
+                          className="w-7 h-7 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+
+                        <input
+                          type="number"
+                          min={0}
+                          value={currentQty || ""}
+                          placeholder="Nhập số lượng..."
+                          onChange={(e) =>
+                            setExactQty(
+                              product,
+                              parseInt(e.target.value, 10) || 0
+                            )
+                          }
+                          className="w-full mx-1.5 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-lg border border-flandi-pink/80 py-1 px-1 placeholder:text-[10px] placeholder:font-semibold placeholder:text-flandi-muted focus:border-flandi-coral focus:outline-none"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => updateQty(product, 1)}
+                          className="w-7 h-7 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -717,10 +543,7 @@ export default function QuickSingleScreenOrderPage() {
             {cartItems.length > 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  setCartMap({});
-                  setCustomModeByProd({});
-                }}
+                onClick={() => setCartMap({})}
                 className="text-[11px] font-extrabold text-red-500 hover:underline flex items-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -738,13 +561,13 @@ export default function QuickSingleScreenOrderPage() {
                   Chưa có món bánh nào được chọn
                 </p>
                 <p className="text-[11px] text-flandi-muted font-medium mt-0.5">
-                  Chọn [5 cái], [10 cái] hoặc [Tự nhập] ở các món bên trái
+                  Chọn [5 cái], [10 cái] hoặc nhập số lượng ở các món bên trái
                 </p>
               </div>
             ) : (
               cartItems.map((item) => (
                 <div
-                  key={`${item.product.id}__${item.variant.id}`}
+                  key={item.product.id}
                   className="p-2 rounded-xl bg-flandi-bg border border-flandi-pink flex items-center justify-between gap-2"
                 >
                   <div className="min-w-0 flex-1">
@@ -752,15 +575,14 @@ export default function QuickSingleScreenOrderPage() {
                       {item.product.name}
                     </p>
                     <p className="text-[10px] text-flandi-muted font-bold truncate">
-                      {item.variant.name} • {formatVND(item.variant.price)}/
-                      {item.variant.unitLabel}
+                      {formatVND(item.product.price)} / {item.product.unit || "cái"}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-1 bg-white rounded-full px-1.5 py-0.5 border border-flandi-pink">
                     <button
                       type="button"
-                      onClick={() => updateQty(item.product, item.variant, -1)}
+                      onClick={() => updateQty(item.product, -1)}
                       className="w-4 h-4 flex items-center justify-center text-flandi-dark"
                     >
                       <Minus className="w-3 h-3" />
@@ -770,7 +592,7 @@ export default function QuickSingleScreenOrderPage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => updateQty(item.product, item.variant, 1)}
+                      onClick={() => updateQty(item.product, 1)}
                       className="w-4 h-4 flex items-center justify-center text-flandi-coral"
                     >
                       <Plus className="w-3 h-3" />
@@ -778,7 +600,7 @@ export default function QuickSingleScreenOrderPage() {
                   </div>
 
                   <span className="text-xs font-extrabold text-flandi-coral w-16 text-right">
-                    {formatVND(item.variant.price * item.quantity)}
+                    {formatVND(item.product.price * item.quantity)}
                   </span>
                 </div>
               ))
@@ -1073,7 +895,6 @@ export default function QuickSingleScreenOrderPage() {
               type="button"
               onClick={() => {
                 setCartMap({});
-                setCustomModeByProd({});
                 setSentResultModal(null);
               }}
               className="w-full py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-flandi-dark font-extrabold text-xs"

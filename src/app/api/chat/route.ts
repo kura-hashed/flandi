@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         // Check if we can provide an instant helpful assistant response while waiting for admin
         const autoReply = generateSmartAutoReply(
           text.trim(),
-          db.settings.phone || "0366053058",
+          db.settings.phone || "0703166903",
           db.settings.freeShipMinimum || 150000
         );
         if (autoReply) {

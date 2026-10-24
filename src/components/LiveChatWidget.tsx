@@ -158,7 +158,7 @@ export default function LiveChatWidget({
   ];
 
   const fbUrl = settings?.facebookUrl || "https://www.facebook.com/tiem.flandi";
-  const zaloPhone = settings?.zaloPhone || "0366053058";
+  const zaloPhone = settings?.zaloPhone || "0703166903";
   const mascotImg =
     settings?.brandKit?.mascotImage || "/images/branding/flandi-mascot.png";
 

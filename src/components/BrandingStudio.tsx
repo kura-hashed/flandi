@@ -59,7 +59,7 @@ const DEFAULT_FALLBACK_KIT: BrandKit = {
   storageInstruction:
     "Bảo quản ngăn mát tủ lạnh (2°C – 6°C) ngay khi nhận bánh. Ngon nhất khi dùng trong vòng 2 – 3 ngày.",
   promoHeadline: "MẺ BÁNH MỚI RA LÒ MỖI SÁNG!",
-  promoSubheadline: "Freeship đơn từ 150k • Đặt nhanh qua Zalo 0366053058",
+  promoSubheadline: "Freeship đơn từ 150k • Đặt nhanh qua Zalo 0703166903",
   colors: [
     {
       id: "col-coral",

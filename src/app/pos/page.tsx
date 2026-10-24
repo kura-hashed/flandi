@@ -1295,7 +1295,7 @@ export default function FlandiPosPage() {
                   “{settings?.tagline || "Muốn ăn hãy Flăn vào tớ"}”
                 </p>
                 <p className="text-[10px] text-gray-600">
-                  SĐT/Zalo: {settings?.phone || "0366053058"}
+                  SĐT/Zalo: {settings?.phone || "0703166903"}
                 </p>
               </div>
 

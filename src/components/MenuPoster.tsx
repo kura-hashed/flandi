@@ -227,7 +227,7 @@ export default function MenuPoster({
         </span>
         <span className="inline-flex items-center gap-1 bg-white/90 px-3 py-1 rounded-full border border-flandi-pink shadow-2xs">
           <Phone className="w-3 h-3" />
-          <span>Đặt bánh / Zalo: {settings?.phone || "0366053058"}</span>
+          <span>Đặt bánh / Zalo: {settings?.phone || "0703166903"}</span>
         </span>
       </div>
     </div>

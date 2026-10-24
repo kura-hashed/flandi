@@ -825,7 +825,7 @@ export default function FlandiLandingPage() {
             </h4>
             <p className="flex items-center gap-2 text-flandi-muted font-semibold">
               <Phone className="w-4 h-4 text-flandi-coral shrink-0" />
-              <span>Hotline / Zalo: {settings?.phone || "0366053058"}</span>
+              <span>Hotline / Zalo: {settings?.phone || "0703166903"}</span>
             </p>
             <p className="flex items-center gap-2 text-flandi-muted font-semibold">
               <Clock className="w-4 h-4 text-flandi-coral shrink-0" />
@@ -1246,7 +1246,7 @@ export default function FlandiLandingPage() {
               </button>
 
               <a
-                href={`https://zalo.me/${settings?.zaloPhone || "0366053058"}`}
+                href={`https://zalo.me/${settings?.zaloPhone || "0703166903"}`}
                 target="_blank"
                 rel="noreferrer"
                 className="py-2.5 px-3 rounded-full bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5"

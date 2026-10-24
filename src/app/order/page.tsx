@@ -843,7 +843,11 @@ export default function QuickSingleScreenOrderPage() {
             {/* MOBILE LAYOUT (< lg screens) */}
             <div className="lg:hidden flex-1 flex flex-col gap-2 min-h-0">
               {/* PHẦN 1: THỰC ĐƠN (Các món chưa chọn) */}
-              <div className="flex-1 flex flex-col min-h-0">
+              <div
+                className={`flex flex-col min-h-0 ${
+                  selectedProducts.length === 0 ? "flex-1" : "shrink-0 max-h-[50%]"
+                }`}
+              >
                 <div className="flex items-center justify-between px-1 pb-1 shrink-0">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-flandi-salmon" />
@@ -863,7 +867,7 @@ export default function QuickSingleScreenOrderPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col gap-1.5 min-h-0 overflow-y-auto no-scrollbar">
+                  <div className="flex flex-col gap-1.5 min-h-0 overflow-y-auto no-scrollbar">
                     {unselectedProducts.map((p) => renderProductCard(p))}
                   </div>
                 )}
@@ -871,7 +875,7 @@ export default function QuickSingleScreenOrderPage() {
 
               {/* PHẦN 2: LÊN ĐƠN (Các món đã chốt số lượng > 0) */}
               {selectedProducts.length > 0 && (
-                <div className="flex flex-col min-h-0 pt-1.5 border-t border-flandi-pink/50 shrink-0">
+                <div className="flex-1 flex flex-col min-h-0 pt-1.5 border-t border-flandi-pink/50">
                   <div className="flex items-center justify-between px-1 pb-1 shrink-0">
                     <div className="flex items-center gap-1.5">
                       <ShoppingBag className="w-3.5 h-3.5 text-flandi-coral" />
@@ -889,7 +893,7 @@ export default function QuickSingleScreenOrderPage() {
                     </button>
                   </div>
 
-                  <div className="flex flex-col gap-1.5 max-h-[190px] overflow-y-auto no-scrollbar">
+                  <div className="flex-1 flex flex-col gap-1.5 min-h-0 overflow-y-auto no-scrollbar">
                     {selectedProducts.map((p) => renderProductCard(p))}
                   </div>
                 </div>

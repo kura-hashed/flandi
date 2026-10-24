@@ -748,18 +748,24 @@ export default function QuickSingleScreenOrderPage() {
                     {/* Thành tiền 2 dòng */}
                     <div className="flex items-center justify-between pt-0.5">
                       <div>
-                        <span className="text-xs font-extrabold text-flandi-muted block leading-none mb-1">
-                          Thành tiền
-                        </span>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-extrabold text-flandi-muted leading-none">
+                            Thành tiền
+                          </span>
+                          {subtotal > 0 && subtotal >= freeShipMin ? (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-black leading-none shadow-2xs">
+                              Freeship
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-black leading-none shadow-2xs">
+                              +15k ship
+                            </span>
+                          )}
+                        </div>
                         <span className="text-2xl font-black text-flandi-coral tracking-tight leading-none">
                           {formatVND(grandTotal)}
                         </span>
                       </div>
-                      {subtotal >= freeShipMin && (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
-                          Freeship
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -927,9 +933,13 @@ export default function QuickSingleScreenOrderPage() {
                       <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
                         Thành tiền
                       </span>
-                      {subtotal > 0 && subtotal >= freeShipMin && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-black">
+                      {subtotal > 0 && subtotal >= freeShipMin ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
                           Freeship
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
+                          +15k ship
                         </span>
                       )}
                     </div>
@@ -970,9 +980,13 @@ export default function QuickSingleScreenOrderPage() {
                         <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
                           Thành tiền
                         </span>
-                        {subtotal > 0 && subtotal >= freeShipMin && (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-black">
+                        {subtotal > 0 && subtotal >= freeShipMin ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
                             Freeship
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
+                            +15k ship
                           </span>
                         )}
                       </div>

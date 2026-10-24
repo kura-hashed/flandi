@@ -544,37 +544,29 @@ export default function QuickSingleScreenOrderPage() {
                     </div>
                   </div>
 
-                  {/* Right: Ô nhập số lượng (Nhấn vào hiện bàn phím ảo custom) */}
+                  {/* Right: Ô chọn số (Bỏ chữ số lượng, để chữ cái/hộp ở sau) */}
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
                       openKeypad(product);
                     }}
-                    className={`h-11 sm:h-12 md:h-13 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center gap-2.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
+                    className={`h-10 sm:h-11 md:h-12 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
                       isSelected
-                        ? "bg-flandi-cream/90 border-flandi-coral text-flandi-coral ring-1 ring-flandi-salmon/40"
-                        : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-muted"
+                        ? "bg-flandi-coral border-flandi-coral text-white shadow-cute ring-1.5 ring-flandi-salmon/40"
+                        : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-dark/70 hover:text-flandi-coral"
                     }`}
                     title="Nhấn để nhập số lượng"
                   >
-                    <div className="flex flex-col items-start leading-none">
-                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-flandi-muted">
-                        Số lượng
-                      </span>
-                      <span className="text-[11px] sm:text-xs font-bold text-flandi-muted/80 mt-0.5">
-                        {unitLabel}
-                      </span>
-                    </div>
-
-                    <div
-                      className={`px-2.5 sm:px-3 py-1 rounded-lg sm:rounded-xl font-display text-base sm:text-lg md:text-xl font-black min-w-[36px] sm:min-w-[42px] text-center transition ${
-                        isSelected
-                          ? "bg-flandi-coral text-white shadow-2xs"
-                          : "bg-flandi-bg text-flandi-dark/60 border border-flandi-pink/60"
+                    <span className="font-display text-base sm:text-lg md:text-xl font-black leading-none">
+                      {currentQty}
+                    </span>
+                    <span
+                      className={`text-xs sm:text-sm font-extrabold leading-none ${
+                        isSelected ? "text-white/90" : "text-flandi-muted"
                       }`}
                     >
-                      {currentQty}
-                    </div>
+                      {unitLabel}
+                    </span>
                   </div>
                 </div>
               );

@@ -370,10 +370,10 @@ export default function FlandiLandingPage() {
             <Link
               href="/order"
               className="px-3.5 py-2 rounded-full bg-flandi-cream hover:bg-flandi-pink/70 text-flandi-coral border-2 border-flandi-salmon text-xs font-extrabold flex items-center gap-1.5 shadow-2xs transition"
-              title="Trang mua hàng gọn trong 1 màn hình (/order)"
+              title="Trang đặt bánh nhanh (/order)"
             >
               <Sparkles className="w-3.5 h-3.5 text-flandi-coral" />
-              <span>Đặt Nhanh 1 Màn Hình</span>
+              <span>ĐẶT BÁNH NHANH</span>
             </Link>
 
             {pageConfig.showOwnerLinks && (

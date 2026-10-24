@@ -19,7 +19,7 @@ import {
   X,
   Zap,
   Share2,
-  ExternalLink,
+  Edit3,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import LiveChatWidget, {
@@ -41,6 +41,14 @@ export default function QuickSingleScreenOrderPage() {
   const [selectedVariantByProd, setSelectedVariantByProd] = useState<
     Record<string, string>
   >({});
+
+  // Track which product has "CUSTOM" ("Tự nhập") mode active
+  const [customModeByProd, setCustomModeByProd] = useState<
+    Record<string, boolean>
+  >({});
+
+  // Refs for focusing the custom quantity input when user clicks "Tự nhập"
+  const qtyInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Cart keyed by `${productId}__${variantId}`
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
@@ -195,7 +203,7 @@ export default function QuickSingleScreenOrderPage() {
       lines.push(
         `${idx + 1}. ${item.product.name} (${item.variant.name}): ${
           item.quantity
-        } x ${formatVND(item.variant.price)} = ${formatVND(
+        } ${item.variant.unitLabel} x ${formatVND(item.variant.price)} = ${formatVND(
           item.variant.price * item.quantity
         )}`
       );
@@ -256,7 +264,7 @@ export default function QuickSingleScreenOrderPage() {
     channel: "MESSENGER" | "ZALO" | "DIRECT"
   ) => {
     if (cartItems.length === 0) {
-      notify("🍮 Bạn hãy bấm (+) chọn số lượng món bánh trước khi gửi đơn nha!");
+      notify("🍮 Bạn hãy chọn số lượng món bánh trước khi gửi đơn nha!");
       return;
     }
 
@@ -271,8 +279,6 @@ export default function QuickSingleScreenOrderPage() {
     const fbUrl =
       settings?.facebookUrl || "https://www.facebook.com/tiem.flandi";
 
-    // Use pure HTTPS Web URLs (chat.zalo.me & facebook.com/tiem.flandi) instead of zalo.me / m.me
-    // so Safari NEVER throws "Safari cannot open the page" or redirects to App Store!
     const zaloWebUrl = "https://chat.zalo.me";
     const messengerWebUrl = fbUrl;
 
@@ -348,7 +354,6 @@ export default function QuickSingleScreenOrderPage() {
       setChatRefreshTrigger((n) => n + 1);
 
       if (channel === "MESSENGER" || channel === "ZALO") {
-        // Open the embedded on-page Chat with the order already sent inside!
         setOpenChatTrigger((n) => n + 1);
         notify(
           channel === "ZALO"
@@ -384,7 +389,7 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       )}
 
-      {/* Compact Top Header (52px) */}
+      {/* Compact Top Header */}
       <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink px-3 sm:px-6 h-13 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-2.5">
           <Link
@@ -406,7 +411,7 @@ export default function QuickSingleScreenOrderPage() {
             />
             <div>
               <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-none">
-                FLANDI — ĐẶT BÁNH NHANH 1 MÀN HÌNH
+                ĐẶT BÁNH NHANH
               </h1>
             </div>
           </div>
@@ -448,11 +453,14 @@ export default function QuickSingleScreenOrderPage() {
                   ? getQtyFor(product.id, activeVar.id)
                   : 0;
                 const totalProdQty = getTotalQtyForProduct(product.id);
+                const isCustomActive =
+                  customModeByProd[product.id] ||
+                  (currentQty > 0 && currentQty !== 5 && currentQty !== 10);
 
                 return (
                   <div
                     key={product.id}
-                    className={`rounded-3xl border-2 p-2.5 sm:p-3.5 transition-all flex flex-col justify-between relative ${
+                    className={`rounded-3xl border-2 p-2.5 sm:p-3 transition-all flex flex-col justify-between relative ${
                       totalProdQty > 0
                         ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/30"
                         : "bg-white/95 border-flandi-pink hover:border-flandi-salmon shadow-2xs"
@@ -460,13 +468,20 @@ export default function QuickSingleScreenOrderPage() {
                   >
                     {/* Selected Count Ribbon */}
                     {totalProdQty > 0 && (
-                      <span className="absolute -top-2 -left-2 z-20 px-2.5 py-0.5 rounded-full bg-flandi-coral text-white text-[11px] font-black shadow-sm border border-white">
+                      <span className="absolute -top-2 right-2 z-20 px-2.5 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black shadow-sm border border-white">
                         Đã chọn: {totalProdQty}
                       </span>
                     )}
 
-                    {/* Top Row: Circular Image + Name + Price Badge */}
-                    <div className="flex items-center gap-2.5">
+                    {/* 1. Full-Width Product Name on Top (Never truncated!) */}
+                    <div className="w-full text-center pb-1.5 border-b border-flandi-pink/50">
+                      <h2 className="font-display text-base sm:text-lg text-sticker-sm leading-snug w-full break-words">
+                        {product.name}
+                      </h2>
+                    </div>
+
+                    {/* 2. Center Row: Product Photo + Price Badge + Optional Flavor Pills */}
+                    <div className="flex items-center gap-2.5 my-2">
                       <div
                         onClick={() =>
                           activeVar && updateQty(product, activeVar, 1)
@@ -481,121 +496,195 @@ export default function QuickSingleScreenOrderPage() {
                         />
                       </div>
 
-                      <div className="min-w-0 flex-1">
-                        <span className="inline-block px-2 py-0.5 rounded-full bg-flandi-salmon text-white text-[10px] sm:text-[11px] font-extrabold shadow-2xs mb-0.5">
-                          {product.badgeText}
-                        </span>
-                        <h2 className="font-display text-base sm:text-lg text-sticker-sm leading-tight truncate">
-                          {product.name}
-                        </h2>
-                        <p className="text-[10px] sm:text-[11px] text-flandi-muted font-bold truncate">
-                          {activeVar
-                            ? `${formatVND(activeVar.price)} / ${activeVar.unitLabel}`
-                            : product.subtitle}
-                        </p>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full bg-flandi-salmon text-white text-xs font-extrabold shadow-2xs">
+                            {product.badgeText}
+                          </span>
+                          {activeVar &&
+                            activeVar.price !== product.price && (
+                              <span className="text-[11px] font-extrabold text-flandi-coral">
+                                ({formatVND(activeVar.price)}/{activeVar.unitLabel})
+                              </span>
+                            )}
+                        </div>
+
+                        {/* Flavor Selector Pills (when product has >1 flavor) */}
+                        {product.variants.length > 1 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {product.variants.map((v) => {
+                              const isSelected = activeVar?.id === v.id;
+                              const vQty = getQtyFor(product.id, v.id);
+                              const shortName = v.name
+                                .replace("Vị ", "")
+                                .trim();
+
+                              return (
+                                <button
+                                  key={v.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedVariantByProd((prev) => ({
+                                      ...prev,
+                                      [product.id]: v.id,
+                                    }))
+                                  }
+                                  className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold border transition flex items-center gap-1 ${
+                                    isSelected
+                                      ? "bg-flandi-coral text-white border-flandi-coral"
+                                      : vQty > 0
+                                      ? "bg-flandi-cream text-flandi-coral border-flandi-salmon"
+                                      : "bg-flandi-bg text-flandi-dark border-flandi-pink hover:border-flandi-salmon"
+                                  }`}
+                                >
+                                  <span>{shortName}</span>
+                                  {vQty > 0 && (
+                                    <span
+                                      className={`px-1 rounded-full text-[9px] font-black ${
+                                        isSelected
+                                          ? "bg-white text-flandi-coral"
+                                          : "bg-flandi-coral text-white"
+                                      }`}
+                                    >
+                                      {vQty}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-flandi-muted font-semibold line-clamp-1">
+                            {product.subtitle}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    {/* Middle Row: Compact Variant / Flavor Selector Pills */}
-                    {product.variants.length > 1 && (
-                      <div className="my-2 flex flex-wrap gap-1">
-                        {product.variants.map((v) => {
-                          const isSelected = activeVar?.id === v.id;
-                          const vQty = getQtyFor(product.id, v.id);
-                          const shortName = v.name
-                            .replace(/\(.*?\)/g, "")
-                            .replace("Vị ", "")
-                            .replace(" — ", " ")
-                            .trim();
-
-                          return (
-                            <button
-                              key={v.id}
-                              type="button"
-                              onClick={() =>
-                                setSelectedVariantByProd((prev) => ({
-                                  ...prev,
-                                  [product.id]: v.id,
-                                }))
-                              }
-                              className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold border transition flex items-center gap-1 ${
-                                isSelected
-                                  ? "bg-flandi-coral text-white border-flandi-coral"
-                                  : vQty > 0
-                                  ? "bg-flandi-cream text-flandi-coral border-flandi-salmon"
-                                  : "bg-flandi-bg text-flandi-dark border-flandi-pink hover:border-flandi-salmon"
-                              }`}
-                            >
-                              <span className="truncate max-w-[95px]">
-                                {shortName}
-                              </span>
-                              {vQty > 0 && (
-                                <span
-                                  className={`px-1 rounded-full text-[9px] font-black ${
-                                    isSelected
-                                      ? "bg-white text-flandi-coral"
-                                      : "bg-flandi-coral text-white"
-                                  }`}
-                                >
-                                  {vQty}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Bottom Row: Quantity Stepper [-][Qty][+] + Quick Presets */}
+                    {/* 3. Quantity Option Selector: [ 5 cái ] [ 10 cái ] [ Tự nhập ] + Stepper */}
                     {activeVar && (
-                      <div className="pt-1.5 border-t border-flandi-pink/60 flex items-center justify-between gap-1.5 mt-auto">
-                        <div className="flex items-center gap-1 bg-flandi-bg rounded-full p-0.5 border border-flandi-pink">
+                      <div className="pt-1.5 border-t border-flandi-pink/60 space-y-1.5 mt-auto">
+                        {/* 3 Option Buttons: 5 cái | 10 cái | Tự nhập */}
+                        <div className="grid grid-cols-3 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomModeByProd((prev) => ({
+                                ...prev,
+                                [product.id]: false,
+                              }));
+                              setExactQty(
+                                product,
+                                activeVar,
+                                currentQty === 5 ? 0 : 5
+                              );
+                            }}
+                            className={`py-1.5 px-1 rounded-xl text-[11px] font-extrabold border transition ${
+                              currentQty === 5 && !customModeByProd[product.id]
+                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                            }`}
+                          >
+                            5 cái
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomModeByProd((prev) => ({
+                                ...prev,
+                                [product.id]: false,
+                              }));
+                              setExactQty(
+                                product,
+                                activeVar,
+                                currentQty === 10 ? 0 : 10
+                              );
+                            }}
+                            className={`py-1.5 px-1 rounded-xl text-[11px] font-extrabold border transition ${
+                              currentQty === 10 && !customModeByProd[product.id]
+                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                            }`}
+                          >
+                            10 cái
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomModeByProd((prev) => ({
+                                ...prev,
+                                [product.id]: true,
+                              }));
+                              if (currentQty === 0) {
+                                setExactQty(product, activeVar, 1);
+                              }
+                              setTimeout(() => {
+                                const inp = qtyInputRefs.current[product.id];
+                                if (inp) {
+                                  inp.focus();
+                                  inp.select();
+                                }
+                              }, 20);
+                            }}
+                            className={`py-1.5 px-1 rounded-xl text-[11px] font-extrabold border transition flex items-center justify-center gap-0.5 ${
+                              isCustomActive
+                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                            }`}
+                          >
+                            <Edit3 className="w-3 h-3 shrink-0" />
+                            <span>Tự nhập</span>
+                          </button>
+                        </div>
+
+                        {/* Direct Quantity Input & Stepper [-][Số lượng][+] */}
+                        <div className="flex items-center justify-between bg-flandi-bg rounded-xl px-1.5 py-1 border border-flandi-pink">
                           <button
                             type="button"
                             onClick={() => updateQty(product, activeVar, -1)}
                             disabled={currentQty <= 0}
-                            className="w-7 h-7 rounded-full bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90"
+                            className="w-6 h-6 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <input
-                            type="number"
-                            min={0}
-                            value={currentQty || ""}
-                            placeholder="0"
-                            onChange={(e) =>
-                              setExactQty(
-                                product,
-                                activeVar,
-                                parseInt(e.target.value, 10) || 0
-                              )
-                            }
-                            className="w-8 text-center font-extrabold text-xs sm:text-sm text-flandi-dark bg-transparent focus:outline-none"
-                          />
+
+                          <div className="flex items-center gap-1">
+                            <input
+                              ref={(el) => {
+                                qtyInputRefs.current[product.id] = el;
+                              }}
+                              type="number"
+                              min={0}
+                              value={currentQty || ""}
+                              placeholder="0"
+                              onFocus={() =>
+                                setCustomModeByProd((prev) => ({
+                                  ...prev,
+                                  [product.id]: true,
+                                }))
+                              }
+                              onChange={(e) =>
+                                setExactQty(
+                                  product,
+                                  activeVar,
+                                  parseInt(e.target.value, 10) || 0
+                                )
+                              }
+                              className="w-12 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-md border border-flandi-pink/80 py-0.5 focus:border-flandi-coral focus:outline-none"
+                            />
+                            <span className="text-[10px] font-bold text-flandi-muted">
+                              {activeVar.unitLabel}
+                            </span>
+                          </div>
+
                           <button
                             type="button"
                             onClick={() => updateQty(product, activeVar, 1)}
-                            className="w-7 h-7 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90"
+                            className="w-6 h-6 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Quick +5 / +10 buttons */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, activeVar, 5)}
-                            className="px-2 py-1 rounded-lg bg-flandi-cream hover:bg-flandi-salmon hover:text-white text-flandi-coral border border-flandi-pink text-[10px] font-extrabold transition"
-                          >
-                            +5
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, activeVar, 10)}
-                            className="px-2 py-1 rounded-lg bg-flandi-cream hover:bg-flandi-salmon hover:text-white text-flandi-coral border border-flandi-pink text-[10px] font-extrabold transition"
-                          >
-                            +10
                           </button>
                         </div>
                       </div>
@@ -628,7 +717,10 @@ export default function QuickSingleScreenOrderPage() {
             {cartItems.length > 0 && (
               <button
                 type="button"
-                onClick={() => setCartMap({})}
+                onClick={() => {
+                  setCartMap({});
+                  setCustomModeByProd({});
+                }}
                 className="text-[11px] font-extrabold text-red-500 hover:underline flex items-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -646,7 +738,7 @@ export default function QuickSingleScreenOrderPage() {
                   Chưa có món bánh nào được chọn
                 </p>
                 <p className="text-[11px] text-flandi-muted font-medium mt-0.5">
-                  Chạm vào ảnh bánh hoặc nút (+) bên trái để chọn số lượng
+                  Chọn [5 cái], [10 cái] hoặc [Tự nhập] ở các món bên trái
                 </p>
               </div>
             ) : (
@@ -660,7 +752,8 @@ export default function QuickSingleScreenOrderPage() {
                       {item.product.name}
                     </p>
                     <p className="text-[10px] text-flandi-muted font-bold truncate">
-                      {item.variant.name} • {formatVND(item.variant.price)}
+                      {item.variant.name} • {formatVND(item.variant.price)}/
+                      {item.variant.unitLabel}
                     </p>
                   </div>
 
@@ -980,6 +1073,7 @@ export default function QuickSingleScreenOrderPage() {
               type="button"
               onClick={() => {
                 setCartMap({});
+                setCustomModeByProd({});
                 setSentResultModal(null);
               }}
               className="w-full py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-flandi-dark font-extrabold text-xs"

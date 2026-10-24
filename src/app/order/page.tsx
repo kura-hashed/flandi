@@ -76,7 +76,9 @@ export default function QuickSingleScreenOrderPage() {
   };
 
   const formatVND = (n: number) =>
-    new Intl.NumberFormat("vi-VN").format(Math.round(n || 0)) + "đ";
+    Math.round(n || 0)
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
 
   useEffect(() => {
     const load = async () => {
@@ -748,6 +750,8 @@ export default function QuickSingleScreenOrderPage() {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Tên của bạn (tuỳ chọn)"
+                    autoComplete="off"
+                    spellCheck={false}
                     className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                   <input
@@ -755,6 +759,8 @@ export default function QuickSingleScreenOrderPage() {
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="Số điện thoại nhận bánh"
+                    autoComplete="off"
+                    spellCheck={false}
                     className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                 </div>
@@ -764,6 +770,8 @@ export default function QuickSingleScreenOrderPage() {
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     placeholder="Địa chỉ giao nhận bánh (hoặc giờ lấy)"
+                    autoComplete="off"
+                    spellCheck={false}
                     className="w-full px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                 </div>

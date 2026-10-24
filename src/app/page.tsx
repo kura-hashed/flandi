@@ -68,7 +68,9 @@ export default function FlandiLandingPage() {
   };
 
   const formatVND = (amount: number) =>
-    new Intl.NumberFormat("vi-VN").format(amount) + "đ";
+    Math.round(amount || 0)
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
 
   const categories = [
     { id: "ALL", label: "Tất cả món ngon" },
@@ -326,6 +328,8 @@ export default function FlandiLandingPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={pageConfig.menuSearchPlaceholder}
+                autoComplete="off"
+                spellCheck={false}
                 className="w-full pl-10 pr-4 py-2 rounded-full bg-white border border-flandi-pink focus:border-flandi-coral focus:outline-none text-sm font-semibold text-flandi-dark"
               />
             </div>

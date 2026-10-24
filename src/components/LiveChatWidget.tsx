@@ -62,6 +62,7 @@ export default function LiveChatWidget({
   preferredChannel = "MESSENGER",
   refreshTrigger = 0,
 }: LiveChatWidgetProps) {
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [activeChannel, setActiveChannel] = useState<"MESSENGER" | "ZALO">(
     preferredChannel
@@ -78,6 +79,7 @@ export default function LiveChatWidget({
 
   // Initialize or load session ID from localStorage
   useEffect(() => {
+    setMounted(true);
     const savedId = localStorage.getItem("flandi_chat_session_id");
     const savedName = localStorage.getItem("flandi_chat_name") || "";
     const savedPhone = localStorage.getItem("flandi_chat_phone") || "";
@@ -212,6 +214,8 @@ export default function LiveChatWidget({
     settings?.brandKit?.mascotImage || "/images/branding/flandi-mascot.png";
 
   const isZaloMode = activeChannel === "ZALO";
+
+  if (!mounted) return null;
 
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-3">

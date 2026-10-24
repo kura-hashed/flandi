@@ -28,8 +28,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={`${coiny.variable} ${quicksand.variable}`}>
-      <body className="antialiased selection:bg-flandi-pink selection:text-flandi-dark">
+    <html
+      lang="vi"
+      className={`${coiny.variable} ${quicksand.variable}`}
+      suppressHydrationWarning
+    >
+      <body
+        className="antialiased selection:bg-flandi-pink selection:text-flandi-dark"
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

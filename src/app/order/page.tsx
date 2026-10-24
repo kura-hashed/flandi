@@ -423,23 +423,19 @@ export default function QuickSingleScreenOrderPage() {
                         : "bg-white/95 border-flandi-pink hover:border-flandi-salmon shadow-2xs"
                     }`}
                   >
-                    {/* Left: Compact Circular Product Photo */}
-                    <div
-                      onClick={() => updateQty(product, 1)}
-                      className="cursor-pointer relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group shadow-2xs"
-                      title={`Chạm để +1 ${unitLabel} nhanh`}
-                    >
+                    {/* Left: Compact Circular Product Photo (non-clickable) */}
+                    <div className="relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-full h-full object-cover rounded-full border-2 border-white group-hover:scale-105 transition"
+                        className="w-full h-full object-cover rounded-full border-2 border-white"
                       />
                       <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded-full bg-flandi-salmon text-white text-[9px] font-extrabold border border-white shadow-2xs leading-tight">
                         {product.badgeText}
                       </span>
                     </div>
 
-                    {/* Right: 2 Compact Rows (Row 1: Product Name, Row 2: 5 | 10 | Direct Input on same row) */}
+                    {/* Right: 2 Compact Rows (Row 1: Product Name, Row 2: 5 | 10 | Direct Input | Trash on same row) */}
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
                       {/* Row 1: Full Product Name + Selected Status */}
                       <div className="flex items-center justify-between gap-1.5">
@@ -458,7 +454,7 @@ export default function QuickSingleScreenOrderPage() {
                         )}
                       </div>
 
-                      {/* Row 2: [5 cái / 1 hộp] + [10 cái / 2 hộp] + [Direct Number Input] all on 1 single line */}
+                      {/* Row 2: [5 cái / 1 hộp] + [10 cái / 2 hộp] + [Direct Number Input] + [Trash Clear Button] all on 1 single line */}
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
@@ -529,6 +525,21 @@ export default function QuickSingleScreenOrderPage() {
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
+
+                        {/* Trash button to clear quantity of this product */}
+                        <button
+                          type="button"
+                          onClick={() => setExactQty(product, 0)}
+                          disabled={currentQty <= 0}
+                          title="Xoá số lượng món này"
+                          className={`shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center transition active:scale-90 ${
+                            currentQty > 0
+                              ? "bg-red-50 hover:bg-red-100 text-red-500 border-red-200"
+                              : "bg-flandi-bg/60 text-flandi-muted/40 border-flandi-pink/50 cursor-not-allowed"
+                          }`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -618,6 +629,15 @@ export default function QuickSingleScreenOrderPage() {
                   <span className="text-xs font-extrabold text-flandi-coral w-16 text-right">
                     {formatVND(item.product.price * item.quantity)}
                   </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setExactQty(item.product, 0)}
+                    title="Xoá món này"
+                    className="w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center shrink-0 transition"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               ))
             )}

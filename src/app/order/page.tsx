@@ -656,7 +656,7 @@ export default function QuickSingleScreenOrderPage() {
       >
         <div className="max-w-4xl mx-auto w-full bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-flandi-salmon shadow-cute-lg overflow-hidden transition-all duration-300">
           {!isExpanded ? (
-            /* COLLAPSED STATE: Chỉ hiện thông tin đã chọn, thành tiền và nút expand ở cuối */
+            /* COLLAPSED STATE: Chỉ hiện thành tiền (2 dòng) và nút expand ở cuối */
             <div
               onClick={() => setIsExpanded(true)}
               className="px-4 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none"
@@ -667,24 +667,17 @@ export default function QuickSingleScreenOrderPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm sm:text-base font-black text-flandi-dark truncate">
-                      {totalItemsCount > 0
-                        ? `Đã chọn: ${totalItemsCount} phần`
-                        : "Chưa chọn món nào"}
+                    <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
+                      Thành tiền
                     </span>
                     {subtotal > 0 && subtotal >= freeShipMin && (
-                      <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-black">
                         Freeship
                       </span>
                     )}
                   </div>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="text-xs sm:text-sm text-flandi-muted font-extrabold">
-                      Thành tiền:
-                    </span>
-                    <span className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight">
-                      {formatVND(grandTotal)}
-                    </span>
+                  <div className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight leading-tight">
+                    {formatVND(grandTotal)}
                   </div>
                 </div>
               </div>
@@ -709,47 +702,38 @@ export default function QuickSingleScreenOrderPage() {
           ) : (
             /* EXPANDED STATE: Hiển thị thêm thông tin (nhập tên, SĐT, địa chỉ, ghi chú, các nút gửi) */
             <div className="p-4 sm:p-6 space-y-3.5 max-h-[85vh] overflow-y-auto">
-              {/* Header của trạng thái expand: Thông tin tóm tắt + nút collapse ở cuối */}
+              {/* Header của trạng thái expand: Thành tiền 2 dòng + icon collapse ở cuối */}
               <div className="flex items-center justify-between border-b border-flandi-pink pb-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
                     <ShoppingBag className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm sm:text-base font-black text-flandi-dark">
-                        Đã chọn: {totalItemsCount} phần
+                      <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
+                        Thành tiền
                       </span>
-                      {cartItems.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setCartMap({})}
-                          className="text-xs sm:text-sm font-extrabold text-red-500 hover:underline flex items-center gap-0.5 ml-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Xoá tất cả</span>
-                        </button>
+                      {subtotal > 0 && subtotal >= freeShipMin && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] sm:text-xs font-black">
+                          Freeship
+                        </span>
                       )}
                     </div>
-                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                      <span className="text-xs sm:text-sm text-flandi-muted font-extrabold">
-                        Tổng thanh toán:
-                      </span>
-                      <span className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight">
-                        {formatVND(grandTotal)}
-                      </span>
+                    <div className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight leading-tight">
+                      {formatVND(grandTotal)}
                     </div>
                   </div>
                 </div>
 
-                {/* Nút collapse ở cuối */}
+                {/* Nút collapse icon ở cuối */}
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="px-3.5 py-2 rounded-xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink font-black text-xs sm:text-sm flex items-center gap-1 transition"
+                  aria-label="Thu gọn"
+                  title="Thu gọn"
+                  className="w-10 h-10 rounded-xl sm:rounded-2xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink flex items-center justify-center transition active:scale-95 shrink-0"
                 >
-                  <span>Thu gọn</span>
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-5 h-5" />
                 </button>
               </div>
 

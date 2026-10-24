@@ -656,22 +656,15 @@ export default function QuickSingleScreenOrderPage() {
                     cartItems.map((item) => (
                       <div
                         key={item.product.id}
-                        className="p-2.5 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-center justify-between gap-3 shadow-2xs"
+                        className="p-2 sm:p-2.5 rounded-xl bg-flandi-bg border border-flandi-pink flex items-center justify-between gap-3 shadow-2xs"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img
-                            src={item.product.image}
-                            alt={item.product.name}
-                            className="w-10 h-10 rounded-xl object-cover border border-white shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-black text-flandi-dark truncate">
-                              {item.product.name}
-                            </h4>
-                            <span className="text-[11px] font-bold text-flandi-muted">
-                              {formatVND(item.product.price)} / {item.product.unit || "cái"}
-                            </span>
-                          </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-black text-flandi-dark truncate">
+                            {item.product.name}
+                          </h4>
+                          <span className="text-[11px] font-bold text-flandi-muted">
+                            {formatVND(item.product.price)} / {item.product.unit || "cái"}
+                          </span>
                         </div>
 
                         {/* Stepper +/- */}
@@ -984,22 +977,15 @@ export default function QuickSingleScreenOrderPage() {
                       {cartItems.map((item) => (
                         <div
                           key={item.product.id}
-                          className="bg-white rounded-xl p-1.5 sm:p-2 border border-flandi-pink/60 flex items-center justify-between gap-2 shadow-2xs"
+                          className="bg-white rounded-xl py-1.5 px-2.5 border border-flandi-pink/60 flex items-center justify-between gap-2 shadow-2xs"
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <img
-                              src={item.product.image}
-                              alt={item.product.name}
-                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover border border-flandi-pink/40 shrink-0"
-                            />
-                            <div className="min-w-0">
-                              <h4 className="text-xs font-black text-flandi-dark truncate">
-                                {item.product.name}
-                              </h4>
-                              <span className="text-[10px] font-bold text-flandi-muted">
-                                {formatVND(item.product.price)} / {item.product.unit || "cái"}
-                              </span>
-                            </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-black text-flandi-dark truncate">
+                              {item.product.name}
+                            </h4>
+                            <span className="text-[10px] font-bold text-flandi-muted">
+                              {formatVND(item.product.price)} / {item.product.unit || "cái"}
+                            </span>
                           </div>
 
                           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">

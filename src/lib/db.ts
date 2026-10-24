@@ -312,7 +312,7 @@ const INITIAL_PRODUCTS: Product[] = [
     costPrice: 4500,
     unit: "cái",
     badgeText: "8k / cái",
-    image: "/images/products/rau-cau-dua.png",
+    image: "/images/products/rau-cau-flan.png",
     stock: 60,
     stockUnit: "cái",
     lowStockThreshold: 15,

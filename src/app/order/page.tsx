@@ -57,13 +57,18 @@ export default function QuickSingleScreenOrderPage() {
     "MESSENGER" | "ZALO" | "DIRECT" | null
   >(null);
   const [openChatTrigger, setOpenChatTrigger] = useState(0);
+  const [chatRefreshTrigger, setChatRefreshTrigger] = useState(0);
+  const [preferredChatChannel, setPreferredChatChannel] = useState<
+    "MESSENGER" | "ZALO"
+  >("MESSENGER");
   const [sentResultModal, setSentResultModal] = useState<{
     channel: "MESSENGER" | "ZALO" | "DIRECT";
     orderCode: string;
     orderText: string;
     total: number;
-    zaloUrl: string;
-    messengerUrl: string;
+    zaloWebUrl: string;
+    messengerWebUrl: string;
+    zaloPhone: string;
   } | null>(null);
 
   const billTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -255,8 +260,7 @@ export default function QuickSingleScreenOrderPage() {
       return;
     }
 
-    // 1. CRITICAL: Generate code & copy to clipboard SYNCHRONOUSLY (0ms) inside the user click gesture!
-    // Doing this BEFORE any `await fetch` guarantees browsers never block the clipboard copy.
+    // 1. Copy to clipboard SYNCHRONOUSLY (0ms) inside the user click gesture!
     const generatedCode = `FL-${Math.floor(1000 + Math.random() * 9000)}`;
     const billText = buildOrderMessageText(generatedCode);
     copyToClipboardInstant(billText);
@@ -266,21 +270,14 @@ export default function QuickSingleScreenOrderPage() {
     const zaloPhone = settings?.zaloPhone || settings?.phone || "0703166903";
     const fbUrl =
       settings?.facebookUrl || "https://www.facebook.com/tiem.flandi";
-    const fbSlug = fbUrl
-      .replace(/^https?:\/\/(www\.)?facebook\.com\//i, "")
-      .replace(/\/.*$/, "")
-      .trim();
-    const messengerDirectUrl = fbSlug
-      ? `https://m.me/${fbSlug}?text=${encodeURIComponent(billText)}`
-      : fbUrl;
-    const zaloDirectUrl = `https://zalo.me/${zaloPhone}`;
 
-    // Open Zalo / Messenger window SYNCHRONOUSLY in user gesture so popup blockers don't block it
-    if (channel === "ZALO") {
-      window.open(zaloDirectUrl, "_blank", "noopener,noreferrer");
-      notify(
-        "✅ Đã Copy sẵn đơn hàng! Bạn chỉ cần nhấn Ctrl+V (hoặc chạm Giữ → Dán) vào ô tin nhắn Zalo."
-      );
+    // Use pure HTTPS Web URLs (chat.zalo.me & facebook.com/tiem.flandi) instead of zalo.me / m.me
+    // so Safari NEVER throws "Safari cannot open the page" or redirects to App Store!
+    const zaloWebUrl = "https://chat.zalo.me";
+    const messengerWebUrl = fbUrl;
+
+    if (channel === "ZALO" || channel === "MESSENGER") {
+      setPreferredChatChannel(channel);
     }
 
     setSendingChannel(channel);
@@ -325,7 +322,7 @@ export default function QuickSingleScreenOrderPage() {
         body: JSON.stringify(orderPayload),
       });
 
-      // 3. Also send the order text directly into the on-page Messenger Chat (/api/chat)
+      // 3. Send the order text directly into the on-page Messenger / Zalo Chat (/api/chat)
       const storedSession =
         typeof window !== "undefined"
           ? localStorage.getItem("flandi_chat_session_id")
@@ -339,30 +336,39 @@ export default function QuickSingleScreenOrderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
-          customerName: customerName.trim() || "Khách đặt bánh",
+          customerName:
+            customerName.trim() ||
+            (channel === "ZALO" ? "Khách Zalo Web" : "Khách Messenger Web"),
           customerPhone: customerPhone.trim(),
           sender: "CUSTOMER",
           text: billText,
         }),
       });
 
-      if (channel === "MESSENGER") {
-        // Open the embedded on-page Messenger Chat with the order already sent inside!
-        setOpenChatTrigger((n) => n + 1);
-        notify("💬 Đã gửi thẳng đơn hàng vào khung chat Messenger trên trang!");
-      }
+      setChatRefreshTrigger((n) => n + 1);
 
-      setSentResultModal({
-        channel,
-        orderCode: generatedCode,
-        orderText: billText,
-        total: grandTotal,
-        zaloUrl: zaloDirectUrl,
-        messengerUrl: messengerDirectUrl,
-      });
+      if (channel === "MESSENGER" || channel === "ZALO") {
+        // Open the embedded on-page Chat with the order already sent inside!
+        setOpenChatTrigger((n) => n + 1);
+        notify(
+          channel === "ZALO"
+            ? `✅ Đã tự động dán & gửi đơn #${generatedCode} vào khung Chat Zalo trực tiếp trên trang!`
+            : `✅ Đã tự động dán & gửi đơn #${generatedCode} vào khung Chat Messenger trực tiếp trên trang!`
+        );
+      } else {
+        setSentResultModal({
+          channel,
+          orderCode: generatedCode,
+          orderText: billText,
+          total: grandTotal,
+          zaloWebUrl,
+          messengerWebUrl,
+          zaloPhone,
+        });
+      }
     } catch (err) {
       console.error(err);
-      notify("Đã copy đơn vào bộ nhớ tạm! Bạn có thể dán gửi ngay.");
+      notify("Đã copy đơn vào bộ nhớ tạm!");
     } finally {
       setSendingChannel(null);
     }
@@ -807,7 +813,7 @@ export default function QuickSingleScreenOrderPage() {
                 className="py-2.5 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
               >
                 <Send className="w-4 h-4 shrink-0" />
-                <span>Copy & Gửi Zalo</span>
+                <span>Gửi qua Zalo</span>
               </button>
             </div>
 
@@ -824,11 +830,13 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       </main>
 
-      {/* Embedded On-Page Messenger Chat Widget & Zalo Button */}
+      {/* Embedded On-Page Messenger & Zalo Chat Widget */}
       <LiveChatWidget
         settings={settings}
         cartCount={totalItemsCount}
         externalOpenTrigger={openChatTrigger}
+        preferredChannel={preferredChatChannel}
+        refreshTrigger={chatRefreshTrigger}
         cartSummaryText={liveOrderPreviewText || undefined}
       />
 
@@ -852,7 +860,7 @@ export default function QuickSingleScreenOrderPage() {
                     Đã Tạo Đơn #{sentResultModal.orderCode}!
                   </h3>
                   <p className="text-xs text-emerald-700 font-extrabold">
-                    ✓ Đã tự động Copy sẵn nội dung đơn vào bộ nhớ tạm!
+                    ✓ Đã đồng bộ vào tiệm & Copy sẵn đơn hàng!
                   </p>
                 </div>
               </div>
@@ -864,17 +872,6 @@ export default function QuickSingleScreenOrderPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            {sentResultModal.channel === "ZALO" && (
-              <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-900 font-bold space-y-1">
-                <p>
-                  💡 <strong>Hướng dẫn dán đơn vào Zalo:</strong>
-                </p>
-                <p className="font-medium text-[11px]">
-                  Do Zalo không cho phép web ngoài tự điền chữ vào ô chat, hệ thống đã <strong>Copy sẵn toàn bộ đơn hàng</strong> cho bạn. Khi cửa sổ Zalo mở ra, bạn chỉ cần nhấn <strong>Ctrl + V</strong> (hoặc chạm <strong>Giữ → Dán</strong> trên điện thoại) là gửi được ngay!
-                </p>
-              </div>
-            )}
 
             <div className="p-3 rounded-2xl bg-flandi-bg border border-flandi-pink space-y-2">
               <div className="flex items-center justify-between">
@@ -932,27 +929,31 @@ export default function QuickSingleScreenOrderPage() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <a
-                href={sentResultModal.zaloUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => copyToClipboardInstant(sentResultModal.orderText)}
+              <button
+                type="button"
+                onClick={() => {
+                  setSentResultModal(null);
+                  setPreferredChatChannel("ZALO");
+                  setOpenChatTrigger((n) => n + 1);
+                }}
                 className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Mở Zalo (0703166903) & Dán</span>
-              </a>
+                <Send className="w-3.5 h-3.5" />
+                <span>Mở Chat Zalo Trực Tiếp</span>
+              </button>
 
-              <a
-                href={sentResultModal.messengerUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => copyToClipboardInstant(sentResultModal.orderText)}
+              <button
+                type="button"
+                onClick={() => {
+                  setSentResultModal(null);
+                  setPreferredChatChannel("MESSENGER");
+                  setOpenChatTrigger((n) => n + 1);
+                }}
                 className="py-2.5 px-3 rounded-xl bg-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
-                <span>Mở App Messenger & Dán</span>
-              </a>
+                <span>Mở Chat Messenger Trực Tiếp</span>
+              </button>
             </div>
 
             {typeof navigator !== "undefined" && "share" in navigator && (
@@ -971,7 +972,7 @@ export default function QuickSingleScreenOrderPage() {
                 className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                <span>Chuyển thẳng nội dung đơn vào App Zalo / Messenger</span>
+                <span>Chia sẻ vào App Zalo / Messenger trên máy</span>
               </button>
             )}
 

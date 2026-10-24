@@ -63,6 +63,9 @@ export default function FlandiLandingPage() {
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [copiedOrderText, setCopiedOrderText] = useState(false);
   const [openChatTrigger, setOpenChatTrigger] = useState(0);
+  const [preferredChatChannel, setPreferredChatChannel] = useState<
+    "MESSENGER" | "ZALO"
+  >("MESSENGER");
 
   const fetchStoreData = async () => {
     try {
@@ -1256,21 +1259,26 @@ export default function FlandiLandingPage() {
                 )}
               </button>
 
-              <a
-                href={`https://zalo.me/${settings?.zaloPhone || "0703166903"}`}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => copyOrderSummary(completedOrder)}
+              <button
+                type="button"
+                onClick={() => {
+                  copyOrderSummary(completedOrder);
+                  setCompletedOrder(null);
+                  setPreferredChatChannel("ZALO");
+                  setOpenChatTrigger((n) => n + 1);
+                }}
                 className="py-2.5 px-3 rounded-full bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5"
               >
                 <Phone className="w-3.5 h-3.5 shrink-0" />
-                <span>Copy & Mở Zalo</span>
-              </a>
+                <span>Chat Zalo Trực Tiếp</span>
+              </button>
 
               <button
                 type="button"
                 onClick={() => {
+                  copyOrderSummary(completedOrder);
                   setCompletedOrder(null);
+                  setPreferredChatChannel("MESSENGER");
                   setOpenChatTrigger((n) => n + 1);
                 }}
                 className="py-2.5 px-3 rounded-full bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5"
@@ -1295,6 +1303,7 @@ export default function FlandiLandingPage() {
         settings={settings}
         cartCount={cartCount}
         externalOpenTrigger={openChatTrigger}
+        preferredChannel={preferredChatChannel}
         cartSummaryText={
           cart.length > 0
             ? `🍮 Mình muốn đặt các món trong giỏ:\n${cart

@@ -7,17 +7,20 @@ import {
   Minimize2,
   ExternalLink,
   ShoppingBag,
-  Sparkles,
   User,
   Phone,
+  Copy,
+  Check,
 } from "lucide-react";
-import { ChatMessage, ChatSession, ShopSettings } from "@/lib/types";
+import { ChatMessage, ShopSettings } from "@/lib/types";
 
 interface LiveChatWidgetProps {
   settings: ShopSettings | null;
   cartSummaryText?: string;
   cartCount?: number;
   externalOpenTrigger?: number;
+  preferredChannel?: "MESSENGER" | "ZALO";
+  refreshTrigger?: number;
 }
 
 export function copyToClipboardInstant(text: string): boolean {
@@ -38,7 +41,7 @@ export function copyToClipboardInstant(text: string): boolean {
     success = document.execCommand("copy");
     document.body.removeChild(textarea);
   } catch {
-    // Fallback to navigator.clipboard
+    // Fallback
   }
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -56,8 +59,13 @@ export default function LiveChatWidget({
   cartSummaryText,
   cartCount = 0,
   externalOpenTrigger = 0,
+  preferredChannel = "MESSENGER",
+  refreshTrigger = 0,
 }: LiveChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeChannel, setActiveChannel] = useState<"MESSENGER" | "ZALO">(
+    preferredChannel
+  );
   const [sessionId, setSessionId] = useState<string>("");
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
@@ -65,6 +73,7 @@ export default function LiveChatWidget({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [copiedPhone, setCopiedPhone] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize or load session ID from localStorage
@@ -86,12 +95,22 @@ export default function LiveChatWidget({
     }
   }, []);
 
-  // Open when triggered externally (e.g. from Order Confirmation modal)
+  // Open when triggered externally (e.g. from Order page or Confirmation modal)
   useEffect(() => {
     if (externalOpenTrigger > 0) {
+      setActiveChannel(preferredChannel);
       setIsOpen(true);
+      if (sessionId) {
+        fetchSessionMessages(sessionId);
+      }
     }
-  }, [externalOpenTrigger]);
+  }, [externalOpenTrigger, preferredChannel]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0 && sessionId) {
+      fetchSessionMessages(sessionId);
+    }
+  }, [refreshTrigger, sessionId]);
 
   const fetchSessionMessages = async (sid: string) => {
     if (!sid) return;
@@ -103,7 +122,6 @@ export default function LiveChatWidget({
       if (data.session) {
         setMessages(data.session.messages || []);
       } else {
-        // Initialize welcome message on first open
         const initRes = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -139,35 +157,34 @@ export default function LiveChatWidget({
     }
   }, [messages, isOpen]);
 
-  const handleSendMessage = async (customText?: string) => {
-    const textToSend = (customText ?? inputText).trim();
-    if (!textToSend || !sessionId || isSending) return;
+  const handleSendMessage = async (textOverride?: string) => {
+    const raw = (textOverride ?? inputText).trim();
+    if (!raw || !sessionId || isSending) return;
 
-    if (!customText) setInputText("");
+    if (!textOverride) {
+      setInputText("");
+    }
     setIsSending(true);
 
-    // Optimistic update
-    const tempMsg: ChatMessage = {
-      id: `temp-${Date.now()}`,
-      sender: "CUSTOMER",
-      text: textToSend,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, tempMsg]);
-
     try {
-      if (customerName) localStorage.setItem("flandi_chat_name", customerName);
-      if (customerPhone) localStorage.setItem("flandi_chat_phone", customerPhone);
+      if (customerName.trim()) {
+        localStorage.setItem("flandi_chat_name", customerName.trim());
+      }
+      if (customerPhone.trim()) {
+        localStorage.setItem("flandi_chat_phone", customerPhone.trim());
+      }
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
-          customerName: customerName || "Khách Web",
-          customerPhone,
+          customerName:
+            customerName.trim() ||
+            (activeChannel === "ZALO" ? "Khách Zalo Web" : "Khách Messenger Web"),
+          customerPhone: customerPhone.trim(),
           sender: "CUSTOMER",
-          text: textToSend,
+          text: raw,
         }),
       });
       const data = await res.json();
@@ -175,31 +192,40 @@ export default function LiveChatWidget({
         setMessages(data.session.messages || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Send chat error:", err);
     } finally {
       setIsSending(false);
     }
   };
 
   const quickPrompts = [
-    "🍮 Tư vấn menu & giá",
+    "🍮 Hôm nay tiệm còn những món gì?",
     "🛵 Phí ship & Freeship",
     "🎉 Đặt tiệc số lượng lớn",
     "💳 Thông tin chuyển khoản QR",
   ];
 
+  // Safe browser HTTPS URLs that NEVER trigger Safari "cannot open page" or App Store redirects
   const fbUrl = settings?.facebookUrl || "https://www.facebook.com/tiem.flandi";
   const zaloPhone = settings?.zaloPhone || "0703166903";
   const mascotImg =
     settings?.brandKit?.mascotImage || "/images/branding/flandi-mascot.png";
 
+  const isZaloMode = activeChannel === "ZALO";
+
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-3">
-      {/* Embedded On-Page Messenger Chat Window */}
+      {/* Embedded On-Page Messenger / Zalo Chat Window (Zero App Store redirect!) */}
       {isOpen && (
-        <div className="w-[calc(100vw-2rem)] sm:w-[380px] h-[520px] max-h-[82vh] bg-white rounded-3xl shadow-2xl border-2 border-flandi-pink flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
-          {/* Messenger Header */}
-          <div className="bg-gradient-to-r from-[#006AFF] via-[#0084FF] to-[#A033FF] text-white p-3.5 flex items-center justify-between gap-2">
+        <div className="w-[calc(100vw-1.5rem)] sm:w-[390px] h-[530px] max-h-[82vh] bg-white rounded-3xl shadow-2xl border-2 border-flandi-pink flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+          {/* Chat Header */}
+          <div
+            className={`${
+              isZaloMode
+                ? "bg-gradient-to-r from-[#0068FF] to-[#0052CC]"
+                : "bg-gradient-to-r from-[#006AFF] via-[#0084FF] to-[#A033FF]"
+            } text-white p-3.5 flex items-center justify-between gap-2`}
+          >
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
                 <img
@@ -212,11 +238,13 @@ export default function LiveChatWidget({
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h4 className="font-extrabold text-sm truncate">
-                    Messenger • {settings?.shopName || "FLANDI"}
+                    {isZaloMode
+                      ? `Zalo Trực Tiếp • ${zaloPhone}`
+                      : `Messenger • ${settings?.shopName || "FLANDI"}`}
                   </h4>
                 </div>
                 <p className="text-[11px] text-white/90 font-medium truncate">
-                  Chat trực tiếp trên Web • Phản hồi ngay
+                  Nhắn & Gửi đơn trực tiếp trên Web • Không cần chuyển App
                 </p>
               </div>
             </div>
@@ -230,15 +258,6 @@ export default function LiveChatWidget({
               >
                 <User className="w-4 h-4" />
               </button>
-              <a
-                href={fbUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="p-1.5 rounded-full hover:bg-white/20 text-white transition"
-                title="Mở Fanpage Facebook trong tab mới"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -250,44 +269,90 @@ export default function LiveChatWidget({
             </div>
           </div>
 
-          {/* Optional Customer Name & Phone Bar */}
-          {showProfileBar ? (
-            <div className="p-2.5 bg-flandi-bg border-b border-flandi-pink grid grid-cols-2 gap-2 text-xs">
+          {/* Channel Switcher + Safe External Links Bar */}
+          <div className="bg-flandi-bg border-b border-flandi-pink px-3 py-2 flex items-center justify-between gap-2 text-[11px]">
+            <div className="flex items-center gap-1 bg-white p-0.5 rounded-xl border border-flandi-pink">
+              <button
+                type="button"
+                onClick={() => setActiveChannel("MESSENGER")}
+                className={`px-2.5 py-1 rounded-lg font-extrabold transition ${
+                  !isZaloMode
+                    ? "bg-[#006AFF] text-white"
+                    : "text-flandi-dark hover:bg-flandi-cream"
+                }`}
+              >
+                Messenger Web
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveChannel("ZALO")}
+                className={`px-2.5 py-1 rounded-lg font-extrabold transition ${
+                  isZaloMode
+                    ? "bg-[#0068FF] text-white"
+                    : "text-flandi-dark hover:bg-flandi-cream"
+                }`}
+              >
+                Zalo Web ({zaloPhone})
+              </button>
+            </div>
+
+            {isZaloMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  copyToClipboardInstant(zaloPhone);
+                  setCopiedPhone(true);
+                  setTimeout(() => setCopiedPhone(false), 2000);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-[#0068FF] font-extrabold flex items-center gap-1 hover:bg-blue-50"
+                title="Copy số điện thoại Zalo"
+              >
+                {copiedPhone ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    <span className="text-emerald-700">Đã Copy SĐT</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    <span>Copy SĐT</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <a
+                href={fbUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-[#006AFF] font-extrabold flex items-center gap-1 hover:bg-blue-50"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>Fanpage</span>
+              </a>
+            )}
+          </div>
+
+          {/* Optional Customer Name/Phone Bar */}
+          {showProfileBar && (
+            <div className="bg-flandi-cream/90 border-b border-flandi-pink px-3 py-2.5 grid grid-cols-2 gap-2">
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Tên của bạn..."
-                className="px-2.5 py-1.5 rounded-xl border border-flandi-pink bg-white font-semibold focus:border-flandi-coral focus:outline-none"
+                className="px-2.5 py-1.5 rounded-xl border border-flandi-pink bg-white text-xs font-bold text-flandi-dark focus:outline-none"
               />
               <input
                 type="tel"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="SĐT / Zalo..."
-                className="px-2.5 py-1.5 rounded-xl border border-flandi-pink bg-white font-semibold focus:border-flandi-coral focus:outline-none"
+                placeholder="SĐT / Zalo của bạn..."
+                className="px-2.5 py-1.5 rounded-xl border border-flandi-pink bg-white text-xs font-bold text-flandi-dark focus:outline-none"
               />
-            </div>
-          ) : (
-            <div className="px-3.5 py-1.5 bg-flandi-bg/80 border-b border-flandi-pink flex items-center justify-between text-[11px]">
-              <span className="text-flandi-muted font-semibold truncate">
-                {customerName
-                  ? `Đang chat: ${customerName} ${
-                      customerPhone ? `(${customerPhone})` : ""
-                    }`
-                  : "Nhập tên/SĐT để tiệm liên hệ nhanh hơn"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowProfileBar(true)}
-                className="text-[#006AFF] font-extrabold hover:underline shrink-0 ml-2"
-              >
-                {customerName ? "Sửa" : "+ Điền tên/SĐT"}
-              </button>
             </div>
           )}
 
-          {/* Chat Messages Thread */}
+          {/* Chat Messages Scroll Container */}
           <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-[#FFF9F8]">
             {messages.map((msg) => {
               const isCustomer = msg.sender === "CUSTOMER";
@@ -308,26 +373,20 @@ export default function LiveChatWidget({
                   <div
                     className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-line shadow-2xs ${
                       isCustomer
-                        ? "bg-gradient-to-r from-[#006AFF] to-[#0084FF] text-white font-semibold rounded-br-xs"
-                        : "bg-white text-flandi-dark border border-flandi-pink font-medium rounded-bl-xs"
+                        ? isZaloMode
+                          ? "bg-[#0068FF] text-white font-semibold rounded-br-xs"
+                          : "bg-gradient-to-r from-[#006AFF] to-[#0084FF] text-white font-semibold rounded-br-xs"
+                        : msg.sender === "SHOP"
+                        ? "bg-white border-2 border-flandi-salmon text-flandi-dark font-semibold rounded-bl-xs"
+                        : "bg-white border border-flandi-pink text-flandi-dark font-medium rounded-bl-xs"
                     }`}
                   >
                     {msg.sender === "SHOP" && (
                       <span className="block text-[10px] font-extrabold text-flandi-coral mb-0.5">
-                        Chủ tiệm FLANDI
+                        👩‍🍳 Chủ tiệm FLANDI
                       </span>
                     )}
                     {msg.text}
-                    <span
-                      className={`block text-[9px] mt-1 ${
-                        isCustomer ? "text-white/75 text-right" : "text-flandi-muted"
-                      }`}
-                    >
-                      {new Date(msg.createdAt).toLocaleTimeString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
                   </div>
                 </div>
               );
@@ -335,7 +394,7 @@ export default function LiveChatWidget({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Suggestion Chips + Send Cart Button */}
+          {/* Quick Action Pills + Send Cart Summary directly into Chat */}
           <div className="px-3 py-2 bg-white border-t border-flandi-pink/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {cartCount > 0 && cartSummaryText && (
               <button
@@ -344,7 +403,7 @@ export default function LiveChatWidget({
                 className="px-2.5 py-1 rounded-full bg-flandi-coral text-white text-[11px] font-extrabold whitespace-nowrap flex items-center gap-1 shrink-0 shadow-2xs"
               >
                 <ShoppingBag className="w-3 h-3" />
-                <span>Gửi giỏ bánh ({cartCount})</span>
+                <span>Dán & Gửi đơn ({cartCount} món) vào đây</span>
               </button>
             )}
             {quickPrompts.map((prompt) => (
@@ -371,13 +430,21 @@ export default function LiveChatWidget({
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Nhắn tin trực tiếp cho FLANDI..."
+              placeholder={
+                isZaloMode
+                  ? `Nhắn Zalo trực tiếp tới ${zaloPhone}...`
+                  : "Nhắn tin trực tiếp cho FLANDI..."
+              }
               className="flex-1 px-3.5 py-2 rounded-full bg-flandi-bg border border-flandi-pink text-xs font-semibold text-flandi-dark focus:border-[#006AFF] focus:outline-none"
             />
             <button
               type="submit"
               disabled={!inputText.trim() || isSending}
-              className="w-9 h-9 rounded-full bg-gradient-to-r from-[#006AFF] to-[#0084FF] text-white flex items-center justify-center shadow-sm disabled:opacity-40 hover:scale-105 transition shrink-0"
+              className={`w-9 h-9 rounded-full ${
+                isZaloMode
+                  ? "bg-[#0068FF]"
+                  : "bg-gradient-to-r from-[#006AFF] to-[#0084FF]"
+              } text-white flex items-center justify-center shadow-sm disabled:opacity-40 hover:scale-105 transition shrink-0`}
             >
               <Send className="w-4 h-4" />
             </button>
@@ -385,26 +452,25 @@ export default function LiveChatWidget({
         </div>
       )}
 
-      {/* Floating Action Buttons Row */}
+      {/* Floating Action Buttons Row (Opens On-Page Chat — Never triggers Safari App Store error!) */}
       <div className="flex flex-col items-end gap-3">
-        {/* Zalo Floating Button */}
+        {/* Zalo Floating Button -> Opens On-Page Zalo Chat */}
         {(settings?.pageConfig?.showFloatingZalo ?? true) && (
-          <a
-            href={`https://zalo.me/${zaloPhone}`}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
             onClick={() => {
               if (cartSummaryText) {
                 copyToClipboardInstant(cartSummaryText);
+                setInputText(cartSummaryText);
               }
+              setActiveChannel("ZALO");
+              setIsOpen(true);
             }}
-            aria-label="Nhắn tin qua Zalo"
+            aria-label="Nhắn tin Zalo trực tiếp trên trang"
             className="group flex items-center gap-2.5 focus:outline-none"
           >
             <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#0068FF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
-              {cartSummaryText
-                ? `Bấm để Copy giỏ bánh & mở Zalo ${zaloPhone}`
-                : `Nhắn Zalo: ${zaloPhone}`}
+              Chat Zalo trực tiếp ({zaloPhone})
             </span>
             <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#0068FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
               <span className="absolute inset-0 rounded-full bg-[#0068FF] animate-ping opacity-20" />
@@ -412,14 +478,21 @@ export default function LiveChatWidget({
                 Zalo
               </span>
             </div>
-          </a>
+          </button>
         )}
 
         {/* On-Page Messenger Live Chat Toggle Button */}
         {(settings?.pageConfig?.showFloatingMessenger ?? true) && (
           <button
             type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
+            onClick={() => {
+              if (cartSummaryText && !isOpen) {
+                copyToClipboardInstant(cartSummaryText);
+                setInputText(cartSummaryText);
+              }
+              setActiveChannel("MESSENGER");
+              setIsOpen((prev) => !prev);
+            }}
             aria-label="Mở khung chat Messenger trực tiếp trên trang"
             className="group flex items-center gap-2.5 focus:outline-none"
           >

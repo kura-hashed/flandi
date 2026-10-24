@@ -455,41 +455,43 @@ export default function QuickSingleScreenOrderPage() {
 
                     {/* 3. Quantity Selector */}
                     <div className="pt-2 border-t border-flandi-pink/60 space-y-1.5 mt-auto">
-                      {isBoxProduct ? (
-                        <div className="text-center py-1 px-2 rounded-xl bg-flandi-cream/70 border border-flandi-pink/80 text-[11px] font-extrabold text-flandi-coral">
-                          Đơn vị tính: Hộp ({formatVND(product.price)}/hộp)
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExactQty(product, currentQty === 5 ? 0 : 5)
-                            }
-                            className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
-                              currentQty === 5
-                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                            }`}
-                          >
-                            5 cái
-                          </button>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const preset1 = isBoxProduct ? 1 : 5;
+                            setExactQty(
+                              product,
+                              currentQty === preset1 ? 0 : preset1
+                            );
+                          }}
+                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
+                            currentQty === (isBoxProduct ? 1 : 5)
+                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                          }`}
+                        >
+                          {isBoxProduct ? "1 hộp" : "5 cái"}
+                        </button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExactQty(product, currentQty === 10 ? 0 : 10)
-                            }
-                            className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
-                              currentQty === 10
-                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                            }`}
-                          >
-                            10 cái
-                          </button>
-                        </div>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const preset2 = isBoxProduct ? 2 : 10;
+                            setExactQty(
+                              product,
+                              currentQty === preset2 ? 0 : preset2
+                            );
+                          }}
+                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
+                            currentQty === (isBoxProduct ? 2 : 10)
+                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                          }`}
+                        >
+                          {isBoxProduct ? "2 hộp" : "10 cái"}
+                        </button>
+                      </div>
 
                       {/* Direct Number Input Box */}
                       <div className="flex items-center justify-between bg-flandi-bg rounded-xl px-1.5 py-1 border border-flandi-pink">

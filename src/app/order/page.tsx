@@ -19,6 +19,7 @@ import {
   Share2,
   ChevronUp,
   ChevronDown,
+  Delete,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import LiveChatWidget, {
@@ -39,11 +40,6 @@ export default function QuickSingleScreenOrderPage() {
   // Cart keyed by productId
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
   const [isExpanded, setIsExpanded] = useState(false);
-  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
-
-  const toggleProductExpand = (id: string) => {
-    setExpandedProductId((prev) => (prev === id ? null : id));
-  };
 
   // Compact customer info
   const [customerName, setCustomerName] = useState("");
@@ -151,6 +147,80 @@ export default function QuickSingleScreenOrderPage() {
       return copy;
     });
   };
+
+  // Custom numeric keypad state & methods (chỉ có số kèm nút xóa và clear)
+  const [keypadProduct, setKeypadProduct] = useState<Product | null>(null);
+  const [isFreshKeypadInput, setIsFreshKeypadInput] = useState<boolean>(true);
+
+  const openKeypad = (product: Product) => {
+    setKeypadProduct(product);
+    setIsFreshKeypadInput(true);
+  };
+
+  const closeKeypad = () => {
+    setKeypadProduct(null);
+    setIsFreshKeypadInput(true);
+  };
+
+  const handleKeypadDigit = (digit: number) => {
+    if (!keypadProduct) return;
+    const current = getQtyForProduct(keypadProduct.id);
+    let nextVal: number;
+    if (isFreshKeypadInput) {
+      nextVal = digit;
+      setIsFreshKeypadInput(false);
+    } else {
+      if (current === 0) {
+        nextVal = digit;
+      } else {
+        nextVal = Math.min(parseInt(`${current}${digit}`, 10) || 0, 999);
+      }
+    }
+    setExactQty(keypadProduct, nextVal);
+  };
+
+  const handleKeypadBackspace = () => {
+    if (!keypadProduct) return;
+    setIsFreshKeypadInput(false);
+    const current = getQtyForProduct(keypadProduct.id);
+    const str = current.toString();
+    if (str.length <= 1) {
+      setExactQty(keypadProduct, 0);
+    } else {
+      const nextStr = str.slice(0, -1);
+      setExactQty(keypadProduct, parseInt(nextStr, 10) || 0);
+    }
+  };
+
+  const handleKeypadClear = () => {
+    if (!keypadProduct) return;
+    setIsFreshKeypadInput(false);
+    setExactQty(keypadProduct, 0);
+  };
+
+  // Physical keyboard support for custom keypad
+  useEffect(() => {
+    if (!keypadProduct) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key >= "0" && e.key <= "9") {
+        e.preventDefault();
+        handleKeypadDigit(parseInt(e.key, 10));
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        handleKeypadBackspace();
+      } else if (e.key === "Escape" || e.key === "Enter") {
+        e.preventDefault();
+        closeKeypad();
+      } else if (e.key === "c" || e.key === "C") {
+        e.preventDefault();
+        handleKeypadClear();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [keypadProduct, isFreshKeypadInput, cartMap]);
 
   const sortedProducts = useMemo(() => {
     return [...products].sort((a, b) => {
@@ -432,163 +502,80 @@ export default function QuickSingleScreenOrderPage() {
             {sortedProducts.map((product) => {
               const currentQty = getQtyForProduct(product.id);
               const unitLabel = product.unit || "cái";
-              const isBoxProduct =
-                unitLabel.toLowerCase() === "hộp" ||
-                product.id === "prod-rau-cau-la";
-              const preset1 = isBoxProduct ? 1 : 5;
-              const preset2 = isBoxProduct ? 2 : 10;
-
               const isSelected = currentQty > 0;
-              const isCardExpanded = expandedProductId === product.id;
+              const isKeypadTarget = keypadProduct?.id === product.id;
 
               return (
                 <div
                   key={product.id}
-                  className={`rounded-2xl border transition-all duration-200 overflow-hidden flex flex-col justify-center ${
-                    isCardExpanded
-                      ? "bg-white border-flandi-coral shadow-cute ring-1.5 ring-flandi-salmon/40 shrink-0"
+                  onClick={() => openKeypad(product)}
+                  className={`rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 cursor-pointer select-none gap-3 flex-1 min-h-[58px] sm:min-h-[68px] md:min-h-[78px] max-h-[88px] sm:max-h-[100px] md:max-h-[110px] ${
+                    isKeypadTarget
+                      ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-coral/60"
                       : isSelected
-                      ? "bg-white border-flandi-coral/90 shadow-cute ring-1 ring-flandi-salmon/30 flex-1 min-h-[58px] sm:min-h-[68px] md:min-h-[78px] max-h-[88px] sm:max-h-[100px] md:max-h-[110px]"
-                      : "bg-white/95 border-flandi-pink/60 hover:border-flandi-salmon/60 shadow-2xs flex-1 min-h-[58px] sm:min-h-[68px] md:min-h-[78px] max-h-[88px] sm:max-h-[100px] md:max-h-[110px]"
+                      ? "bg-white border-flandi-coral/90 shadow-cute ring-1.5 ring-flandi-salmon/30"
+                      : "bg-white/95 border-flandi-pink/60 hover:border-flandi-salmon/60 shadow-2xs hover:bg-white"
                   }`}
                 >
-                  {/* Collapsed Header Row (Always visible, tap to toggle expand) */}
-                  <div
-                    onClick={() => toggleProductExpand(product.id)}
-                    className="px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-flandi-cream/25 transition"
-                  >
-                    {/* Left: Product image + Product Name + Price badge */}
-                    <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
-                      <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[72px] md:h-[72px] rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover rounded-[14px] border border-white"
-                        />
-                      </div>
-
-                      <div className="min-w-0 flex flex-col justify-center">
-                        <h2 className="font-display text-base sm:text-lg md:text-xl text-flandi-dark leading-tight truncate">
-                          {product.name}
-                        </h2>
-                        <span className="text-xs sm:text-sm md:text-base font-extrabold text-flandi-coral leading-tight mt-0.5">
-                          {product.badgeText}
-                        </span>
-                      </div>
+                  {/* Left: Product image + Product Name + Price badge */}
+                  <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[72px] md:h-[72px] rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover rounded-[14px] border border-white"
+                      />
                     </div>
 
-                    {/* Right: Selected quantity status badge + Expand / Collapse button */}
-                    <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                      {isSelected ? (
-                        <span className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-flandi-coral text-white text-xs sm:text-sm font-black shadow-2xs flex items-center gap-1.5">
-                          <span>{currentQty} {unitLabel}</span>
-                          <span className="opacity-75">•</span>
-                          <span>{formatVND(product.price * currentQty)}</span>
+                    <div className="min-w-0 flex flex-col justify-center">
+                      <h2 className="font-display text-base sm:text-lg md:text-xl text-flandi-dark leading-tight truncate">
+                        {product.name}
+                      </h2>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs sm:text-sm md:text-base font-extrabold text-flandi-coral leading-tight">
+                          {product.badgeText}
                         </span>
-                      ) : (
-                        <span className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-flandi-cream hover:bg-flandi-coral hover:text-white text-flandi-coral text-xs sm:text-sm font-extrabold border border-flandi-pink/80 transition shadow-2xs">
-                          + Chọn
-                        </span>
-                      )}
-
-                      <div
-                        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-transform duration-200 ${
-                          isCardExpanded
-                            ? "rotate-180 bg-flandi-cream text-flandi-coral"
-                            : "bg-flandi-bg text-flandi-muted"
-                        }`}
-                      >
-                        <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                        {isSelected && (
+                          <span className="text-[10px] sm:text-[11px] font-black text-flandi-coral bg-flandi-cream px-2 py-0.5 rounded-md border border-flandi-pink/70">
+                            = {formatVND(product.price * currentQty)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Expanded Quantity Controls Section */}
-                  {isCardExpanded && (
-                    <div className="px-3.5 pb-3 pt-1.5 border-t border-flandi-pink/40 bg-flandi-cream/15 animate-in slide-in-from-top-1 duration-150">
-                      <div className="flex items-center gap-2 sm:gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExactQty(
-                              product,
-                              currentQty === preset1 ? 0 : preset1
-                            )
-                          }
-                          className={`shrink-0 h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold border transition whitespace-nowrap ${
-                            currentQty === preset1
-                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : "bg-white hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                          }`}
-                        >
-                          {isBoxProduct ? "1 hộp" : "5 cái"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExactQty(
-                              product,
-                              currentQty === preset2 ? 0 : preset2
-                            )
-                          }
-                          className={`shrink-0 h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold border transition whitespace-nowrap ${
-                            currentQty === preset2
-                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : "bg-white hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                          }`}
-                        >
-                          {isBoxProduct ? "2 hộp" : "10 cái"}
-                        </button>
-
-                        {/* Direct Quantity Input on the same row */}
-                        <div className="flex-1 min-w-0 h-9 sm:h-10 flex items-center bg-white rounded-xl px-2 border border-flandi-pink shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, -1)}
-                            disabled={currentQty <= 0}
-                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
-                          >
-                            <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          </button>
-
-                          <input
-                            type="number"
-                            min={0}
-                            value={currentQty || ""}
-                            placeholder="0"
-                            onChange={(e) =>
-                              setExactQty(
-                                product,
-                                parseInt(e.target.value, 10) || 0
-                              )
-                            }
-                            className="w-full min-w-0 mx-1 text-center font-black text-sm sm:text-base text-flandi-coral bg-transparent h-7 sm:h-8 px-1 placeholder:text-xs placeholder:font-bold placeholder:text-flandi-muted focus:outline-none"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => updateQty(product, 1)}
-                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
-                          >
-                            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          </button>
-                        </div>
-
-                        {/* Trash button to clear quantity of this product */}
-                        {currentQty > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setExactQty(product, 0)}
-                            title="Xoá số lượng món này"
-                            className="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition active:scale-90"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
+                  {/* Right: Ô nhập số lượng (Nhấn vào hiện bàn phím ảo custom) */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openKeypad(product);
+                    }}
+                    className={`h-11 sm:h-12 md:h-13 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center gap-2.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
+                      isSelected
+                        ? "bg-flandi-cream/90 border-flandi-coral text-flandi-coral ring-1 ring-flandi-salmon/40"
+                        : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-muted"
+                    }`}
+                    title="Nhấn để nhập số lượng"
+                  >
+                    <div className="flex flex-col items-start leading-none">
+                      <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-flandi-muted">
+                        Số lượng
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-flandi-muted/80 mt-0.5">
+                        {unitLabel}
+                      </span>
                     </div>
-                  )}
+
+                    <div
+                      className={`px-2.5 sm:px-3 py-1 rounded-lg sm:rounded-xl font-display text-base sm:text-lg md:text-xl font-black min-w-[36px] sm:min-w-[42px] text-center transition ${
+                        isSelected
+                          ? "bg-flandi-coral text-white shadow-2xs"
+                          : "bg-flandi-bg text-flandi-dark/60 border border-flandi-pink/60"
+                      }`}
+                    >
+                      {currentQty}
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -797,6 +784,133 @@ export default function QuickSingleScreenOrderPage() {
         refreshTrigger={chatRefreshTrigger}
         cartSummaryText={liveOrderPreviewText || undefined}
       />
+
+      {/* Custom Virtual Numeric Keypad Modal (Bàn phím ảo nhập số lượng) */}
+      {keypadProduct && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+          onClick={closeKeypad}
+        >
+          <div
+            className="w-full max-w-sm sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-cute-lg border-2 border-flandi-salmon overflow-hidden animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Keypad Header */}
+            <div className="bg-gradient-to-r from-flandi-cream via-[#FFF3EE] to-flandi-cream px-4 py-3 border-b border-flandi-pink/80 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+                  <img
+                    src={keypadProduct.image}
+                    alt={keypadProduct.name}
+                    className="w-full h-full object-cover rounded-[10px] border border-white"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-display text-base font-extrabold text-flandi-dark truncate">
+                    {keypadProduct.name}
+                  </h3>
+                  <p className="text-xs font-bold text-flandi-coral">
+                    {keypadProduct.badgeText}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeKeypad}
+                className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-flandi-muted hover:text-flandi-dark flex items-center justify-center border border-flandi-pink shadow-2xs transition active:scale-90"
+                title="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Live Quantity Display & Subtotal */}
+            <div className="px-5 py-3.5 bg-white border-b border-flandi-pink/40 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold text-flandi-muted uppercase tracking-wider block">
+                  Số lượng đang chọn:
+                </span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="font-display text-3xl sm:text-4xl font-black text-flandi-coral tracking-tight">
+                    {getQtyForProduct(keypadProduct.id)}
+                  </span>
+                  <span className="text-sm font-bold text-flandi-dark/70">
+                    {keypadProduct.unit || "cái"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] font-extrabold text-flandi-muted uppercase tracking-wider block">
+                  Thành tiền món này:
+                </span>
+                <span className="font-display text-lg sm:text-xl font-black text-flandi-dark mt-0.5 block">
+                  {formatVND(keypadProduct.price * getQtyForProduct(keypadProduct.id))}
+                </span>
+              </div>
+            </div>
+
+            {/* Numeric Keypad Grid (Chỉ có số kèm nút xóa và clear) */}
+            <div className="p-4 sm:p-5 bg-flandi-bg/40">
+              <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => handleKeypadDigit(num)}
+                    className="h-12 sm:h-14 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark font-display text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none"
+                  >
+                    {num}
+                  </button>
+                ))}
+
+                {/* Nút Clear (Xóa hết về 0) */}
+                <button
+                  type="button"
+                  onClick={handleKeypadClear}
+                  className="h-12 sm:h-14 rounded-2xl bg-amber-50 hover:bg-amber-100 active:bg-amber-200 border-2 border-amber-200/80 text-amber-700 font-extrabold text-sm sm:text-base shadow-2xs transition active:scale-95 flex flex-col items-center justify-center leading-tight select-none"
+                  title="Xóa hết về 0"
+                >
+                  <span className="font-black text-xs sm:text-sm">Clear</span>
+                  <span className="text-[10px] font-bold text-amber-600/80">Xóa hết</span>
+                </button>
+
+                {/* Phím số 0 */}
+                <button
+                  type="button"
+                  onClick={() => handleKeypadDigit(0)}
+                  className="h-12 sm:h-14 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark font-display text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none"
+                >
+                  0
+                </button>
+
+                {/* Nút Xóa (Backspace - xóa lùi 1 ký tự) */}
+                <button
+                  type="button"
+                  onClick={handleKeypadBackspace}
+                  className="h-12 sm:h-14 rounded-2xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 border-2 border-rose-200/80 text-rose-600 font-extrabold text-sm sm:text-base shadow-2xs transition active:scale-95 flex items-center justify-center gap-1.5 select-none"
+                  title="Xóa lùi 1 số"
+                >
+                  <Delete className="w-5 h-5" />
+                  <span className="font-black text-xs sm:text-sm">Xóa</span>
+                </button>
+              </div>
+
+              {/* Confirm / Done Button */}
+              <button
+                type="button"
+                onClick={closeKeypad}
+                className="w-full mt-3 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white font-display text-base sm:text-lg font-black shadow-cute transition active:scale-98 flex items-center justify-center gap-2 select-none"
+              >
+                <Check className="w-5 h-5" />
+                <span>
+                  Xác nhận ({getQtyForProduct(keypadProduct.id)} {keypadProduct.unit || "cái"})
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation & Pre-Copied Order Modal */}
       {sentResultModal && (

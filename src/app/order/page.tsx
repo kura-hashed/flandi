@@ -91,6 +91,12 @@ export default function QuickSingleScreenOrderPage() {
         const activeProds: Product[] = (data.products || []).filter(
           (p: Product) => p.isActive !== false
         );
+        activeProds.sort((a, b) => {
+          if (a.price !== b.price) {
+            return a.price - b.price;
+          }
+          return a.name.localeCompare(b.name, "vi");
+        });
         setProducts(activeProds);
         setSettings(data.settings || null);
       } catch (e) {
@@ -145,6 +151,15 @@ export default function QuickSingleScreenOrderPage() {
       return copy;
     });
   };
+
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      if (a.price !== b.price) {
+        return a.price - b.price;
+      }
+      return a.name.localeCompare(b.name, "vi");
+    });
+  }, [products]);
 
   const cartItems = useMemo(() => Object.values(cartMap), [cartMap]);
 
@@ -414,7 +429,7 @@ export default function QuickSingleScreenOrderPage() {
           </div>
         ) : (
           <div className="flex-1 flex flex-col justify-between gap-1.5 sm:gap-2.5 min-h-0">
-            {products.map((product) => {
+            {sortedProducts.map((product) => {
               const currentQty = getQtyForProduct(product.id);
               const unitLabel = product.unit || "cái";
               const isBoxProduct =

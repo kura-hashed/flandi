@@ -421,26 +421,30 @@ export default function QuickSingleScreenOrderPage() {
                     key={product.id}
                     className={`rounded-2xl border-2 px-2.5 py-2 transition-all duration-200 flex items-center gap-2.5 relative ${
                       isSelected
-                        ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/35 opacity-100"
-                        : "bg-white/55 border-flandi-pink/50 opacity-70 hover:opacity-95 shadow-none"
+                        ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/40 opacity-100 scale-[1.01]"
+                        : "bg-stone-100/75 border-stone-200/80 opacity-55 saturate-[0.3] shadow-none"
                     }`}
                   >
                     {/* Left: Compact Circular Product Photo (non-clickable) */}
                     <div
-                      className={`relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 shrink-0 transition ${
+                      className={`relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 shrink-0 transition-all duration-200 ${
                         isSelected
                           ? "bg-gradient-to-tr from-flandi-coral to-flandi-salmon shadow-xs"
-                          : "bg-flandi-pink/80 grayscale-[20%]"
+                          : "bg-stone-300"
                       }`}
                     >
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-full h-full object-cover rounded-full border-2 border-white"
+                        className={`w-full h-full object-cover rounded-full border-2 border-white transition-all duration-200 ${
+                          isSelected
+                            ? "grayscale-0 brightness-100 opacity-100"
+                            : "grayscale-[80%] brightness-90 opacity-70"
+                        }`}
                       />
                       <span
-                        className={`absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded-full text-white text-[9px] font-extrabold border border-white shadow-2xs leading-tight ${
-                          isSelected ? "bg-flandi-coral" : "bg-flandi-salmon/85"
+                        className={`absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded-full text-white text-[9px] font-extrabold border border-white shadow-2xs leading-tight transition-colors ${
+                          isSelected ? "bg-flandi-coral" : "bg-stone-400"
                         }`}
                       >
                         {product.badgeText}
@@ -451,7 +455,13 @@ export default function QuickSingleScreenOrderPage() {
                     <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
                       {/* Row 1: Full Product Name + Selected Status */}
                       <div className="flex items-center justify-between gap-1.5">
-                        <h2 className="font-display text-sm sm:text-base text-sticker-sm leading-none break-words">
+                        <h2
+                          className={`font-display text-sm sm:text-base leading-none break-words transition-all ${
+                            isSelected
+                              ? "text-sticker-sm"
+                              : "text-stone-400"
+                          }`}
+                        >
                           {product.name}
                         </h2>
                         {isSelected ? (
@@ -460,7 +470,7 @@ export default function QuickSingleScreenOrderPage() {
                             {formatVND(product.price * currentQty)}
                           </span>
                         ) : (
-                          <span className="shrink-0 text-[11px] font-extrabold text-flandi-muted">
+                          <span className="shrink-0 text-[11px] font-bold text-stone-400">
                             {product.badgeText}
                           </span>
                         )}
@@ -479,7 +489,9 @@ export default function QuickSingleScreenOrderPage() {
                           className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
                             currentQty === preset1
                               ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                              : isSelected
+                              ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                              : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
                           }`}
                         >
                           {isBoxProduct ? "1 hộp" : "5 cái"}
@@ -496,14 +508,22 @@ export default function QuickSingleScreenOrderPage() {
                           className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
                             currentQty === preset2
                               ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                              : isSelected
+                              ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                              : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
                           }`}
                         >
                           {isBoxProduct ? "2 hộp" : "10 cái"}
                         </button>
 
                         {/* Direct Quantity Input on the same row (placeholder "0") */}
-                        <div className="flex-1 min-w-0 h-8 flex items-center bg-flandi-bg rounded-xl px-1 border border-flandi-pink">
+                        <div
+                          className={`flex-1 min-w-0 h-8 flex items-center rounded-xl px-1 border transition ${
+                            isSelected
+                              ? "bg-flandi-bg border-flandi-pink"
+                              : "bg-stone-200/60 border-stone-300/80"
+                          }`}
+                        >
                           <button
                             type="button"
                             onClick={() => updateQty(product, -1)}
@@ -524,13 +544,21 @@ export default function QuickSingleScreenOrderPage() {
                                 parseInt(e.target.value, 10) || 0
                               )
                             }
-                            className="w-full min-w-0 mx-1 text-center font-extrabold text-xs text-flandi-coral bg-white rounded-md border border-flandi-pink/70 h-6 px-1 placeholder:text-xs placeholder:font-bold placeholder:text-flandi-muted/60 focus:border-flandi-coral focus:outline-none"
+                            className={`w-full min-w-0 mx-1 text-center font-extrabold text-xs rounded-md border h-6 px-1 focus:outline-none transition ${
+                              isSelected
+                                ? "text-flandi-coral bg-white border-flandi-pink/70 focus:border-flandi-coral"
+                                : "text-stone-500 bg-white/70 border-stone-300/70 placeholder:text-stone-400"
+                            }`}
                           />
 
                           <button
                             type="button"
                             onClick={() => updateQty(product, 1)}
-                            className="w-6 h-6 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0 ${
+                              isSelected
+                                ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
+                                : "bg-stone-300 hover:bg-stone-400 text-stone-600"
+                            }`}
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -545,7 +573,7 @@ export default function QuickSingleScreenOrderPage() {
                           className={`shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center transition active:scale-90 ${
                             isSelected
                               ? "bg-red-50 hover:bg-red-100 text-red-500 border-red-200"
-                              : "bg-flandi-bg/60 text-flandi-muted/40 border-flandi-pink/50 cursor-not-allowed"
+                              : "bg-stone-200/50 text-stone-400/50 border-stone-300/60 cursor-not-allowed"
                           }`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />

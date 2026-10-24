@@ -457,10 +457,10 @@ export default function QuickSingleScreenOrderPage() {
       <div
         key={product.id}
         onClick={() => openKeypad(product)}
-        className={`rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3.5 sm:px-4 lg:px-4.5 xl:px-5 py-2 sm:py-2.5 lg:py-2.5 xl:py-3 cursor-pointer select-none gap-3 sm:gap-4 shrink-0 ${
+        className={`rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3 sm:px-4 lg:px-4.5 xl:px-5 py-1.5 sm:py-2.5 lg:py-2.5 xl:py-3 cursor-pointer select-none gap-2.5 sm:gap-4 shrink-0 ${
           isDesktopMenu
             ? "lg:h-[76px] xl:h-[82px] lg:min-h-[76px] xl:min-h-[82px]"
-            : "min-h-[52px] sm:min-h-[58px] max-h-[68px] sm:max-h-[76px]"
+            : "flex-1 min-h-[46px] max-h-[66px]"
         } ${
           isKeypadTarget
             ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-coral/60"
@@ -470,8 +470,8 @@ export default function QuickSingleScreenOrderPage() {
         }`}
       >
         {/* Left: Product image + Product Name + Price badge */}
-        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
-          <div className="relative w-12 h-12 sm:w-13 sm:h-13 lg:w-15 lg:h-15 xl:w-16 xl:h-16 rounded-xl lg:rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+          <div className="relative w-10 h-10 sm:w-13 sm:h-13 lg:w-15 lg:h-15 xl:w-16 xl:h-16 rounded-xl lg:rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
             <img
               src={product.image}
               alt={product.name}
@@ -480,15 +480,15 @@ export default function QuickSingleScreenOrderPage() {
           </div>
 
           <div className="min-w-0 flex flex-col justify-center">
-            <h2 className="font-display text-sm sm:text-base lg:text-lg xl:text-xl font-black text-flandi-dark leading-tight truncate">
+            <h2 className="font-display text-xs sm:text-base lg:text-lg xl:text-xl font-black text-flandi-dark leading-tight truncate">
               {product.name}
             </h2>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 flex-wrap">
               <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-black text-flandi-coral leading-tight tracking-tight">
                 {product.badgeText}
               </span>
               {isSelected && (
-                <span className="text-xs sm:text-xs lg:text-sm font-extrabold text-flandi-coral bg-flandi-cream px-2.5 py-0.5 rounded-lg border border-flandi-pink/80 shadow-2xs">
+                <span className="text-[10px] sm:text-xs lg:text-sm font-extrabold text-flandi-coral bg-flandi-cream px-2 py-0.5 rounded-md sm:rounded-lg border border-flandi-pink/80 shadow-2xs">
                   = {formatVND(product.price * currentQty)}
                 </span>
               )}
@@ -502,18 +502,18 @@ export default function QuickSingleScreenOrderPage() {
             e.stopPropagation();
             openKeypad(product);
           }}
-          className={`h-9 sm:h-10 lg:h-11 xl:h-12 px-3 sm:px-4 lg:px-4.5 xl:px-5 rounded-xl lg:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
+          className={`h-8 sm:h-10 lg:h-11 xl:h-12 px-2.5 sm:px-4 lg:px-4.5 xl:px-5 rounded-xl lg:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1 sm:gap-1.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
             isSelected
               ? "bg-flandi-coral border-flandi-coral text-white shadow-cute ring-1.5 ring-flandi-salmon/40"
               : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-dark/70 hover:text-flandi-coral"
           }`}
           title="Nhấn để nhập số lượng"
         >
-          <span className="font-display text-base sm:text-lg lg:text-xl xl:text-2xl font-black leading-none">
+          <span className="font-display text-sm sm:text-lg lg:text-xl xl:text-2xl font-black leading-none">
             {currentQty}
           </span>
           <span
-            className={`text-xs sm:text-xs lg:text-sm font-bold leading-none ${
+            className={`text-[11px] sm:text-xs lg:text-sm font-bold leading-none ${
               isSelected ? "text-white/90" : "text-flandi-muted"
             }`}
           >
@@ -840,64 +840,23 @@ export default function QuickSingleScreenOrderPage() {
               </div>
             </div>
 
-            {/* MOBILE LAYOUT (< lg screens) */}
-            <div className="lg:hidden flex-1 flex flex-col gap-2 min-h-0">
-              {/* PHẦN 1: THỰC ĐƠN (Các món chưa chọn) */}
-              <div
-                className={`flex flex-col min-h-0 ${
-                  selectedProducts.length === 0 ? "flex-1" : "shrink-0 max-h-[50%]"
-                }`}
-              >
-                <div className="flex items-center justify-between px-1 pb-1 shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-flandi-salmon" />
-                    <h2 className="font-display text-xs sm:text-sm font-black text-flandi-muted uppercase tracking-wider">
-                      Thực Đơn ({unselectedProducts.length})
-                    </h2>
-                  </div>
-                  <span className="text-xs font-bold text-flandi-muted/80">
-                    Chạm món để chọn số lượng
-                  </span>
+            {/* MOBILE LAYOUT (< lg screens): 100% fits within 1 mobile screen without scrolling */}
+            <div className="lg:hidden flex-1 flex flex-col justify-between min-h-0 py-0.5">
+              <div className="flex items-center justify-between px-1 pb-1 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-flandi-salmon" />
+                  <h2 className="font-display text-xs sm:text-sm font-black text-flandi-muted uppercase tracking-wider">
+                    Thực Đơn ({sortedProducts.length} món)
+                  </h2>
                 </div>
-
-                {unselectedProducts.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center rounded-xl border border-dashed border-emerald-300 bg-emerald-50/50 p-2 text-center min-h-[38px]">
-                    <p className="text-xs font-black text-emerald-800">
-                      🎉 Đã chọn tất cả món trong thực đơn!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1.5 min-h-0 overflow-y-auto no-scrollbar">
-                    {unselectedProducts.map((p) => renderProductCard(p))}
-                  </div>
-                )}
+                <span className="text-[11px] sm:text-xs font-bold text-flandi-muted/80">
+                  Chạm món để chọn số lượng
+                </span>
               </div>
 
-              {/* PHẦN 2: LÊN ĐƠN (Các món đã chốt số lượng > 0) */}
-              {selectedProducts.length > 0 && (
-                <div className="flex-1 flex flex-col min-h-0 pt-1.5 border-t border-flandi-pink/50">
-                  <div className="flex items-center justify-between px-1 pb-1 shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <ShoppingBag className="w-3.5 h-3.5 text-flandi-coral" />
-                      <h2 className="font-display text-xs sm:text-sm font-black text-flandi-coral uppercase tracking-wider">
-                        Lên Đơn ({selectedProducts.length} món • {totalItemsCount} phần)
-                      </h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setCartMap({})}
-                      className="text-xs font-extrabold text-red-500 hover:text-red-600 hover:underline flex items-center gap-1 transition"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      <span>Xoá hết</span>
-                    </button>
-                  </div>
-
-                  <div className="flex-1 flex flex-col gap-1.5 min-h-0 overflow-y-auto no-scrollbar">
-                    {selectedProducts.map((p) => renderProductCard(p))}
-                  </div>
-                </div>
-              )}
+              <div className="flex-1 flex flex-col justify-between gap-1.5 min-h-0">
+                {sortedProducts.map((p) => renderProductCard(p))}
+              </div>
             </div>
           </>
         )}
@@ -1017,6 +976,43 @@ export default function QuickSingleScreenOrderPage() {
                   <div className="px-3.5 py-2 rounded-xl bg-flandi-cream text-flandi-coral text-xs sm:text-sm font-extrabold flex items-center justify-between border border-flandi-pink/60">
                     <span>+{formatVND(freeShipMin - subtotal)} để Freeship!</span>
                     <span>Phí ship: {formatVND(shippingFee)}</span>
+                  </div>
+                )}
+
+                {/* Tóm tắt các món đã chọn trong Drawer */}
+                {cartItems.length > 0 && (
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto no-scrollbar py-0.5">
+                    {cartItems.map((item) => (
+                      <div
+                        key={item.product.id}
+                        className="p-2 rounded-xl bg-flandi-bg border border-flandi-pink flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={item.product.image}
+                            alt={item.product.name}
+                            className="w-8 h-8 rounded-lg object-cover border border-white shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-black text-flandi-dark truncate">
+                              {item.product.name}
+                            </h4>
+                            <span className="text-[10px] font-bold text-flandi-muted">
+                              {formatVND(item.product.price)} / {item.product.unit || "cái"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs font-black text-flandi-coral">
+                            {item.quantity} {item.product.unit || "cái"}
+                          </span>
+                          <span className="text-xs font-black text-flandi-dark min-w-[50px] text-right">
+                            = {formatVND(item.product.price * item.quantity)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 

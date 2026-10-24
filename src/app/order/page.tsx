@@ -231,6 +231,16 @@ export default function QuickSingleScreenOrderPage() {
     });
   }, [products]);
 
+  const unselectedProducts = useMemo(
+    () => sortedProducts.filter((p) => getQtyForProduct(p.id) === 0),
+    [sortedProducts, cartMap]
+  );
+
+  const selectedProducts = useMemo(
+    () => sortedProducts.filter((p) => getQtyForProduct(p.id) > 0),
+    [sortedProducts, cartMap]
+  );
+
   const cartItems = useMemo(() => Object.values(cartMap), [cartMap]);
 
   const totalItemsCount = useMemo(
@@ -439,6 +449,79 @@ export default function QuickSingleScreenOrderPage() {
     }
   };
 
+  const renderProductCard = (product: Product) => {
+    const currentQty = getQtyForProduct(product.id);
+    const unitLabel = product.unit || "cái";
+    const isSelected = currentQty > 0;
+    const isKeypadTarget = keypadProduct?.id === product.id;
+
+    return (
+      <div
+        key={product.id}
+        onClick={() => openKeypad(product)}
+        className={`rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 cursor-pointer select-none gap-3 min-h-[58px] sm:min-h-[66px] md:min-h-[74px] ${
+          isKeypadTarget
+            ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-coral/60"
+            : isSelected
+            ? "bg-white border-flandi-coral shadow-cute ring-1.5 ring-flandi-salmon/40 hover:border-flandi-coral"
+            : "bg-white/95 border-flandi-pink/60 hover:border-flandi-salmon/60 shadow-2xs hover:bg-white"
+        }`}
+      >
+        {/* Left: Product image + Product Name + Price badge */}
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[72px] md:h-[72px] rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover rounded-[14px] border border-white"
+            />
+          </div>
+
+          <div className="min-w-0 flex flex-col justify-center">
+            <h2 className="font-display text-base sm:text-lg md:text-xl text-flandi-dark leading-tight truncate">
+              {product.name}
+            </h2>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="text-sm sm:text-base md:text-lg font-black text-flandi-coral leading-tight tracking-tight">
+                {product.badgeText}
+              </span>
+              {isSelected && (
+                <span className="text-xs sm:text-sm font-black text-flandi-coral bg-flandi-cream px-2.5 py-0.5 rounded-lg border border-flandi-pink/80 shadow-2xs">
+                  = {formatVND(product.price * currentQty)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Ô chọn số (Bỏ chữ số lượng, để chữ cái/hộp ở sau) */}
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            openKeypad(product);
+          }}
+          className={`h-10 sm:h-11 md:h-12 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
+            isSelected
+              ? "bg-flandi-coral border-flandi-coral text-white shadow-cute ring-1.5 ring-flandi-salmon/40"
+              : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-dark/70 hover:text-flandi-coral"
+          }`}
+          title="Nhấn để nhập số lượng"
+        >
+          <span className="font-display text-base sm:text-lg md:text-xl font-black leading-none">
+            {currentQty}
+          </span>
+          <span
+            className={`text-xs sm:text-sm font-extrabold leading-none ${
+              isSelected ? "text-white/90" : "text-flandi-muted"
+            }`}
+          >
+            {unitLabel}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-dvh h-dvh flex flex-col bg-[#FFF9F8] bg-grid-pattern relative overflow-hidden">
       {/* Toast Notification */}
@@ -486,92 +569,83 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       </header>
 
-      {/* Main Product Cards Workspace (Scales harmoniously with available vertical height) */}
-      <main className="flex-1 max-w-2xl sm:max-w-3xl w-full mx-auto px-3 sm:px-4 py-2 sm:py-3 pb-24 sm:pb-28 flex flex-col justify-start overflow-y-auto">
+      {/* Main Product Cards Workspace (Chia thành 2 phần: Thực Đơn & Lên Đơn) */}
+      <main className="flex-1 max-w-2xl sm:max-w-3xl w-full mx-auto px-3 sm:px-4 py-2 sm:py-3 pb-28 sm:pb-32 flex flex-col justify-start overflow-y-auto space-y-4">
         {loading ? (
-          <div className="flex-1 flex flex-col justify-between gap-2 sm:gap-2.5 min-h-0">
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <div
-                key={n}
-                className="flex-1 min-h-[58px] sm:min-h-[68px] md:min-h-[78px] max-h-[88px] sm:max-h-[100px] md:max-h-[110px] rounded-2xl bg-white/70 border border-flandi-pink animate-pulse"
-              />
-            ))}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="h-4 w-28 bg-flandi-pink/40 rounded-full animate-pulse" />
+              {[1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className="h-16 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse"
+                />
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col justify-between gap-2 sm:gap-2.5 min-h-0">
-            {sortedProducts.map((product) => {
-              const currentQty = getQtyForProduct(product.id);
-              const unitLabel = product.unit || "cái";
-              const isSelected = currentQty > 0;
-              const isKeypadTarget = keypadProduct?.id === product.id;
-
-              return (
-                <div
-                  key={product.id}
-                  onClick={() => openKeypad(product)}
-                  className={`rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 cursor-pointer select-none gap-3 flex-1 min-h-[58px] sm:min-h-[68px] md:min-h-[78px] max-h-[88px] sm:max-h-[100px] md:max-h-[110px] ${
-                    isKeypadTarget
-                      ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-coral/60"
-                      : isSelected
-                      ? "bg-white border-flandi-coral/90 shadow-cute ring-1.5 ring-flandi-salmon/30"
-                      : "bg-white/95 border-flandi-pink/60 hover:border-flandi-salmon/60 shadow-2xs hover:bg-white"
-                  }`}
-                >
-                  {/* Left: Product image + Product Name + Price badge */}
-                  <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
-                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-[72px] md:h-[72px] rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover rounded-[14px] border border-white"
-                      />
-                    </div>
-
-                    <div className="min-w-0 flex flex-col justify-center">
-                      <h2 className="font-display text-base sm:text-lg md:text-xl text-flandi-dark leading-tight truncate">
-                        {product.name}
-                      </h2>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-sm sm:text-base md:text-lg font-black text-flandi-coral leading-tight tracking-tight">
-                          {product.badgeText}
-                        </span>
-                        {isSelected && (
-                          <span className="text-xs sm:text-sm font-black text-flandi-coral bg-flandi-cream px-2.5 py-0.5 rounded-lg border border-flandi-pink/80 shadow-2xs">
-                            = {formatVND(product.price * currentQty)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right: Ô chọn số (Bỏ chữ số lượng, để chữ cái/hộp ở sau) */}
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openKeypad(product);
-                    }}
-                    className={`h-10 sm:h-11 md:h-12 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
-                      isSelected
-                        ? "bg-flandi-coral border-flandi-coral text-white shadow-cute ring-1.5 ring-flandi-salmon/40"
-                        : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-dark/70 hover:text-flandi-coral"
-                    }`}
-                    title="Nhấn để nhập số lượng"
-                  >
-                    <span className="font-display text-base sm:text-lg md:text-xl font-black leading-none">
-                      {currentQty}
-                    </span>
-                    <span
-                      className={`text-xs sm:text-sm font-extrabold leading-none ${
-                        isSelected ? "text-white/90" : "text-flandi-muted"
-                      }`}
-                    >
-                      {unitLabel}
-                    </span>
-                  </div>
+          <>
+            {/* PHẦN 1: THỰC ĐƠN (Các món chưa chọn số lượng) */}
+            <section className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-flandi-salmon" />
+                  <h2 className="font-display text-xs sm:text-sm font-black text-flandi-muted uppercase tracking-wider">
+                    Thực Đơn ({unselectedProducts.length} món)
+                  </h2>
                 </div>
-              );
-            })}
-          </div>
+                <span className="text-[11px] font-bold text-flandi-muted/70">
+                  Chạm món để chọn số lượng
+                </span>
+              </div>
+
+              {unselectedProducts.length === 0 ? (
+                <div className="rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-3.5 text-center">
+                  <p className="text-xs sm:text-sm font-black text-emerald-800">
+                    🎉 Bạn đã chọn tất cả các món trong thực đơn!
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {unselectedProducts.map((p) => renderProductCard(p))}
+                </div>
+              )}
+            </section>
+
+            {/* PHẦN 2: LÊN ĐƠN (Các món đã chốt số lượng > 0) */}
+            <section className="space-y-2 pt-1 border-t border-flandi-pink/40">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-1.5">
+                  <ShoppingBag className="w-4 h-4 text-flandi-coral" />
+                  <h2 className="font-display text-xs sm:text-sm font-black text-flandi-coral uppercase tracking-wider">
+                    Lên Đơn ({selectedProducts.length} món • {totalItemsCount} phần)
+                  </h2>
+                </div>
+                {selectedProducts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCartMap({})}
+                    className="text-xs font-extrabold text-red-500 hover:text-red-600 hover:underline flex items-center gap-1 transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xoá hết</span>
+                  </button>
+                )}
+              </div>
+
+              {selectedProducts.length === 0 ? (
+                <div className="rounded-2xl border-2 border-dashed border-flandi-pink/70 bg-white/40 p-4 text-center">
+                  <p className="text-xs sm:text-sm font-bold text-flandi-muted">
+                    Chưa có món nào • Nhấn vào món bánh ở trên để lên đơn
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {selectedProducts.map((p) => renderProductCard(p))}
+                </div>
+              )}
+            </section>
+          </>
         )}
       </main>
 

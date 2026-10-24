@@ -39,6 +39,14 @@ export default function QuickSingleScreenOrderPage() {
   // Cart keyed by productId
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
   const [isExpanded, setIsExpanded] = useState(false);
+  const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
+
+  const toggleProductExpand = (id: string) => {
+    setExpandedProductIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   // Compact customer info
   const [customerName, setCustomerName] = useState("");
@@ -393,19 +401,19 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       </header>
 
-      {/* Main Product Cards Workspace */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-2.5 sm:p-4 pb-28 sm:pb-32">
+      {/* Main Product Cards Workspace (Minimalist 1-screen rows with inline expand) */}
+      <main className="flex-1 max-w-2xl w-full mx-auto p-2 sm:p-3 pb-24 sm:pb-28">
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="flex flex-col gap-1.5">
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
               <div
                 key={n}
-                className="h-20 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse p-2.5"
+                className="h-12 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse"
               />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 content-start">
+          <div className="flex flex-col gap-1.5 sm:gap-2">
             {products.map((product) => {
               const currentQty = getQtyForProduct(product.id);
               const unitLabel = product.unit || "cái";
@@ -416,165 +424,152 @@ export default function QuickSingleScreenOrderPage() {
               const preset2 = isBoxProduct ? 2 : 10;
 
               const isSelected = currentQty > 0;
+              const isCardExpanded = !!expandedProductIds[product.id];
 
               return (
                 <div
                   key={product.id}
-                  className={`rounded-2xl border-2 px-2.5 py-2 transition-all duration-200 flex items-center gap-2.5 relative ${
+                  className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                     isSelected
-                      ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/40 opacity-100 scale-[1.01]"
-                      : "bg-stone-100/75 border-stone-200/80 opacity-55 saturate-[0.3] shadow-none"
+                      ? "bg-white border-flandi-coral shadow-cute ring-1.5 ring-flandi-salmon/40"
+                      : "bg-white/95 border-flandi-pink/50 hover:border-flandi-salmon/60 shadow-2xs"
                   }`}
                 >
-                  {/* Left: Compact Circular Product Photo (non-clickable) */}
+                  {/* Collapsed Header Row (Always visible, tap to toggle expand) */}
                   <div
-                    className={`relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 shrink-0 transition-all duration-200 ${
-                      isSelected
-                        ? "bg-gradient-to-tr from-flandi-coral to-flandi-salmon shadow-xs"
-                        : "bg-stone-300"
-                    }`}
+                    onClick={() => toggleProductExpand(product.id)}
+                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between gap-2.5 cursor-pointer select-none hover:bg-flandi-cream/25 transition"
                   >
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className={`w-full h-full object-cover rounded-full border-2 border-white transition-all duration-200 ${
-                        isSelected
-                          ? "grayscale-0 brightness-100 opacity-100"
-                          : "grayscale-[80%] brightness-90 opacity-70"
-                      }`}
-                    />
-                    <span
-                      className={`absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded-full text-white text-[9px] font-extrabold border border-white shadow-2xs leading-tight transition-colors ${
-                        isSelected ? "bg-flandi-coral" : "bg-stone-400"
-                      }`}
-                    >
-                      {product.badgeText}
-                    </span>
-                  </div>
-
-                  {/* Right: 2 Compact Rows (Row 1: Product Name, Row 2: 5 | 10 | Direct Input | Trash on same row) */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                    {/* Row 1: Full Product Name + Selected Status */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      <h2
-                        className={`font-display text-sm sm:text-base leading-none break-words transition-all ${
-                          isSelected ? "text-sticker-sm" : "text-stone-400"
-                        }`}
-                      >
-                        {product.name}
-                      </h2>
-                      {isSelected && (
-                        <span className="shrink-0 px-2 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black leading-none shadow-2xs">
-                          {currentQty} {unitLabel} •{" "}
-                          {formatVND(product.price * currentQty)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Row 2: [5 cái / 1 hộp] + [10 cái / 2 hộp] + [Direct Number Input] + [Trash Clear Button] all on 1 single line */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExactQty(
-                            product,
-                            currentQty === preset1 ? 0 : preset1
-                          )
-                        }
-                        className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
-                          currentQty === preset1
-                            ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                            : isSelected
-                            ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                            : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
-                        }`}
-                      >
-                        {isBoxProduct ? "1 hộp" : "5 cái"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExactQty(
-                            product,
-                            currentQty === preset2 ? 0 : preset2
-                          )
-                        }
-                        className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
-                          currentQty === preset2
-                            ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                            : isSelected
-                            ? "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                            : "bg-stone-200/70 hover:bg-stone-200 text-stone-500 border-stone-300/80"
-                        }`}
-                      >
-                        {isBoxProduct ? "2 hộp" : "10 cái"}
-                      </button>
-
-                      {/* Direct Quantity Input on the same row (placeholder "0") */}
-                      <div
-                        className={`flex-1 min-w-0 h-8 flex items-center rounded-xl px-1 border transition ${
-                          isSelected
-                            ? "bg-flandi-bg border-flandi-pink"
-                            : "bg-stone-200/60 border-stone-300/80"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => updateQty(product, -1)}
-                          disabled={currentQty <= 0}
-                          className="w-6 h-6 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-
-                        <input
-                          type="number"
-                          min={0}
-                          value={currentQty || ""}
-                          placeholder="0"
-                          onChange={(e) =>
-                            setExactQty(
-                              product,
-                              parseInt(e.target.value, 10) || 0
-                            )
-                          }
-                          className={`w-full min-w-0 mx-1 text-center font-extrabold text-xs rounded-md border h-6 px-1 focus:outline-none transition ${
-                            isSelected
-                              ? "text-flandi-coral bg-white border-flandi-pink/70 focus:border-flandi-coral"
-                              : "text-stone-500 bg-white/70 border-stone-300/70 placeholder:text-stone-400"
-                          }`}
+                    {/* Left: Mini product image + Product Name + Price badge */}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover rounded-full border border-white"
                         />
-
-                        <button
-                          type="button"
-                          onClick={() => updateQty(product, 1)}
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0 ${
-                            isSelected
-                              ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
-                              : "bg-stone-300 hover:bg-stone-400 text-stone-600"
-                          }`}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
                       </div>
 
-                      {/* Trash button to clear quantity of this product */}
-                      <button
-                        type="button"
-                        onClick={() => setExactQty(product, 0)}
-                        disabled={!isSelected}
-                        title="Xoá số lượng món này"
-                        className={`shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center transition active:scale-90 ${
-                          isSelected
-                            ? "bg-red-50 hover:bg-red-100 text-red-500 border-red-200"
-                            : "bg-stone-200/50 text-stone-400/50 border-stone-300/60 cursor-not-allowed"
+                      <div className="min-w-0 flex flex-col justify-center">
+                        <h2 className="font-display text-sm sm:text-base text-flandi-dark leading-tight truncate">
+                          {product.name}
+                        </h2>
+                        <span className="text-[11px] font-extrabold text-flandi-coral leading-tight">
+                          {product.badgeText}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: Selected quantity status badge + Expand / Collapse button */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isSelected ? (
+                        <span className="px-2.5 py-1 rounded-full bg-flandi-coral text-white text-[11px] font-black shadow-2xs">
+                          {currentQty} {unitLabel} • {formatVND(product.price * currentQty)}
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-xl bg-flandi-cream text-flandi-coral text-xs font-extrabold border border-flandi-pink/70">
+                          + Chọn
+                        </span>
+                      )}
+
+                      <div
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center transition-transform duration-200 ${
+                          isCardExpanded
+                            ? "rotate-180 bg-flandi-cream text-flandi-coral"
+                            : "bg-flandi-bg text-flandi-muted"
                         }`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
                     </div>
                   </div>
+
+                  {/* Expanded Quantity Controls Section */}
+                  {isCardExpanded && (
+                    <div className="px-3 pb-2.5 pt-1.5 border-t border-flandi-pink/40 bg-flandi-cream/15">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExactQty(
+                              product,
+                              currentQty === preset1 ? 0 : preset1
+                            )
+                          }
+                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                            currentQty === preset1
+                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                              : "bg-white hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                          }`}
+                        >
+                          {isBoxProduct ? "1 hộp" : "5 cái"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExactQty(
+                              product,
+                              currentQty === preset2 ? 0 : preset2
+                            )
+                          }
+                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                            currentQty === preset2
+                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                              : "bg-white hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                          }`}
+                        >
+                          {isBoxProduct ? "2 hộp" : "10 cái"}
+                        </button>
+
+                        {/* Direct Quantity Input on the same row (placeholder "0") */}
+                        <div className="flex-1 min-w-0 h-8 flex items-center bg-white rounded-xl px-1 border border-flandi-pink">
+                          <button
+                            type="button"
+                            onClick={() => updateQty(product, -1)}
+                            disabled={currentQty <= 0}
+                            className="w-6 h-6 rounded-lg bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+
+                          <input
+                            type="number"
+                            min={0}
+                            value={currentQty || ""}
+                            placeholder="0"
+                            onChange={(e) =>
+                              setExactQty(
+                                product,
+                                parseInt(e.target.value, 10) || 0
+                              )
+                            }
+                            className="w-full min-w-0 mx-1 text-center font-extrabold text-xs text-flandi-coral bg-transparent h-6 px-1 placeholder:text-xs placeholder:font-bold placeholder:text-flandi-muted focus:outline-none"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => updateQty(product, 1)}
+                            className="w-6 h-6 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        {/* Trash button to clear quantity of this product */}
+                        {currentQty > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setExactQty(product, 0)}
+                            title="Xoá số lượng món này"
+                            className="shrink-0 w-8 h-8 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition active:scale-90"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

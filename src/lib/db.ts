@@ -252,22 +252,15 @@ const INITIAL_PRODUCTS: Product[] = [
         stockDeduction: 1,
       },
       {
-        id: "var-pc-strawberry",
-        name: "Vị Dâu Tây",
-        price: 8000,
-        unitLabel: "cái",
-        stockDeduction: 1,
-      },
-      {
-        id: "var-pc-mango",
-        name: "Vị Xoài Tươi",
-        price: 8000,
-        unitLabel: "cái",
-        stockDeduction: 1,
-      },
-      {
         id: "var-pc-blueberry",
         name: "Vị Việt Quất",
+        price: 8000,
+        unitLabel: "cái",
+        stockDeduction: 1,
+      },
+      {
+        id: "var-pc-peach",
+        name: "Vị Đào",
         price: 8000,
         unitLabel: "cái",
         stockDeduction: 1,
@@ -353,13 +346,6 @@ const INITIAL_PRODUCTS: Product[] = [
         unitLabel: "hộp",
         stockDeduction: 1,
       },
-      {
-        id: "var-rcl-pandan",
-        name: "Chuyên Lá Dứa Cốt Dừa",
-        price: 40000,
-        unitLabel: "hộp",
-        stockDeduction: 1,
-      },
     ],
   },
   {
@@ -383,13 +369,6 @@ const INITIAL_PRODUCTS: Product[] = [
       {
         id: "var-th-pandan",
         name: "Vị Lá Dứa",
-        price: 8000,
-        unitLabel: "cái",
-        stockDeduction: 1,
-      },
-      {
-        id: "var-th-soy",
-        name: "Vị Truyền Thống",
         price: 8000,
         unitLabel: "cái",
         stockDeduction: 1,

@@ -427,7 +427,9 @@ export default function FlandiLandingPage() {
                   <div className="mt-4 pt-3 border-t border-flandi-pink/60 space-y-3">
                     <div>
                       <label className="block text-[11px] font-extrabold uppercase tracking-wider text-flandi-muted mb-1.5">
-                        Chọn vị / Quy cách:
+                        {product.variants.length > 1
+                          ? "Chọn vị yêu thích:"
+                          : "Hương vị:"}
                       </label>
                       <div className="flex flex-wrap gap-1.5">
                         {product.variants.map((v) => {

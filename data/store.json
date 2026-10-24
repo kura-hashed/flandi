@@ -31,7 +31,7 @@
       "name": "Panna Cotta",
       "subtitle": "Panna Cotta Kem Tươi Sốt Trái Cây Tươi",
       "category": "Panna Cotta",
-      "description": "Cốt kem sữa Ý núng nính béo thanh, kết hợp cùng lớp sốt trái cây tươi nấu thủ công chua ngọt bắt vị: Chanh dây, Dâu tây, Xoài, Việt quất.",
+      "description": "Cốt kem sữa Ý núng nính béo thanh, kết hợp cùng lớp sốt trái cây tươi nấu thủ công chua ngọt bắt vị: Chanh dây, Việt quất, Đào.",
       "price": 8000,
       "costPrice": 4500,
       "unit": "cái",
@@ -51,22 +51,15 @@
           "stockDeduction": 1
         },
         {
-          "id": "var-pc-strawberry",
-          "name": "Vị Dâu Tây",
-          "price": 8000,
-          "unitLabel": "cái",
-          "stockDeduction": 1
-        },
-        {
-          "id": "var-pc-mango",
-          "name": "Vị Xoài Tươi",
-          "price": 8000,
-          "unitLabel": "cái",
-          "stockDeduction": 1
-        },
-        {
           "id": "var-pc-blueberry",
           "name": "Vị Việt Quất",
+          "price": 8000,
+          "unitLabel": "cái",
+          "stockDeduction": 1
+        },
+        {
+          "id": "var-pc-peach",
+          "name": "Vị Đào",
           "price": 8000,
           "unitLabel": "cái",
           "stockDeduction": 1
@@ -136,7 +129,7 @@
       "unit": "hộp",
       "badgeText": "40k / hộp",
       "image": "/images/products/rau-cau-la.png",
-      "stock": 18,
+      "stock": 13,
       "stockUnit": "hộp",
       "lowStockThreshold": 5,
       "isActive": true,
@@ -145,13 +138,6 @@
         {
           "id": "var-rcl-box",
           "name": "Mix Lá Dứa & Cà Phê",
-          "price": 40000,
-          "unitLabel": "hộp",
-          "stockDeduction": 1
-        },
-        {
-          "id": "var-rcl-pandan",
-          "name": "Chuyên Lá Dứa Cốt Dừa",
           "price": 40000,
           "unitLabel": "hộp",
           "stockDeduction": 1
@@ -181,13 +167,6 @@
           "price": 8000,
           "unitLabel": "cái",
           "stockDeduction": 1
-        },
-        {
-          "id": "var-th-soy",
-          "name": "Vị Truyền Thống",
-          "price": 8000,
-          "unitLabel": "cái",
-          "stockDeduction": 1
         }
       ]
     },
@@ -202,7 +181,7 @@
       "unit": "cái",
       "badgeText": "5k / cái",
       "image": "/images/products/yogurt.png",
-      "stock": 90,
+      "stock": 85,
       "stockUnit": "cái",
       "lowStockThreshold": 20,
       "isActive": true,
@@ -292,6 +271,28 @@
   ],
   "stockLogs": [
     {
+      "id": "log-1792865560946-7mn4",
+      "targetId": "prod-yogurt",
+      "targetName": "Yogurt",
+      "targetType": "product",
+      "change": -5,
+      "previousStock": 90,
+      "newStock": 85,
+      "reason": "Đơn hàng ONLINE #FL-3302 (5x cái)",
+      "createdAt": "2026-10-24T18:12:40.946Z"
+    },
+    {
+      "id": "log-1792865373820-16i8",
+      "targetId": "prod-rau-cau-la",
+      "targetName": "Rau Câu Lá",
+      "targetType": "product",
+      "change": -5,
+      "previousStock": 18,
+      "newStock": 13,
+      "reason": "Đơn hàng ONLINE #FL-2452 (5x hộp)",
+      "createdAt": "2026-10-24T18:09:33.820Z"
+    },
+    {
       "id": "log-1792768057580-figk",
       "targetId": "prod-flan",
       "targetName": "Flan",
@@ -337,6 +338,64 @@
     }
   ],
   "orders": [
+    {
+      "id": "ord-1792865560946",
+      "code": "FL-3302",
+      "source": "ONLINE",
+      "status": "PENDING",
+      "customerName": "Loi",
+      "customerPhone": "0703880456",
+      "customerAddress": "",
+      "note": "[Đặt nhanh qua DIRECT]",
+      "items": [
+        {
+          "productId": "prod-yogurt",
+          "productName": "Yogurt",
+          "variantId": "var-yg-1",
+          "variantName": "cái",
+          "quantity": 5,
+          "unitPrice": 5000,
+          "subtotal": 25000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 25000,
+      "discount": 0,
+      "shippingFee": 15000,
+      "total": 40000,
+      "paymentMethod": "COD",
+      "isPaid": false,
+      "createdAt": "2026-10-24T18:12:40.946Z"
+    },
+    {
+      "id": "ord-1792865373820",
+      "code": "FL-2452",
+      "source": "ONLINE",
+      "status": "PENDING",
+      "customerName": "Khách đặt qua Messenger",
+      "customerPhone": "",
+      "customerAddress": "",
+      "note": "[Đặt nhanh qua MESSENGER]",
+      "items": [
+        {
+          "productId": "prod-rau-cau-la",
+          "productName": "Rau Câu Lá",
+          "variantId": "var-rcl-box",
+          "variantName": "hộp",
+          "quantity": 5,
+          "unitPrice": 40000,
+          "subtotal": 200000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 200000,
+      "discount": 0,
+      "shippingFee": 0,
+      "total": 200000,
+      "paymentMethod": "COD",
+      "isPaid": false,
+      "createdAt": "2026-10-24T18:09:33.820Z"
+    },
     {
       "id": "ord-1792768057580",
       "code": "FL-1004",
@@ -519,6 +578,267 @@
     "bankAccountName": "TIEM BANH FLANDI",
     "freeShipMinimum": 150000,
     "defaultShippingFee": 15000,
-    "announcement": "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!"
-  }
+    "announcement": "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!",
+    "brandKit": {
+      "brandName": "FLANDI",
+      "tagline": "Muốn ăn hãy Flăn vào tớ",
+      "subTagline": "Tiệm Tráng Miệng Thủ Công Tươi Mới Mỗi Ngày",
+      "brandStory": "FLANDI mang đến những mẻ bánh Flan trứng sữa, Panna Cotta trái cây tươi, Rau câu dừa nhân Flan, Rau câu lá dứa cà phê, Tàu hũ Singapore và Yogurt nhà làm ngọt dịu tự nhiên mỗi sáng.",
+      "logoStyle": "MASCOT_EMBLEM",
+      "mascotImage": "/images/branding/flandi-mascot.png",
+      "primaryColor": "#E86F5F",
+      "secondaryColor": "#F48B7E",
+      "accentColor": "#FFD6D1",
+      "bgColor": "#FFF9F8",
+      "darkColor": "#4A2E2B",
+      "headingFont": "Coiny (Display Sticker)",
+      "bodyFont": "Quicksand (Rounded Sans)",
+      "stickerNote": "100% Làm Mới Mỗi Sáng • Không Chất Bảo Quản",
+      "thankYouTitle": "Cảm ơn bạn đã “Flăn” vào FLANDI ♥",
+      "thankYouMessage": "Mỗi chiếc bánh đều được bếp nhà FLANDI chuẩn bị tỉ mỉ với nguyên liệu tươi mới trong ngày. Chúc bạn có một bữa tráng miệng ngọt ngào và mát lành nha!",
+      "storageInstruction": "Bảo quản ngăn mát tủ lạnh (2°C – 6°C) ngay khi nhận bánh. Ngon nhất khi dùng trong vòng 2 – 3 ngày.",
+      "promoHeadline": "MẺ BÁNH MỚI RA LÒ MỖI SÁNG!",
+      "promoSubheadline": "Freeship đơn từ 150k • Đặt nhanh qua Zalo 0703166903",
+      "colors": [
+        {
+          "id": "col-coral",
+          "name": "Flandi Coral (Chủ đạo)",
+          "hex": "#E86F5F",
+          "usage": "Viền chữ Sticker, Nút kêu gọi hành động (CTA), Điểm nhấn chính"
+        },
+        {
+          "id": "col-salmon",
+          "name": "Pastel Salmon (Màu thương hiệu)",
+          "hex": "#F48B7E",
+          "usage": "Khung tròn sản phẩm, Nhãn giá tròn, Badge nổi bật"
+        },
+        {
+          "id": "col-pink",
+          "name": "Soft Blush Pink (Màu bổ trợ)",
+          "hex": "#FFD6D1",
+          "usage": "Viền thẻ bài, Mảng màu nước trang trí, Tag phân loại"
+        },
+        {
+          "id": "col-cream",
+          "name": "Cream Grid (Nền đặc trưng)",
+          "hex": "#FFF9F8",
+          "usage": "Nền giấy kẻ ô vuông nhẹ nhàng tạo cảm giác tiệm bánh thủ công"
+        },
+        {
+          "id": "col-caramel",
+          "name": "Caramel Amber (Sốt bánh Flan)",
+          "hex": "#D97724",
+          "usage": "Chi tiết minh hoạ caramel, Nhãn Best Seller"
+        },
+        {
+          "id": "col-dark",
+          "name": "Cocoa Brown (Văn bản)",
+          "hex": "#4A2E2B",
+          "usage": "Chữ nội dung chính dễ đọc, ấm áp hơn màu đen thuần"
+        }
+      ]
+    },
+    "pageConfig": {
+      "showAnnouncementBar": true,
+      "showHeroSection": true,
+      "showHeroCollage": true,
+      "showMenuPosterButton": true,
+      "showMenuSection": true,
+      "showStorySection": true,
+      "showStoryPosterPreview": true,
+      "showFloatingZalo": true,
+      "showFloatingMessenger": true,
+      "showOwnerLinks": true,
+      "headerLogoUrl": "/images/branding/flandi-mascot.png",
+      "heroBadgeText": "Tiệm Tráng Miệng Thủ Công Tươi Mới Mỗi Ngày",
+      "heroTitle": "FLANDI",
+      "heroSubtitle": "Muốn ăn hãy Flăn vào tớ",
+      "heroDescription": "Từ những chiếc Bánh Flan trứng sữa mềm mịn, Panna Cotta sốt trái cây tươi chua ngọt, đến Rau Câu Dừa Nhân Flan, Rau Câu Lá, Tàu Hũ Singapore & Yogurt nhà làm béo thanh!",
+      "heroPrimaryCtaText": "Flăn vào chọn món ngay",
+      "heroSecondaryCtaText": "Menu Poster",
+      "heroCollageTitle": "Menu Nhà FLANDI",
+      "heroCollageSubtitle": "Chạm vào món bất kỳ để thêm nhanh vào giỏ bánh!",
+      "menuTitle": "Thực Đơn Ngọt Ngào",
+      "menuSubtitle": "Chọn vị yêu thích, đặt theo cái lẻ hoặc theo chục/hộp siêu tiết kiệm!",
+      "menuSearchPlaceholder": "Tìm Flan, Panna Cotta, Rau câu...",
+      "storyBadgeText": "CÂU CHUYỆN BẾP NHÀ FLANDI",
+      "storyTitle": "Ngọt Dịu Tự Nhiên — Làm Mới Mỗi Sáng",
+      "storyDescription": "Tại FLANDI, mỗi hũ bánh Flan, Panna Cotta, Tàu Hũ Singapore hay từng chiếc lá Rau Câu đều được tụi mình tự tay chuẩn bị mỗi sáng sớm. Công thức giảm ngọt vừa vặn để bạn ăn hoài không ngán!",
+      "storyFeatures": [
+        {
+          "id": "feat-1",
+          "icon": "SPARKLES",
+          "title": "100% Nguyên Liệu Tươi",
+          "description": "Trứng gà ta, sữa tươi, nước dừa xiêm, lá dứa tươi & trái cây thật.",
+          "enabled": true
+        },
+        {
+          "id": "feat-2",
+          "icon": "TRUCK",
+          "title": "Giữ Lạnh Chuẩn Vị Khi Giao",
+          "description": "Đóng gói cẩn thận kèm đá gel giữ lạnh để bánh luôn mát mịn.",
+          "enabled": true
+        },
+        {
+          "id": "feat-3",
+          "icon": "SHIELD",
+          "title": "Không Chất Bảo Quản",
+          "description": "Mẻ bánh làm mới trong ngày, an toàn cho cả bé nhỏ & gia đình.",
+          "enabled": true
+        },
+        {
+          "id": "feat-4",
+          "icon": "HEART",
+          "title": "Nhận Đặt Tiệc & Liên Hoan",
+          "description": "Ưu đãi hấp dẫn cho đơn đặt tiệc sinh nhật, họp mặt, trà chiều công ty.",
+          "enabled": true
+        }
+      ],
+      "footerDescription": "Tiệm bánh Flan, Panna Cotta, Rau câu dừa, Rau câu lá, Tàu hũ Singapore & Sữa chua nhà làm.",
+      "resources": [
+        {
+          "id": "res-mascot",
+          "name": "Logo Mascot FLANDI (1080p)",
+          "url": "/images/branding/flandi-mascot.png",
+          "category": "LOGO"
+        },
+        {
+          "id": "res-flan",
+          "name": "Ảnh Bánh Flan Truyền Thống",
+          "url": "/images/products/flan.png",
+          "category": "PRODUCT"
+        },
+        {
+          "id": "res-pc",
+          "name": "Ảnh Panna Cotta Trái Cây",
+          "url": "/images/products/panna-cotta.png",
+          "category": "PRODUCT"
+        },
+        {
+          "id": "res-rcd",
+          "name": "Ảnh Rau Câu Dừa (Flan)",
+          "url": "/images/products/rau-cau-dua.png",
+          "category": "PRODUCT"
+        },
+        {
+          "id": "res-rcl",
+          "name": "Ảnh Rau Câu Lá Dứa Cà Phê",
+          "url": "/images/products/rau-cau-la.png",
+          "category": "PRODUCT"
+        },
+        {
+          "id": "res-th",
+          "name": "Ảnh Tàu Hũ Singapore",
+          "url": "/images/products/tau-hu-singapore.png",
+          "category": "PRODUCT"
+        },
+        {
+          "id": "res-yg",
+          "name": "Ảnh Sữa Chua Nhà Làm (Yogurt)",
+          "url": "/images/products/yogurt.png",
+          "category": "PRODUCT"
+        }
+      ]
+    }
+  },
+  "chats": [
+    {
+      "id": "chat-1792863135588-lbaz",
+      "customerName": "Loi",
+      "customerPhone": "0703880456",
+      "unreadForAdmin": 2,
+      "updatedAt": "2026-10-24T18:12:41.150Z",
+      "messages": [
+        {
+          "id": "msg-welcome-1792865374053",
+          "sender": "BOT",
+          "text": "Xin chào Khách Messenger Web! 🍮 Chào mừng bạn đến với tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”). Bạn nhắn tin trực tiếp tại đây, tiệm sẽ trả lời ngay lập tức nha!",
+          "createdAt": "2026-10-24T18:09:34.053Z"
+        },
+        {
+          "id": "msg-1792865374053-8ai9",
+          "sender": "CUSTOMER",
+          "text": "🍮 ĐƠN ĐẶT BÁNH FLANDI (#FL-2452)\n------------------------\n1. Rau Câu Lá: 5 hộp x 40.000đ = 200.000đ\n------------------------\n• Tạm tính: 200.000đ\n• Phí ship: FREESHIP (0đ)\n💰 TỔNG CỘNG: 200.000đ",
+          "createdAt": "2026-10-24T18:09:34.053Z"
+        },
+        {
+          "id": "msg-bot-1792865374053",
+          "sender": "BOT",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "createdAt": "2026-10-24T18:09:34.303Z"
+        },
+        {
+          "id": "msg-1792865561150-qumw",
+          "sender": "CUSTOMER",
+          "text": "🍮 ĐƠN ĐẶT BÁNH FLANDI (#FL-3302)\n------------------------\n1. Yogurt: 5 cái x 5.000đ = 25.000đ\n------------------------\n• Tạm tính: 25.000đ\n• Phí ship: 15.000đ\n💰 TỔNG CỘNG: 40.000đ\n👤 Khách: Loi - SĐT: 0703880456",
+          "createdAt": "2026-10-24T18:12:41.150Z"
+        },
+        {
+          "id": "msg-bot-1792865561150",
+          "sender": "BOT",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "createdAt": "2026-10-24T18:12:41.400Z"
+        }
+      ]
+    },
+    {
+      "id": "chat-demo-1",
+      "customerName": "Bạn Bảo Trân",
+      "customerPhone": "0912345678",
+      "unreadForAdmin": 1,
+      "updatedAt": "2026-10-24T18:01:33.809Z",
+      "messages": [
+        {
+          "id": "msg-1",
+          "sender": "BOT",
+          "text": "Chào bạn! 🍮 Tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”) có thể giúp gì cho bạn hôm nay nè?",
+          "createdAt": "2026-10-24T17:59:33.809Z"
+        },
+        {
+          "id": "msg-2",
+          "sender": "CUSTOMER",
+          "text": "Shop ơi hôm nay còn Panna Cotta vị chanh dây với Rau câu dừa nhân flan không ạ?",
+          "createdAt": "2026-10-24T18:01:33.809Z"
+        }
+      ]
+    }
+  ],
+  "ledger": [
+    {
+      "id": "led-demo-1",
+      "code": "SS-1001",
+      "type": "EXPENSE",
+      "category": "Nguyên liệu",
+      "title": "Nhập trứng gà ta, sữa tươi thanh trùng & kem tươi",
+      "amount": 420000,
+      "paymentMethod": "VIETQR",
+      "note": "Hoá đơn nhập nguyên liệu mẻ bánh sáng sớm",
+      "imageUrl": "/images/products/flan.png",
+      "createdAt": "2026-10-24T15:09:33.809Z"
+    },
+    {
+      "id": "led-demo-2",
+      "code": "SS-1002",
+      "type": "EXPENSE",
+      "category": "Bao bì & Hộp",
+      "title": "Mua 500 hũ nhựa nắp trong + túi giữ nhiệt + đá gel",
+      "amount": 185000,
+      "paymentMethod": "CASH",
+      "note": "Đã kiểm đủ số lượng nhập kho bao bì",
+      "imageUrl": "/images/products/panna-cotta.png",
+      "createdAt": "2026-10-24T16:09:33.809Z"
+    },
+    {
+      "id": "led-demo-3",
+      "code": "SS-1003",
+      "type": "NOTE_PHOTO",
+      "category": "Sổ ghi chép / Kiểm ca",
+      "title": "Ảnh chụp phiếu kiểm mẻ bánh & sổ bàn giao ca sáng",
+      "amount": 0,
+      "paymentMethod": "CASH",
+      "note": "Bàn giao đủ 80 Flan, 55 Panna Cotta, 45 Rau câu dừa",
+      "imageUrl": "/images/menu-board.png",
+      "createdAt": "2026-10-24T17:09:33.809Z"
+    }
+  ]
 }

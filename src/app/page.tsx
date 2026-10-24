@@ -360,6 +360,15 @@ export default function FlandiLandingPage() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/order"
+              className="px-3.5 py-2 rounded-full bg-flandi-cream hover:bg-flandi-pink/70 text-flandi-coral border-2 border-flandi-salmon text-xs font-extrabold flex items-center gap-1.5 shadow-2xs transition"
+              title="Trang mua hàng gọn trong 1 màn hình (/order)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-flandi-coral" />
+              <span>Đặt Nhanh 1 Màn Hình</span>
+            </Link>
+
             {pageConfig.showOwnerLinks && (
               <>
                 <Link
@@ -433,29 +442,27 @@ export default function FlandiLandingPage() {
               {/* Quick Price Highlights matching the Menu */}
               <div className="flex flex-wrap justify-center lg:justify-start gap-2 pt-1">
                 {products.slice(0, 6).map((p) => (
-                  <a
+                  <Link
                     key={p.id}
-                    href="#menu"
+                    href="/order"
                     className="px-3 py-1.5 rounded-full bg-white/90 border border-flandi-pink shadow-sm text-xs font-bold text-flandi-dark hover:border-flandi-coral hover:scale-105 transition flex items-center gap-1.5"
                   >
                     <span>{p.name}:</span>
                     <span className="text-flandi-coral font-extrabold">
-                      {p.secondaryBadgeText
-                        ? `${p.secondaryBadgeText.split("/")[0]?.trim()} - ${p.badgeText}`
-                        : p.badgeText}
+                      {p.badgeText}
                     </span>
-                  </a>
+                  </Link>
                 ))}
               </div>
 
               <div className="pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-3.5">
-                <a
-                  href="#menu"
+                <Link
+                  href="/order"
                   className="px-7 py-3.5 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-base shadow-cute-lg flex items-center gap-2 transition transform hover:-translate-y-0.5"
                 >
                   <span>{pageConfig.heroPrimaryCtaText}</span>
                   <ArrowRight className="w-5 h-5" />
-                </a>
+                </Link>
                 {pageConfig.showMenuPosterButton && (
                   <button
                     onClick={() => setShowPosterModal(true)}

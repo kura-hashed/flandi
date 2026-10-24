@@ -392,19 +392,19 @@ export default function QuickSingleScreenOrderPage() {
 
       {/* Main 1-Screen Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-2.5 sm:p-4 lg:overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
-        {/* Left 8 Columns: All Desserts in a Compact Single-Screen Grid */}
+        {/* Left 8 Columns: Horizontal Row Product Cards (1 per row on mobile, 2 per row on tablet/desktop) */}
         <div className="lg:col-span-8 flex flex-col justify-between lg:overflow-y-auto pr-0.5">
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 h-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 h-full">
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <div
                   key={n}
-                  className="rounded-3xl bg-white/70 border border-flandi-pink animate-pulse p-4"
+                  className="h-28 rounded-3xl bg-white/70 border border-flandi-pink animate-pulse p-3"
                 />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 h-full content-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 content-start">
               {products.map((product) => {
                 const currentQty = getQtyForProduct(product.id);
                 const unitLabel = product.unit || "cái";
@@ -415,28 +415,14 @@ export default function QuickSingleScreenOrderPage() {
                 return (
                   <div
                     key={product.id}
-                    className={`rounded-3xl border-2 p-2.5 sm:p-3 transition-all flex flex-col justify-between relative ${
+                    className={`rounded-2xl sm:rounded-3xl border-2 p-2.5 sm:p-3 transition-all flex items-center gap-3 sm:gap-3.5 relative ${
                       currentQty > 0
                         ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/30"
                         : "bg-white/95 border-flandi-pink hover:border-flandi-salmon shadow-2xs"
                     }`}
                   >
-                    {/* Selected Count Ribbon */}
-                    {currentQty > 0 && (
-                      <span className="absolute -top-2 right-2 z-20 px-2.5 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black shadow-sm border border-white">
-                        Đã chọn: {currentQty} {unitLabel}
-                      </span>
-                    )}
-
-                    {/* 1. Full-Width Product Name on Top */}
-                    <div className="w-full text-center pb-1.5 border-b border-flandi-pink/50">
-                      <h2 className="font-display text-base sm:text-lg text-sticker-sm leading-snug w-full break-words">
-                        {product.name}
-                      </h2>
-                    </div>
-
-                    {/* 2. Center: Circular Product Photo + Price Badge */}
-                    <div className="flex flex-col items-center justify-center my-2">
+                    {/* Left: Circular Product Photo + Price Badge */}
+                    <div className="shrink-0 flex flex-col items-center justify-center">
                       <div
                         onClick={() => updateQty(product, 1)}
                         className="cursor-pointer relative w-20 h-20 sm:w-22 sm:h-22 rounded-full p-1 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group shadow-xs"
@@ -453,8 +439,21 @@ export default function QuickSingleScreenOrderPage() {
                       </div>
                     </div>
 
-                    {/* 3. Quantity Selector */}
-                    <div className="pt-2 border-t border-flandi-pink/60 space-y-1.5 mt-auto">
+                    {/* Right: Product Name + Quantity Options */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-1.5">
+                      {/* Full Product Name + Selected Badge */}
+                      <div className="flex items-center justify-between gap-2">
+                        <h2 className="font-display text-base sm:text-lg text-sticker-sm leading-snug break-words">
+                          {product.name}
+                        </h2>
+                        {currentQty > 0 && (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black shadow-2xs">
+                            Đã chọn: {currentQty} {unitLabel}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Quick Select Buttons: [5 cái | 10 cái] or [1 hộp | 2 hộp] */}
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
                           type="button"
@@ -517,7 +516,7 @@ export default function QuickSingleScreenOrderPage() {
                               parseInt(e.target.value, 10) || 0
                             )
                           }
-                          className="w-full mx-1 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-lg border border-flandi-pink/80 py-1 px-1 placeholder:text-[10px] placeholder:font-semibold placeholder:text-flandi-muted focus:border-flandi-coral focus:outline-none"
+                          className="w-full mx-1.5 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-lg border border-flandi-pink/80 py-1 px-1 placeholder:text-[10px] placeholder:font-semibold placeholder:text-flandi-muted focus:border-flandi-coral focus:outline-none"
                         />
 
                         <button

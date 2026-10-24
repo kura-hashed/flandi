@@ -496,7 +496,7 @@ export default function FlandiLandingPage() {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                    {products.slice(0, 6).map((item) => (
+                    {products.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleAddToCart(item)}

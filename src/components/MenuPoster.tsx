@@ -17,7 +17,7 @@ export default function MenuPoster({
   onSelectProduct,
   compact = false,
 }: MenuPosterProps) {
-  const displayProducts = products.slice(0, 6);
+  const displayProducts = products;
 
   const renderBadgeLines = (badgeText: string) => {
     const parts = badgeText.split("/");

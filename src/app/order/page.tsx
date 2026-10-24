@@ -392,11 +392,11 @@ export default function QuickSingleScreenOrderPage() {
 
       {/* Main 1-Screen Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-2.5 sm:p-4 lg:overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
-        {/* Left 8 Columns: All 6 Desserts in a Compact 2x3 / 3x2 Grid */}
+        {/* Left 8 Columns: All Desserts in a Compact Single-Screen Grid */}
         <div className="lg:col-span-8 flex flex-col justify-between lg:overflow-y-auto pr-0.5">
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 h-full">
-              {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 h-full">
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <div
                   key={n}
                   className="rounded-3xl bg-white/70 border border-flandi-pink animate-pulse p-4"
@@ -404,9 +404,13 @@ export default function QuickSingleScreenOrderPage() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 h-full content-between">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 h-full content-start">
               {products.map((product) => {
                 const currentQty = getQtyForProduct(product.id);
+                const unitLabel = product.unit || "cái";
+                const isBoxProduct =
+                  unitLabel.toLowerCase() === "hộp" ||
+                  product.id === "prod-rau-cau-la";
 
                 return (
                   <div
@@ -420,7 +424,7 @@ export default function QuickSingleScreenOrderPage() {
                     {/* Selected Count Ribbon */}
                     {currentQty > 0 && (
                       <span className="absolute -top-2 right-2 z-20 px-2.5 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black shadow-sm border border-white">
-                        Đã chọn: {currentQty}
+                        Đã chọn: {currentQty} {unitLabel}
                       </span>
                     )}
 
@@ -431,12 +435,12 @@ export default function QuickSingleScreenOrderPage() {
                       </h2>
                     </div>
 
-                    {/* 2. Center: Circular Product Photo + Price Badge (No category/flavor pills) */}
+                    {/* 2. Center: Circular Product Photo + Price Badge */}
                     <div className="flex flex-col items-center justify-center my-2">
                       <div
                         onClick={() => updateQty(product, 1)}
-                        className="cursor-pointer relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group shadow-xs"
-                        title="Chạm để +1 nhanh"
+                        className="cursor-pointer relative w-20 h-20 sm:w-22 sm:h-22 rounded-full p-1 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group shadow-xs"
+                        title={`Chạm để +1 ${unitLabel} nhanh`}
                       >
                         <img
                           src={product.image}
@@ -449,39 +453,45 @@ export default function QuickSingleScreenOrderPage() {
                       </div>
                     </div>
 
-                    {/* 3. Quantity Selector: [ 5 cái ] [ 10 cái ] + Direct Number Input Box */}
+                    {/* 3. Quantity Selector */}
                     <div className="pt-2 border-t border-flandi-pink/60 space-y-1.5 mt-auto">
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExactQty(product, currentQty === 5 ? 0 : 5)
-                          }
-                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
-                            currentQty === 5
-                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                          }`}
-                        >
-                          5 cái
-                        </button>
+                      {isBoxProduct ? (
+                        <div className="text-center py-1 px-2 rounded-xl bg-flandi-cream/70 border border-flandi-pink/80 text-[11px] font-extrabold text-flandi-coral">
+                          Đơn vị tính: Hộp ({formatVND(product.price)}/hộp)
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExactQty(product, currentQty === 5 ? 0 : 5)
+                            }
+                            className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
+                              currentQty === 5
+                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                            }`}
+                          >
+                            5 cái
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExactQty(product, currentQty === 10 ? 0 : 10)
-                          }
-                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
-                            currentQty === 10
-                              ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
-                              : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
-                          }`}
-                        >
-                          10 cái
-                        </button>
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExactQty(product, currentQty === 10 ? 0 : 10)
+                            }
+                            className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
+                              currentQty === 10
+                                ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
+                                : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
+                            }`}
+                          >
+                            10 cái
+                          </button>
+                        </div>
+                      )}
 
-                      {/* Direct Number Input Box (Always visible, no need to click "Tự nhập") */}
+                      {/* Direct Number Input Box */}
                       <div className="flex items-center justify-between bg-flandi-bg rounded-xl px-1.5 py-1 border border-flandi-pink">
                         <button
                           type="button"
@@ -496,14 +506,16 @@ export default function QuickSingleScreenOrderPage() {
                           type="number"
                           min={0}
                           value={currentQty || ""}
-                          placeholder="Nhập số lượng..."
+                          placeholder={
+                            isBoxProduct ? "Nhập số hộp..." : "Nhập số lượng..."
+                          }
                           onChange={(e) =>
                             setExactQty(
                               product,
                               parseInt(e.target.value, 10) || 0
                             )
                           }
-                          className="w-full mx-1.5 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-lg border border-flandi-pink/80 py-1 px-1 placeholder:text-[10px] placeholder:font-semibold placeholder:text-flandi-muted focus:border-flandi-coral focus:outline-none"
+                          className="w-full mx-1 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-lg border border-flandi-pink/80 py-1 px-1 placeholder:text-[10px] placeholder:font-semibold placeholder:text-flandi-muted focus:border-flandi-coral focus:outline-none"
                         />
 
                         <button

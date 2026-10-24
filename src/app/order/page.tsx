@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -18,8 +18,13 @@ import {
   CheckCircle2,
   X,
   Zap,
+  Share2,
+  ExternalLink,
 } from "lucide-react";
-import { Product, ProductVariant, ShopSettings, Order } from "@/lib/types";
+import { Product, ProductVariant, ShopSettings } from "@/lib/types";
+import LiveChatWidget, {
+  copyToClipboardInstant,
+} from "@/components/LiveChatWidget";
 
 interface QuickLineItem {
   product: Product;
@@ -51,19 +56,23 @@ export default function QuickSingleScreenOrderPage() {
   const [sendingChannel, setSendingChannel] = useState<
     "MESSENGER" | "ZALO" | "DIRECT" | null
   >(null);
+  const [openChatTrigger, setOpenChatTrigger] = useState(0);
   const [sentResultModal, setSentResultModal] = useState<{
     channel: "MESSENGER" | "ZALO" | "DIRECT";
     orderCode: string;
     orderText: string;
     total: number;
-    targetUrl?: string;
+    zaloUrl: string;
+    messengerUrl: string;
   } | null>(null);
+
+  const billTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const notify = (msg: string) => {
     setToast(msg);
     setTimeout(() => {
       setToast((prev) => (prev === msg ? null : prev));
-    }, 3200);
+    }, 3500);
   };
 
   const formatVND = (n: number) =>
@@ -210,20 +219,32 @@ export default function QuickSingleScreenOrderPage() {
     return lines.join("\n");
   };
 
-  const handleCopyBillText = async () => {
+  const liveOrderPreviewText = useMemo(
+    () => (cartItems.length > 0 ? buildOrderMessageText() : ""),
+    [
+      cartItems,
+      subtotal,
+      shippingFee,
+      grandTotal,
+      customerName,
+      customerPhone,
+      customerAddress,
+      customerNote,
+    ]
+  );
+
+  const handleCopyBillText = () => {
     if (cartItems.length === 0) {
       notify("Bạn hãy chọn số lượng ít nhất 1 món bánh nhé!");
       return;
     }
     const text = buildOrderMessageText();
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      notify("📋 Đã sao chép nội dung đơn hàng!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error(e);
-    }
+    copyToClipboardInstant(text);
+    setCopied(true);
+    notify(
+      "📋 Đã tự động Copy đơn hàng! Bạn chỉ cần bấm Ctrl+V (hoặc Dán) vào khung chat Zalo/Messenger."
+    );
+    setTimeout(() => setCopied(false), 2500);
   };
 
   const handleSendOrderVia = async (
@@ -234,12 +255,40 @@ export default function QuickSingleScreenOrderPage() {
       return;
     }
 
+    // 1. CRITICAL: Generate code & copy to clipboard SYNCHRONOUSLY (0ms) inside the user click gesture!
+    // Doing this BEFORE any `await fetch` guarantees browsers never block the clipboard copy.
+    const generatedCode = `FL-${Math.floor(1000 + Math.random() * 9000)}`;
+    const billText = buildOrderMessageText(generatedCode);
+    copyToClipboardInstant(billText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3500);
+
+    const zaloPhone = settings?.zaloPhone || settings?.phone || "0703166903";
+    const fbUrl =
+      settings?.facebookUrl || "https://www.facebook.com/tiem.flandi";
+    const fbSlug = fbUrl
+      .replace(/^https?:\/\/(www\.)?facebook\.com\//i, "")
+      .replace(/\/.*$/, "")
+      .trim();
+    const messengerDirectUrl = fbSlug
+      ? `https://m.me/${fbSlug}?text=${encodeURIComponent(billText)}`
+      : fbUrl;
+    const zaloDirectUrl = `https://zalo.me/${zaloPhone}`;
+
+    // Open Zalo / Messenger window SYNCHRONOUSLY in user gesture so popup blockers don't block it
+    if (channel === "ZALO") {
+      window.open(zaloDirectUrl, "_blank", "noopener,noreferrer");
+      notify(
+        "✅ Đã Copy sẵn đơn hàng! Bạn chỉ cần nhấn Ctrl+V (hoặc chạm Giữ → Dán) vào ô tin nhắn Zalo."
+      );
+    }
+
     setSendingChannel(channel);
-    let createdOrderCode = `FL-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      // 1. Save order to backend database so shop owner sees it immediately in /pos and /admin
+      // 2. Save order to backend database (/api/orders)
       const orderPayload = {
+        code: generatedCode,
         source: channel === "ZALO" ? "ZALO" : "ONLINE",
         status: "PENDING",
         customerName:
@@ -270,84 +319,50 @@ export default function QuickSingleScreenOrderPage() {
         isPaid: false,
       };
 
-      const res = await fetch("/api/orders", {
+      await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderPayload),
       });
-      const data = await res.json();
-      if (res.ok && data?.order?.code) {
-        createdOrderCode = data.order.code;
+
+      // 3. Also send the order text directly into the on-page Messenger Chat (/api/chat)
+      const storedSession =
+        typeof window !== "undefined"
+          ? localStorage.getItem("flandi_chat_session_id")
+          : null;
+      const sessionId = storedSession || `chat-${Date.now()}`;
+      if (typeof window !== "undefined" && !storedSession) {
+        localStorage.setItem("flandi_chat_session_id", sessionId);
       }
+      await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          customerName: customerName.trim() || "Khách đặt bánh",
+          customerPhone: customerPhone.trim(),
+          sender: "CUSTOMER",
+          text: billText,
+        }),
+      });
 
-      const finalBillText = buildOrderMessageText(createdOrderCode);
-
-      // 2. Copy to clipboard so customer can paste in 1 second inside Messenger / Zalo
-      try {
-        await navigator.clipboard.writeText(finalBillText);
-      } catch {
-        // Ignore clipboard permission errors on restricted webviews
+      if (channel === "MESSENGER") {
+        // Open the embedded on-page Messenger Chat with the order already sent inside!
+        setOpenChatTrigger((n) => n + 1);
+        notify("💬 Đã gửi thẳng đơn hàng vào khung chat Messenger trên trang!");
       }
-
-      // 3. Also send into built-in web chat inbox (/api/chat) so admin has the message in web inbox
-      try {
-        const storedSession =
-          typeof window !== "undefined"
-            ? localStorage.getItem("flandi_chat_session_id")
-            : null;
-        const sessionId = storedSession || `chat-${Date.now()}`;
-        if (typeof window !== "undefined" && !storedSession) {
-          localStorage.setItem("flandi_chat_session_id", sessionId);
-        }
-        await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId,
-            customerName: customerName.trim() || "Khách đặt bánh",
-            customerPhone: customerPhone.trim(),
-            sender: "CUSTOMER",
-            text: finalBillText,
-          }),
-        });
-      } catch {
-        // Non-blocking
-      }
-
-      const zaloPhone = settings?.zaloPhone || settings?.phone || "0703166903";
-      const fbUrl =
-        settings?.facebookUrl || "https://www.facebook.com/tiem.flandi";
-      // Convert facebook page url to m.me link for direct Messenger thread
-      const fbSlug = fbUrl
-        .replace(/^https?:\/\/(www\.)?facebook\.com\//i, "")
-        .replace(/\/.*$/, "")
-        .trim();
-      const messengerDirectUrl = fbSlug
-        ? `https://m.me/${fbSlug}?text=${encodeURIComponent(finalBillText)}`
-        : fbUrl;
-      const zaloDirectUrl = `https://zalo.me/${zaloPhone}`;
-
-      const targetUrl =
-        channel === "MESSENGER"
-          ? messengerDirectUrl
-          : channel === "ZALO"
-          ? zaloDirectUrl
-          : undefined;
 
       setSentResultModal({
         channel,
-        orderCode: createdOrderCode,
-        orderText: finalBillText,
+        orderCode: generatedCode,
+        orderText: billText,
         total: grandTotal,
-        targetUrl,
+        zaloUrl: zaloDirectUrl,
+        messengerUrl: messengerDirectUrl,
       });
-
-      if (targetUrl) {
-        window.open(targetUrl, "_blank", "noopener,noreferrer");
-      }
     } catch (err) {
       console.error(err);
-      notify("Lỗi khi tạo đơn, vui lòng thử lại!");
+      notify("Đã copy đơn vào bộ nhớ tạm! Bạn có thể dán gửi ngay.");
     } finally {
       setSendingChannel(null);
     }
@@ -357,9 +372,9 @@ export default function QuickSingleScreenOrderPage() {
     <div className="min-h-dvh lg:h-dvh lg:overflow-hidden bg-[#FFF9F8] bg-grid-pattern flex flex-col justify-between">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-flandi-dark text-white px-4 py-2.5 rounded-2xl shadow-cute-lg flex items-center gap-2 animate-bounce">
+        <div className="fixed top-4 right-4 z-50 bg-flandi-dark text-white px-4 py-3 rounded-2xl shadow-cute-lg flex items-center gap-2.5 max-w-md animate-bounce">
           <Sparkles className="w-4 h-4 text-flandi-salmon shrink-0" />
-          <span className="text-xs font-extrabold">{toast}</span>
+          <span className="text-xs font-extrabold leading-snug">{toast}</span>
         </div>
       )}
 
@@ -589,7 +604,7 @@ export default function QuickSingleScreenOrderPage() {
         {/* Right 4 Columns: Live Order Ticket & Send via Messenger / Zalo */}
         <div className="lg:col-span-4 bg-white rounded-3xl border-2 border-flandi-salmon shadow-cute p-3.5 sm:p-4 flex flex-col justify-between lg:overflow-hidden">
           {/* Top Header of Ticket */}
-          <div className="flex items-center justify-between border-b border-flandi-pink pb-2.5 shrink-0">
+          <div className="flex items-center justify-between border-b border-flandi-pink pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-flandi-coral text-white flex items-center justify-center">
                 <ShoppingBag className="w-4 h-4" />
@@ -617,10 +632,10 @@ export default function QuickSingleScreenOrderPage() {
           </div>
 
           {/* Selected Items Scrollable List */}
-          <div className="flex-1 overflow-y-auto my-2.5 space-y-1.5 pr-1 max-h-48 lg:max-h-none">
+          <div className="flex-1 overflow-y-auto my-2 space-y-1.5 pr-1 max-h-40 lg:max-h-none">
             {cartItems.length === 0 ? (
-              <div className="h-full min-h-[110px] rounded-2xl border border-dashed border-flandi-pink bg-flandi-bg/60 flex flex-col items-center justify-center p-4 text-center">
-                <Sparkles className="w-6 h-6 text-flandi-salmon mb-1" />
+              <div className="h-full min-h-[96px] rounded-2xl border border-dashed border-flandi-pink bg-flandi-bg/60 flex flex-col items-center justify-center p-3 text-center">
+                <Sparkles className="w-5 h-5 text-flandi-salmon mb-1" />
                 <p className="text-xs font-extrabold text-flandi-dark">
                   Chưa có món bánh nào được chọn
                 </p>
@@ -707,62 +722,79 @@ export default function QuickSingleScreenOrderPage() {
             </div>
           </div>
 
-          {/* Totals + Freeship Progress */}
-          <div className="pt-2 mt-2 border-t border-flandi-pink space-y-1 text-xs shrink-0">
-            {subtotal > 0 && subtotal < freeShipMin ? (
-              <div className="px-2.5 py-1 rounded-lg bg-flandi-cream text-flandi-coral text-[11px] font-bold flex items-center justify-between">
-                <span>
-                  Mua thêm <strong>{formatVND(freeShipMin - subtotal)}</strong>{" "}
-                  để được <strong>FREESHIP</strong>!
+          {/* Live Copyable Message Box for Zalo / Messenger */}
+          {cartItems.length > 0 && (
+            <div className="mt-2 p-2 rounded-xl bg-flandi-bg border border-flandi-pink shrink-0 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold text-flandi-muted uppercase">
+                  Tin nhắn đơn hàng (Bấm vào để chọn & Copy):
                 </span>
+                <button
+                  type="button"
+                  onClick={handleCopyBillText}
+                  className="text-[11px] font-extrabold text-flandi-coral hover:underline flex items-center gap-1"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span className="text-emerald-700">Đã Copy!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy tin nhắn</span>
+                    </>
+                  )}
+                </button>
               </div>
-            ) : subtotal >= freeShipMin ? (
-              <div className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-extrabold">
-                🎉 Đơn của bạn đã được Miễn Phí Giao Hàng!
-              </div>
-            ) : null}
+              <textarea
+                ref={billTextareaRef}
+                readOnly
+                rows={2}
+                value={liveOrderPreviewText}
+                onClick={(e) => {
+                  e.currentTarget.select();
+                  handleCopyBillText();
+                }}
+                className="w-full text-[11px] font-semibold text-flandi-dark bg-white rounded-lg p-1.5 border border-flandi-pink/80 resize-none focus:outline-none cursor-pointer"
+              />
+            </div>
+          )}
 
-            <div className="flex items-center justify-between pt-0.5">
+          {/* Totals + Freeship Progress */}
+          <div className="pt-2 mt-1.5 border-t border-flandi-pink space-y-1 text-xs shrink-0">
+            <div className="flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-flandi-muted font-bold block">
                   Tổng thanh toán{" "}
-                  {shippingFee > 0 ? `(gồm ship ${formatVND(shippingFee)})` : ""}:
+                  {shippingFee > 0
+                    ? `(gồm ship ${formatVND(shippingFee)})`
+                    : subtotal > 0
+                    ? "(Miễn phí ship)"
+                    : ""}
+                  :
                 </span>
                 <span className="text-xl font-extrabold text-flandi-coral">
                   {formatVND(grandTotal)}
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={handleCopyBillText}
-                disabled={cartItems.length === 0}
-                className="px-2.5 py-1.5 rounded-xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink text-[11px] font-extrabold flex items-center gap-1 disabled:opacity-40 transition"
-                title="Sao chép nội dung đơn hàng"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span className="text-emerald-700">Đã chép đơn</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 text-flandi-coral" />
-                    <span>Copy đơn</span>
-                  </>
-                )}
-              </button>
+              {subtotal > 0 && subtotal < freeShipMin && (
+                <span className="px-2 py-1 rounded-lg bg-flandi-cream text-flandi-coral text-[10px] font-extrabold">
+                  +{formatVND(freeShipMin - subtotal)} để Freeship
+                </span>
+              )}
             </div>
           </div>
 
           {/* Primary Action Buttons: Send via Messenger & Send via Zalo */}
-          <div className="pt-2.5 space-y-2 shrink-0">
+          <div className="pt-2 space-y-1.5 shrink-0">
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 disabled={cartItems.length === 0 || sendingChannel !== null}
                 onClick={() => handleSendOrderVia("MESSENGER")}
-                className="py-3 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
               >
                 <MessageCircle className="w-4 h-4 fill-white/20 shrink-0" />
                 <span>Gửi qua Messenger</span>
@@ -772,10 +804,10 @@ export default function QuickSingleScreenOrderPage() {
                 type="button"
                 disabled={cartItems.length === 0 || sendingChannel !== null}
                 onClick={() => handleSendOrderVia("ZALO")}
-                className="py-3 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                className="py-2.5 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
               >
                 <Send className="w-4 h-4 shrink-0" />
-                <span>Gửi qua Zalo</span>
+                <span>Copy & Gửi Zalo</span>
               </button>
             </div>
 
@@ -783,14 +815,22 @@ export default function QuickSingleScreenOrderPage() {
               type="button"
               disabled={cartItems.length === 0 || sendingChannel !== null}
               onClick={() => handleSendOrderVia("DIRECT")}
-              className="w-full py-2.5 px-3 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+              className="w-full py-2 px-3 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
             >
-              <Zap className="w-4 h-4" />
-              <span>Chốt Đơn Nhanh Trên Web & Hiện Mã QR</span>
+              <Zap className="w-3.5 h-3.5" />
+              <span>Chốt Đơn Trực Tiếp & Hiện Mã QR</span>
             </button>
           </div>
         </div>
       </main>
+
+      {/* Embedded On-Page Messenger Chat Widget & Zalo Button */}
+      <LiveChatWidget
+        settings={settings}
+        cartCount={totalItemsCount}
+        externalOpenTrigger={openChatTrigger}
+        cartSummaryText={liveOrderPreviewText || undefined}
+      />
 
       {/* Confirmation & Pre-Copied Order Modal */}
       {sentResultModal && (
@@ -799,7 +839,7 @@ export default function QuickSingleScreenOrderPage() {
           onClick={() => setSentResultModal(null)}
         >
           <div
-            className="bg-white rounded-3xl max-w-md w-full p-5 border-2 border-flandi-salmon shadow-2xl space-y-4"
+            className="bg-white rounded-3xl max-w-md w-full p-5 border-2 border-flandi-salmon shadow-2xl space-y-3.5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-2 border-b border-flandi-pink pb-3">
@@ -811,8 +851,8 @@ export default function QuickSingleScreenOrderPage() {
                   <h3 className="font-extrabold text-base text-flandi-dark">
                     Đã Tạo Đơn #{sentResultModal.orderCode}!
                   </h3>
-                  <p className="text-xs text-emerald-700 font-bold">
-                    ✓ Nội dung đơn đã được tự động Copy vào bộ nhớ tạm
+                  <p className="text-xs text-emerald-700 font-extrabold">
+                    ✓ Đã tự động Copy sẵn nội dung đơn vào bộ nhớ tạm!
                   </p>
                 </div>
               </div>
@@ -825,28 +865,45 @@ export default function QuickSingleScreenOrderPage() {
               </button>
             </div>
 
+            {sentResultModal.channel === "ZALO" && (
+              <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-900 font-bold space-y-1">
+                <p>
+                  💡 <strong>Hướng dẫn dán đơn vào Zalo:</strong>
+                </p>
+                <p className="font-medium text-[11px]">
+                  Do Zalo không cho phép web ngoài tự điền chữ vào ô chat, hệ thống đã <strong>Copy sẵn toàn bộ đơn hàng</strong> cho bạn. Khi cửa sổ Zalo mở ra, bạn chỉ cần nhấn <strong>Ctrl + V</strong> (hoặc chạm <strong>Giữ → Dán</strong> trên điện thoại) là gửi được ngay!
+                </p>
+              </div>
+            )}
+
             <div className="p-3 rounded-2xl bg-flandi-bg border border-flandi-pink space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold text-flandi-dark">
-                  Nội dung đơn hàng (Dán vào khung chat):
+                  Nội dung đơn hàng đã Copy:
                 </span>
                 <button
                   type="button"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(
-                      sentResultModal.orderText
-                    );
-                    notify("📋 Đã sao chép lại nội dung đơn!");
+                  onClick={() => {
+                    copyToClipboardInstant(sentResultModal.orderText);
+                    notify("📋 Đã Copy lại nội dung đơn hàng!");
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-white border border-flandi-pink text-[11px] font-extrabold text-flandi-coral flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg bg-flandi-coral text-white text-[11px] font-extrabold flex items-center gap-1 shadow-2xs"
                 >
                   <Copy className="w-3 h-3" />
-                  <span>Copy lại</span>
+                  <span>Bấm Copy Lại</span>
                 </button>
               </div>
-              <pre className="text-[11px] font-semibold text-flandi-dark whitespace-pre-wrap font-sans bg-white p-2.5 rounded-xl border border-flandi-pink max-h-40 overflow-y-auto">
-                {sentResultModal.orderText}
-              </pre>
+              <textarea
+                readOnly
+                rows={5}
+                value={sentResultModal.orderText}
+                onClick={(e) => {
+                  e.currentTarget.select();
+                  copyToClipboardInstant(sentResultModal.orderText);
+                  notify("📋 Đã Copy nội dung đơn hàng!");
+                }}
+                className="w-full text-[11px] font-semibold text-flandi-dark bg-white p-2.5 rounded-xl border border-flandi-pink resize-none focus:outline-none"
+              />
             </div>
 
             {/* Optional VietQR for instant transfer */}
@@ -874,39 +931,60 @@ export default function QuickSingleScreenOrderPage() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-2">
-              {sentResultModal.targetUrl && (
-                <a
-                  href={sentResultModal.targetUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`flex-1 py-2.5 px-4 rounded-xl text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md ${
-                    sentResultModal.channel === "MESSENGER"
-                      ? "bg-[#006AFF]"
-                      : "bg-[#0068FF]"
-                  }`}
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>
-                    Mở lại{" "}
-                    {sentResultModal.channel === "MESSENGER"
-                      ? "Messenger"
-                      : "Zalo"}{" "}
-                    & Dán đơn
-                  </span>
-                </a>
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a
+                href={sentResultModal.zaloUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => copyToClipboardInstant(sentResultModal.orderText)}
+                className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Mở Zalo (0703166903) & Dán</span>
+              </a>
+
+              <a
+                href={sentResultModal.messengerUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => copyToClipboardInstant(sentResultModal.orderText)}
+                className="py-2.5 px-3 rounded-xl bg-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>Mở App Messenger & Dán</span>
+              </a>
+            </div>
+
+            {typeof navigator !== "undefined" && "share" in navigator && (
               <button
                 type="button"
-                onClick={() => {
-                  setCartMap({});
-                  setSentResultModal(null);
+                onClick={async () => {
+                  try {
+                    await navigator.share({
+                      title: `Đơn bánh FLANDI #${sentResultModal.orderCode}`,
+                      text: sentResultModal.orderText,
+                    });
+                  } catch {
+                    // User cancelled share sheet
+                  }
                 }}
-                className="py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-flandi-dark font-extrabold text-xs"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm"
               >
-                Hoàn tất & Đặt đơn mới
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Chuyển thẳng nội dung đơn vào App Zalo / Messenger</span>
               </button>
-            </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setCartMap({});
+                setSentResultModal(null);
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-flandi-dark font-extrabold text-xs"
+            >
+              Hoàn tất & Đặt đơn mới
+            </button>
           </div>
         </div>
       )}

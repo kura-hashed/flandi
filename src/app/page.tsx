@@ -27,7 +27,9 @@ import {
 } from "lucide-react";
 import { Product, ProductVariant, Order, ShopSettings } from "@/lib/types";
 import MenuPoster from "@/components/MenuPoster";
-import LiveChatWidget from "@/components/LiveChatWidget";
+import LiveChatWidget, {
+  copyToClipboardInstant,
+} from "@/components/LiveChatWidget";
 import { FALLBACK_PAGE_CONFIG } from "@/components/PageManager";
 
 interface CartItem {
@@ -274,8 +276,10 @@ export default function FlandiLandingPage() {
   };
 
   const copyOrderSummary = (order: Order) => {
-    navigator.clipboard.writeText(buildOrderSummaryText(order));
+    const text = buildOrderSummaryText(order);
+    copyToClipboardInstant(text);
     setCopiedOrderText(true);
+    triggerToast("📋 Đã tự động copy đơn hàng! Bạn chỉ cần Dán (Ctrl+V) vào Zalo/Messenger.");
     setTimeout(() => setCopiedOrderText(false), 2500);
   };
 
@@ -1256,10 +1260,11 @@ export default function FlandiLandingPage() {
                 href={`https://zalo.me/${settings?.zaloPhone || "0703166903"}`}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => copyOrderSummary(completedOrder)}
                 className="py-2.5 px-3 rounded-full bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5"
               >
                 <Phone className="w-3.5 h-3.5 shrink-0" />
-                <span>Chat Zalo</span>
+                <span>Copy & Mở Zalo</span>
               </a>
 
               <button

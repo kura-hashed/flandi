@@ -20,6 +20,37 @@ interface LiveChatWidgetProps {
   externalOpenTrigger?: number;
 }
 
+export function copyToClipboardInstant(text: string): boolean {
+  if (!text || typeof document === "undefined") return false;
+  let success = false;
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.left = "-9999px";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, text.length);
+    success = document.execCommand("copy");
+    document.body.removeChild(textarea);
+  } catch {
+    // Fallback to navigator.clipboard
+  }
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+      success = true;
+    }
+  } catch {
+    // Ignore
+  }
+  return success;
+}
+
 export default function LiveChatWidget({
   settings,
   cartSummaryText,
@@ -362,11 +393,18 @@ export default function LiveChatWidget({
             href={`https://zalo.me/${zaloPhone}`}
             target="_blank"
             rel="noreferrer"
+            onClick={() => {
+              if (cartSummaryText) {
+                copyToClipboardInstant(cartSummaryText);
+              }
+            }}
             aria-label="Nhắn tin qua Zalo"
             className="group flex items-center gap-2.5 focus:outline-none"
           >
             <span className="hidden sm:inline-block px-3.5 py-1.5 rounded-full bg-white/95 text-[#0068FF] border border-blue-200 shadow-md text-xs font-extrabold opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
-              Nhắn Zalo: {zaloPhone}
+              {cartSummaryText
+                ? `Bấm để Copy giỏ bánh & mở Zalo ${zaloPhone}`
+                : `Nhắn Zalo: ${zaloPhone}`}
             </span>
             <div className="relative flex items-center justify-center w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#0068FF] text-white shadow-lg hover:scale-110 active:scale-95 transition-transform border-2 border-white">
               <span className="absolute inset-0 rounded-full bg-[#0068FF] animate-ping opacity-20" />

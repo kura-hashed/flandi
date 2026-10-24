@@ -464,14 +464,10 @@ export default function QuickSingleScreenOrderPage() {
                         >
                           {product.name}
                         </h2>
-                        {isSelected ? (
+                        {isSelected && (
                           <span className="shrink-0 px-2 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black leading-none shadow-2xs">
                             {currentQty} {unitLabel} •{" "}
                             {formatVND(product.price * currentQty)}
-                          </span>
-                        ) : (
-                          <span className="shrink-0 text-[11px] font-bold text-stone-400">
-                            {product.badgeText}
                           </span>
                         )}
                       </div>

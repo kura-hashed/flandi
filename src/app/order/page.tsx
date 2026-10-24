@@ -392,80 +392,84 @@ export default function QuickSingleScreenOrderPage() {
 
       {/* Main 1-Screen Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-2.5 sm:p-4 lg:overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-stretch">
-        {/* Left 8 Columns: Horizontal Row Product Cards (1 per row on mobile, 2 per row on tablet/desktop) */}
-        <div className="lg:col-span-8 flex flex-col justify-between lg:overflow-y-auto pr-0.5">
+        {/* Left 8 Columns: Ultra-Compact Horizontal Row Product Cards */}
+        <div className="lg:col-span-8 flex flex-col justify-start lg:overflow-y-auto pr-0.5">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 h-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <div
                   key={n}
-                  className="h-28 rounded-3xl bg-white/70 border border-flandi-pink animate-pulse p-3"
+                  className="h-20 rounded-2xl bg-white/70 border border-flandi-pink animate-pulse p-2.5"
                 />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 content-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 content-start">
               {products.map((product) => {
                 const currentQty = getQtyForProduct(product.id);
                 const unitLabel = product.unit || "cái";
                 const isBoxProduct =
                   unitLabel.toLowerCase() === "hộp" ||
                   product.id === "prod-rau-cau-la";
+                const preset1 = isBoxProduct ? 1 : 5;
+                const preset2 = isBoxProduct ? 2 : 10;
 
                 return (
                   <div
                     key={product.id}
-                    className={`rounded-2xl sm:rounded-3xl border-2 p-2.5 sm:p-3 transition-all flex items-center gap-3 sm:gap-3.5 relative ${
+                    className={`rounded-2xl border-2 px-2.5 py-2 transition-all flex items-center gap-2.5 relative ${
                       currentQty > 0
-                        ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-salmon/30"
+                        ? "bg-white border-flandi-coral shadow-cute ring-1 ring-flandi-salmon/30"
                         : "bg-white/95 border-flandi-pink hover:border-flandi-salmon shadow-2xs"
                     }`}
                   >
-                    {/* Left: Circular Product Photo + Price Badge */}
-                    <div className="shrink-0 flex flex-col items-center justify-center">
-                      <div
-                        onClick={() => updateQty(product, 1)}
-                        className="cursor-pointer relative w-20 h-20 sm:w-22 sm:h-22 rounded-full p-1 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group shadow-xs"
-                        title={`Chạm để +1 ${unitLabel} nhanh`}
-                      >
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover rounded-full border-2 border-white group-hover:scale-105 transition"
-                        />
-                        <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-flandi-salmon text-white text-[11px] font-extrabold border-2 border-white shadow-sm">
-                          {product.badgeText}
-                        </span>
-                      </div>
+                    {/* Left: Compact Circular Product Photo */}
+                    <div
+                      onClick={() => updateQty(product, 1)}
+                      className="cursor-pointer relative w-14 h-14 sm:w-15 sm:h-15 rounded-full p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 group shadow-2xs"
+                      title={`Chạm để +1 ${unitLabel} nhanh`}
+                    >
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover rounded-full border-2 border-white group-hover:scale-105 transition"
+                      />
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.2 rounded-full bg-flandi-salmon text-white text-[9px] font-extrabold border border-white shadow-2xs leading-tight">
+                        {product.badgeText}
+                      </span>
                     </div>
 
-                    {/* Right: Product Name + Quantity Options */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between space-y-1.5">
-                      {/* Full Product Name + Selected Badge */}
-                      <div className="flex items-center justify-between gap-2">
-                        <h2 className="font-display text-base sm:text-lg text-sticker-sm leading-snug break-words">
+                    {/* Right: 2 Compact Rows (Row 1: Product Name, Row 2: 5 | 10 | Direct Input on same row) */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                      {/* Row 1: Full Product Name + Selected Status */}
+                      <div className="flex items-center justify-between gap-1.5">
+                        <h2 className="font-display text-sm sm:text-base text-sticker-sm leading-none break-words">
                           {product.name}
                         </h2>
-                        {currentQty > 0 && (
-                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black shadow-2xs">
-                            Đã chọn: {currentQty} {unitLabel}
+                        {currentQty > 0 ? (
+                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-flandi-coral text-white text-[10px] font-black leading-none">
+                            {currentQty} {unitLabel} •{" "}
+                            {formatVND(product.price * currentQty)}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-[11px] font-extrabold text-flandi-coral">
+                            {product.badgeText}
                           </span>
                         )}
                       </div>
 
-                      {/* Quick Select Buttons: [5 cái | 10 cái] or [1 hộp | 2 hộp] */}
-                      <div className="grid grid-cols-2 gap-1.5">
+                      {/* Row 2: [5 cái / 1 hộp] + [10 cái / 2 hộp] + [Direct Number Input] all on 1 single line */}
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            const preset1 = isBoxProduct ? 1 : 5;
+                          onClick={() =>
                             setExactQty(
                               product,
                               currentQty === preset1 ? 0 : preset1
-                            );
-                          }}
-                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
-                            currentQty === (isBoxProduct ? 1 : 5)
+                            )
+                          }
+                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                            currentQty === preset1
                               ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
                               : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
                           }`}
@@ -475,57 +479,56 @@ export default function QuickSingleScreenOrderPage() {
 
                         <button
                           type="button"
-                          onClick={() => {
-                            const preset2 = isBoxProduct ? 2 : 10;
+                          onClick={() =>
                             setExactQty(
                               product,
                               currentQty === preset2 ? 0 : preset2
-                            );
-                          }}
-                          className={`py-1.5 px-2 rounded-xl text-xs font-extrabold border transition ${
-                            currentQty === (isBoxProduct ? 2 : 10)
+                            )
+                          }
+                          className={`shrink-0 h-8 px-2.5 rounded-xl text-xs font-extrabold border transition whitespace-nowrap ${
+                            currentQty === preset2
                               ? "bg-flandi-coral text-white border-flandi-coral shadow-2xs"
                               : "bg-flandi-bg hover:bg-flandi-cream text-flandi-dark border-flandi-pink"
                           }`}
                         >
                           {isBoxProduct ? "2 hộp" : "10 cái"}
                         </button>
-                      </div>
 
-                      {/* Direct Number Input Box */}
-                      <div className="flex items-center justify-between bg-flandi-bg rounded-xl px-1.5 py-1 border border-flandi-pink">
-                        <button
-                          type="button"
-                          onClick={() => updateQty(product, -1)}
-                          disabled={currentQty <= 0}
-                          className="w-7 h-7 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
+                        {/* Direct Quantity Input on the same row */}
+                        <div className="flex-1 min-w-0 h-8 flex items-center bg-flandi-bg rounded-xl px-1 border border-flandi-pink">
+                          <button
+                            type="button"
+                            onClick={() => updateQty(product, -1)}
+                            disabled={currentQty <= 0}
+                            className="w-6 h-6 rounded-lg bg-white hover:bg-flandi-pink/50 text-flandi-dark disabled:opacity-35 flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
 
-                        <input
-                          type="number"
-                          min={0}
-                          value={currentQty || ""}
-                          placeholder={
-                            isBoxProduct ? "Nhập số hộp..." : "Nhập số lượng..."
-                          }
-                          onChange={(e) =>
-                            setExactQty(
-                              product,
-                              parseInt(e.target.value, 10) || 0
-                            )
-                          }
-                          className="w-full mx-1.5 text-center font-extrabold text-xs sm:text-sm text-flandi-coral bg-white rounded-lg border border-flandi-pink/80 py-1 px-1 placeholder:text-[10px] placeholder:font-semibold placeholder:text-flandi-muted focus:border-flandi-coral focus:outline-none"
-                        />
+                          <input
+                            type="number"
+                            min={0}
+                            value={currentQty || ""}
+                            placeholder={
+                              isBoxProduct ? "Nhập số hộp" : "Nhập số lượng"
+                            }
+                            onChange={(e) =>
+                              setExactQty(
+                                product,
+                                parseInt(e.target.value, 10) || 0
+                              )
+                            }
+                            className="w-full min-w-0 mx-1 text-center font-extrabold text-xs text-flandi-coral bg-white rounded-md border border-flandi-pink/70 h-6 px-1 placeholder:text-[10px] placeholder:font-semibold placeholder:text-flandi-muted focus:border-flandi-coral focus:outline-none"
+                          />
 
-                        <button
-                          type="button"
-                          onClick={() => updateQty(product, 1)}
-                          className="w-7 h-7 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => updateQty(product, 1)}
+                            className="w-6 h-6 rounded-lg bg-flandi-coral hover:bg-flandi-salmon text-white flex items-center justify-center shadow-2xs transition active:scale-90 shrink-0"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -78,10 +78,14 @@ export default function QuickSingleScreenOrderPage() {
     }, 3500);
   };
 
-  const formatVND = (n: number) =>
-    Math.round(n || 0)
-      .toString()
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
+  const formatVND = (n: number) => {
+    const val = Number(n) || 0;
+    const inK = val / 1000;
+    if (Number.isInteger(inK)) {
+      return `${inK}k`;
+    }
+    return `${Number(inK.toFixed(1))}k`;
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -281,7 +285,7 @@ export default function QuickSingleScreenOrderPage() {
     lines.push(`• Tạm tính: ${formatVND(subtotal)}`);
     lines.push(
       `• Phí ship: ${
-        shippingFee === 0 ? "FREESHIP (0đ)" : formatVND(shippingFee)
+        shippingFee === 0 ? "FREESHIP (0k)" : formatVND(shippingFee)
       }`
     );
     lines.push(`💰 TỔNG CỘNG: ${formatVND(grandTotal)}`);
@@ -731,7 +735,7 @@ export default function QuickSingleScreenOrderPage() {
                     ) : subtotal >= freeShipMin ? (
                       <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-extrabold flex items-center justify-between border border-emerald-200">
                         <span>🎉 Đơn của bạn được FREESHIP!</span>
-                        <span>0đ</span>
+                        <span>0k</span>
                       </div>
                     ) : null}
 
@@ -1052,7 +1056,7 @@ export default function QuickSingleScreenOrderPage() {
                   ) : subtotal >= freeShipMin ? (
                     <div className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-[11px] sm:text-xs font-extrabold flex items-center justify-between border border-emerald-200">
                       <span>🎉 Đơn của bạn được FREESHIP!</span>
-                      <span>0đ</span>
+                      <span>0k</span>
                     </div>
                   ) : null}
 
@@ -1063,7 +1067,7 @@ export default function QuickSingleScreenOrderPage() {
                   <div className="flex items-center justify-between text-xs font-bold text-flandi-muted">
                     <span>Phí giao hàng:</span>
                     <span className={shippingFee === 0 ? "font-black text-emerald-700" : "font-extrabold text-flandi-dark"}>
-                      {shippingFee === 0 ? "0đ (Freeship)" : formatVND(shippingFee)}
+                      {shippingFee === 0 ? "0k (Freeship)" : formatVND(shippingFee)}
                     </span>
                   </div>
 

@@ -67,10 +67,14 @@ export default function FlandiLandingPage() {
     }, 2600);
   };
 
-  const formatVND = (amount: number) =>
-    Math.round(amount || 0)
-      .toString()
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
+  const formatVND = (amount: number) => {
+    const val = Number(amount) || 0;
+    const inK = val / 1000;
+    if (Number.isInteger(inK)) {
+      return `${inK}k`;
+    }
+    return `${Number(inK.toFixed(1))}k`;
+  };
 
   const categories = [
     { id: "ALL", label: "Tất cả món ngon" },

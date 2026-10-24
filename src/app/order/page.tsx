@@ -45,7 +45,6 @@ export default function QuickSingleScreenOrderPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [customerNote, setCustomerNote] = useState("");
 
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -296,9 +295,6 @@ export default function QuickSingleScreenOrderPage() {
     if (customerAddress.trim()) {
       lines.push(`📍 Địa chỉ nhận: ${customerAddress.trim()}`);
     }
-    if (customerNote.trim()) {
-      lines.push(`📝 Ghi chú: ${customerNote.trim()}`);
-    }
     return lines.join("\n");
   };
 
@@ -312,7 +308,6 @@ export default function QuickSingleScreenOrderPage() {
       customerName,
       customerPhone,
       customerAddress,
-      customerNote,
     ]
   );
 
@@ -373,7 +368,7 @@ export default function QuickSingleScreenOrderPage() {
             : "Khách đặt nhanh"),
         customerPhone: customerPhone.trim(),
         customerAddress: customerAddress.trim(),
-        note: `[Đặt nhanh qua ${channel}] ${customerNote.trim()}`.trim(),
+        note: `[Đặt nhanh qua ${channel}]`,
         items: cartItems.map((i) => ({
           productId: i.product.id,
           productName: i.product.name,
@@ -763,20 +758,13 @@ export default function QuickSingleScreenOrderPage() {
                     className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div>
                   <input
                     type="text"
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
-                    placeholder="Địa chỉ giao / Giờ lấy"
-                    className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
-                  />
-                  <input
-                    type="text"
-                    value={customerNote}
-                    onChange={(e) => setCustomerNote(e.target.value)}
-                    placeholder="Ghi chú (ít ngọt, lấy muỗng...)"
-                    className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
+                    placeholder="Địa chỉ giao nhận bánh (hoặc giờ lấy)"
+                    className="w-full px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                 </div>
               </div>

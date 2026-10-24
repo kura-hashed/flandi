@@ -532,11 +532,11 @@ export default function QuickSingleScreenOrderPage() {
                         {product.name}
                       </h2>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-xs sm:text-sm md:text-base font-extrabold text-flandi-coral leading-tight">
+                        <span className="text-sm sm:text-base md:text-lg font-black text-flandi-coral leading-tight tracking-tight">
                           {product.badgeText}
                         </span>
                         {isSelected && (
-                          <span className="text-[10px] sm:text-[11px] font-black text-flandi-coral bg-flandi-cream px-2 py-0.5 rounded-md border border-flandi-pink/70">
+                          <span className="text-xs sm:text-sm font-black text-flandi-coral bg-flandi-cream px-2.5 py-0.5 rounded-lg border border-flandi-pink/80 shadow-2xs">
                             = {formatVND(product.price * currentQty)}
                           </span>
                         )}
@@ -590,30 +590,30 @@ export default function QuickSingleScreenOrderPage() {
             /* COLLAPSED STATE: Chỉ hiện thông tin đã chọn, thành tiền và nút expand ở cuối */
             <div
               onClick={() => setIsExpanded(true)}
-              className="px-3.5 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none"
+              className="px-4 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
-                  <ShoppingBag className="w-4 h-4" />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <ShoppingBag className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-extrabold text-flandi-dark truncate">
+                    <span className="text-sm sm:text-base font-black text-flandi-dark truncate">
                       {totalItemsCount > 0
                         ? `Đã chọn: ${totalItemsCount} phần`
                         : "Chưa chọn món nào"}
                     </span>
                     {subtotal > 0 && subtotal >= freeShipMin && (
-                      <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                      <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
                         Freeship
                       </span>
                     )}
                   </div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[11px] text-flandi-muted font-bold">
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-xs sm:text-sm text-flandi-muted font-extrabold">
                       Thành tiền:
                     </span>
-                    <span className="text-base sm:text-lg font-black text-flandi-coral">
+                    <span className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight">
                       {formatVND(grandTotal)}
                     </span>
                   </div>
@@ -627,46 +627,46 @@ export default function QuickSingleScreenOrderPage() {
                   e.stopPropagation();
                   setIsExpanded(true);
                 }}
-                className={`px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-2xl font-extrabold text-xs flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 ${
+                className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 ${
                   totalItemsCount > 0
                     ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
                     : "bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink"
                 }`}
               >
                 <span>{totalItemsCount > 0 ? "Gửi đơn" : "Xem thêm"}</span>
-                <ChevronUp className="w-4 h-4" />
+                <ChevronUp className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </button>
             </div>
           ) : (
             /* EXPANDED STATE: Hiển thị thêm thông tin (nhập tên, SĐT, địa chỉ, ghi chú, các nút gửi) */
-            <div className="p-3.5 sm:p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 space-y-3.5 max-h-[85vh] overflow-y-auto">
               {/* Header của trạng thái expand: Thông tin tóm tắt + nút collapse ở cuối */}
-              <div className="flex items-center justify-between border-b border-flandi-pink pb-2.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-flandi-coral text-white flex items-center justify-center shrink-0">
-                    <ShoppingBag className="w-4 h-4" />
+              <div className="flex items-center justify-between border-b border-flandi-pink pb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <ShoppingBag className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-extrabold text-flandi-dark">
+                      <span className="text-sm sm:text-base font-black text-flandi-dark">
                         Đã chọn: {totalItemsCount} phần
                       </span>
                       {cartItems.length > 0 && (
                         <button
                           type="button"
                           onClick={() => setCartMap({})}
-                          className="text-[11px] font-extrabold text-red-500 hover:underline flex items-center gap-0.5"
+                          className="text-xs sm:text-sm font-extrabold text-red-500 hover:underline flex items-center gap-0.5 ml-1"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                           <span>Xoá tất cả</span>
                         </button>
                       )}
                     </div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-[11px] text-flandi-muted font-bold">
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-xs sm:text-sm text-flandi-muted font-extrabold">
                         Tổng thanh toán:
                       </span>
-                      <span className="text-base sm:text-lg font-black text-flandi-coral">
+                      <span className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight">
                         {formatVND(grandTotal)}
                       </span>
                     </div>
@@ -677,7 +677,7 @@ export default function QuickSingleScreenOrderPage() {
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="px-3 py-1.5 rounded-xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink font-extrabold text-xs flex items-center gap-1 transition"
+                  className="px-3.5 py-2 rounded-xl bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink font-black text-xs sm:text-sm flex items-center gap-1 transition"
                 >
                   <span>Thu gọn</span>
                   <ChevronDown className="w-4 h-4" />
@@ -686,58 +686,58 @@ export default function QuickSingleScreenOrderPage() {
 
               {/* Freeship Progress */}
               {subtotal > 0 && subtotal < freeShipMin && (
-                <div className="px-3 py-1.5 rounded-xl bg-flandi-cream text-flandi-coral text-[11px] font-extrabold flex items-center justify-between border border-flandi-pink/60">
+                <div className="px-3.5 py-2 rounded-xl bg-flandi-cream text-flandi-coral text-xs sm:text-sm font-extrabold flex items-center justify-between border border-flandi-pink/60">
                   <span>+{formatVND(freeShipMin - subtotal)} để Freeship!</span>
                   <span>Phí ship: {formatVND(shippingFee)}</span>
                 </div>
               )}
 
               {/* Customer Info Inputs */}
-              <div className="space-y-1.5">
-                <div className="grid grid-cols-2 gap-1.5">
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Tên của bạn (tuỳ chọn)"
-                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                    className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                   <input
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="Số điện thoại nhận bánh"
-                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                    className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
                     placeholder="Địa chỉ giao / Giờ lấy"
-                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                    className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                   <input
                     type="text"
                     value={customerNote}
                     onChange={(e) => setCustomerNote(e.target.value)}
                     placeholder="Ghi chú (ít ngọt, lấy muỗng...)"
-                    className="px-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-semibold focus:border-flandi-coral focus:outline-none bg-white"
+                    className="px-3.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-flandi-pink text-xs sm:text-sm font-bold placeholder:text-xs sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white"
                   />
                 </div>
               </div>
 
               {/* Primary Action Buttons: Send via Messenger & Send via Zalo */}
-              <div className="space-y-1.5 pt-1">
+              <div className="space-y-2 pt-1">
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     disabled={cartItems.length === 0 || sendingChannel !== null}
                     onClick={() => handleSendOrderVia("MESSENGER")}
-                    className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                    className="py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-40"
                   >
-                    <MessageCircle className="w-4 h-4 fill-white/20 shrink-0" />
+                    <MessageCircle className="w-4.5 h-4.5 fill-white/20 shrink-0" />
                     <span>Gửi qua Messenger</span>
                   </button>
 
@@ -745,9 +745,9 @@ export default function QuickSingleScreenOrderPage() {
                     type="button"
                     disabled={cartItems.length === 0 || sendingChannel !== null}
                     onClick={() => handleSendOrderVia("ZALO")}
-                    className="py-2.5 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                    className="py-3 sm:py-3.5 px-3.5 sm:px-4 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-40"
                   >
-                    <Send className="w-4 h-4 shrink-0" />
+                    <Send className="w-4.5 h-4.5 shrink-0" />
                     <span>Gửi qua Zalo</span>
                   </button>
                 </div>
@@ -756,9 +756,9 @@ export default function QuickSingleScreenOrderPage() {
                   type="button"
                   disabled={cartItems.length === 0 || sendingChannel !== null}
                   onClick={() => handleSendOrderVia("DIRECT")}
-                  className="w-full py-2 px-3 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-98 disabled:opacity-40"
+                  className="w-full py-2.5 sm:py-3 px-4 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-black text-xs sm:text-sm shadow-cute flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-40"
                 >
-                  <Zap className="w-3.5 h-3.5" />
+                  <Zap className="w-4 h-4" />
                   <span>Chốt Đơn Trực Tiếp & Hiện Mã QR</span>
                 </button>
               </div>

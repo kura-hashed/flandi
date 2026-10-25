@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   title: "FLANDI — Muốn ăn hãy Flăn vào tớ | Tiệm Tráng Miệng Nhà Làm",
   description:
     "Bánh Flan, Panna Cotta trái cây tươi, Rau câu dừa nhân Flan, Rau câu lá dứa cà phê, Tàu hũ Singapore & Sữa chua nhà làm tươi mới mỗi ngày.",
+  formatDetection: {
+    telephone: false,
+    date: false,
+    email: false,
+    address: false,
+  },
 };
 
 export default function RootLayout({

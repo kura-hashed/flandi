@@ -334,6 +334,7 @@ export default function FlandiLandingPage() {
                 placeholder={pageConfig.menuSearchPlaceholder}
                 autoComplete="off"
                 spellCheck={false}
+                suppressHydrationWarning
                 className="w-full pl-10 pr-4 py-2 rounded-full bg-white border border-flandi-pink focus:border-flandi-coral focus:outline-none text-sm font-semibold text-flandi-dark"
               />
             </div>
@@ -569,7 +570,13 @@ export default function FlandiLandingPage() {
             </h4>
             <p className="flex items-center gap-2 text-flandi-muted font-semibold">
               <Phone className="w-4 h-4 text-flandi-coral shrink-0" />
-              <span>Hotline / Zalo: {settings?.phone || "0703166903"}</span>
+              <a
+                href={`tel:${settings?.phone || "0703166903"}`}
+                className="hover:text-flandi-coral transition"
+                suppressHydrationWarning
+              >
+                Hotline / Zalo: {settings?.phone || "0703166903"}
+              </a>
             </p>
             <p className="flex items-center gap-2 text-flandi-muted font-semibold">
               <Clock className="w-4 h-4 text-flandi-coral shrink-0" />

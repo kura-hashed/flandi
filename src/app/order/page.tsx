@@ -571,7 +571,7 @@ export default function QuickSingleScreenOrderPage() {
             className="px-3.5 py-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark font-extrabold border border-flandi-pink flex items-center gap-1.5 shadow-2xs transition"
           >
             <Phone className="w-3.5 h-3.5 text-flandi-coral" />
-            <span>{settings?.phone || "0703166903"}</span>
+            <span suppressHydrationWarning>{settings?.phone || "0703166903"}</span>
           </a>
         </div>
       </header>
@@ -753,6 +753,7 @@ export default function QuickSingleScreenOrderPage() {
                         placeholder="Tên của bạn (tuỳ chọn)"
                         autoComplete="off"
                         spellCheck={false}
+                        suppressHydrationWarning
                         className="px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white"
                       />
                       <input
@@ -762,6 +763,7 @@ export default function QuickSingleScreenOrderPage() {
                         placeholder="Số điện thoại nhận bánh"
                         autoComplete="off"
                         spellCheck={false}
+                        suppressHydrationWarning
                         className="px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white"
                       />
                     </div>
@@ -773,6 +775,7 @@ export default function QuickSingleScreenOrderPage() {
                         placeholder="Địa chỉ giao nhận bánh (hoặc giờ lấy)"
                         autoComplete="off"
                         spellCheck={false}
+                        suppressHydrationWarning
                         className="w-full px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white"
                       />
                     </div>
@@ -1058,6 +1061,7 @@ export default function QuickSingleScreenOrderPage() {
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="Số điện thoại *"
                         autoComplete="tel"
+                        suppressHydrationWarning
                         className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
                       />
                     </div>
@@ -1073,6 +1077,7 @@ export default function QuickSingleScreenOrderPage() {
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Tên bạn"
                         autoComplete="name"
+                        suppressHydrationWarning
                         className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
                       />
                     </div>
@@ -1088,6 +1093,7 @@ export default function QuickSingleScreenOrderPage() {
                       value={customerAddress}
                       onChange={(e) => setCustomerAddress(e.target.value)}
                       placeholder="Địa chỉ giao hàng (hoặc giờ ghé lấy bánh)"
+                      suppressHydrationWarning
                       className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
                     />
                   </div>

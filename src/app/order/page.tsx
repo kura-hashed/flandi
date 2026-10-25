@@ -23,6 +23,7 @@ import {
   Delete,
   User,
   MapPin,
+  AlertCircle,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import LiveChatWidget, {
@@ -48,6 +49,8 @@ export default function QuickSingleScreenOrderPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [addressError, setAddressError] = useState<string | null>(null);
 
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -329,11 +332,66 @@ export default function QuickSingleScreenOrderPage() {
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const validateOrder = (): boolean => {
+    // 1. Kiểm tra giỏ hàng
+    if (cartItems.length === 0) {
+      notify("🍮 Bạn hãy chọn ít nhất 1 món bánh trước khi gửi đơn nha!");
+      return false;
+    }
+
+    let valid = true;
+
+    // 2. Kiểm tra số điện thoại (bắt buộc, 10 số hợp lệ tại VN)
+    const rawPhone = customerPhone.trim();
+    const cleanPhone = rawPhone.replace(/[\s.-]/g, "");
+    const phoneRegex = /^(0|\+84|84)(3|5|7|8|9)[0-9]{8}$/;
+
+    if (!rawPhone) {
+      setPhoneError("Vui lòng nhập số điện thoại");
+      notify("📞 Vui lòng nhập số điện thoại để tiệm liên hệ giao hàng nha!");
+      valid = false;
+    } else if (!phoneRegex.test(cleanPhone)) {
+      setPhoneError("Số điện thoại không hợp lệ (cần 10 số)");
+      notify("⚠️ Số điện thoại không đúng (cần 10 số), bạn kiểm tra lại nha!");
+      valid = false;
+    } else {
+      setPhoneError(null);
+    }
+
+    // 3. Kiểm tra địa chỉ nhận bánh / giờ ghé lấy
+    const rawAddress = customerAddress.trim();
+    if (!rawAddress) {
+      setAddressError("Vui lòng nhập địa chỉ hoặc giờ lấy bánh");
+      if (valid) {
+        notify("📍 Vui lòng nhập địa chỉ giao hàng hoặc giờ ghé lấy bánh nha!");
+      }
+      valid = false;
+    } else if (rawAddress.length < 3) {
+      setAddressError("Địa chỉ quá ngắn, bạn ghi rõ hơn nha");
+      if (valid) {
+        notify("📍 Địa chỉ nhận bánh quá ngắn, bạn ghi rõ số nhà/đường hoặc giờ lấy nha!");
+      }
+      valid = false;
+    } else {
+      setAddressError(null);
+    }
+
+    if (!valid) {
+      setTimeout(() => {
+        const invalidInput = document.querySelector<HTMLInputElement>(
+          "input[data-invalid='true']"
+        );
+        invalidInput?.focus();
+      }, 50);
+    }
+
+    return valid;
+  };
+
   const handleSendOrderVia = async (
     channel: "MESSENGER" | "ZALO" | "DIRECT"
   ) => {
-    if (cartItems.length === 0) {
-      notify("🍮 Bạn hãy chọn số lượng món bánh trước khi gửi đơn nha!");
+    if (!validateOrder()) {
       return;
     }
 
@@ -746,38 +804,70 @@ export default function QuickSingleScreenOrderPage() {
                   {/* Form Nhập Thông Tin Khách */}
                   <div className="space-y-1.5">
                     <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Tên của bạn (tuỳ chọn)"
-                        autoComplete="off"
-                        spellCheck={false}
-                        suppressHydrationWarning
-                        className="px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white"
-                      />
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="Số điện thoại nhận bánh"
-                        autoComplete="off"
-                        spellCheck={false}
-                        suppressHydrationWarning
-                        className="px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white"
-                      />
+                      <div>
+                        <input
+                          type="text"
+                          value={customerName}
+                          onChange={(e) => setCustomerName(e.target.value)}
+                          placeholder="Tên của bạn (tuỳ chọn)"
+                          autoComplete="off"
+                          spellCheck={false}
+                          suppressHydrationWarning
+                          className="w-full px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white transition shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="tel"
+                          value={customerPhone}
+                          onChange={(e) => {
+                            setCustomerPhone(e.target.value);
+                            if (phoneError) setPhoneError(null);
+                          }}
+                          placeholder="Số điện thoại nhận bánh *"
+                          autoComplete="off"
+                          spellCheck={false}
+                          suppressHydrationWarning
+                          data-invalid={phoneError ? "true" : undefined}
+                          className={`w-full px-3 py-2 rounded-xl border text-xs font-bold placeholder:text-xs focus:outline-none bg-white transition shadow-2xs ${
+                            phoneError
+                              ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                              : "border-flandi-pink focus:border-flandi-coral"
+                          }`}
+                        />
+                        {phoneError && (
+                          <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 animate-in fade-in">
+                            <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                            <span>{phoneError}</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <input
                         type="text"
                         value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                        placeholder="Địa chỉ giao nhận bánh (hoặc giờ lấy)"
+                        onChange={(e) => {
+                          setCustomerAddress(e.target.value);
+                          if (addressError) setAddressError(null);
+                        }}
+                        placeholder="Địa chỉ giao nhận bánh (hoặc giờ lấy) *"
                         autoComplete="off"
                         spellCheck={false}
                         suppressHydrationWarning
-                        className="w-full px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white"
+                        data-invalid={addressError ? "true" : undefined}
+                        className={`w-full px-3 py-2 rounded-xl border text-xs font-bold placeholder:text-xs focus:outline-none bg-white transition shadow-2xs ${
+                          addressError
+                            ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                            : "border-flandi-pink focus:border-flandi-coral"
+                        }`}
                       />
+                      {addressError && (
+                        <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 animate-in fade-in">
+                          <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                          <span>{addressError}</span>
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -1051,19 +1141,35 @@ export default function QuickSingleScreenOrderPage() {
                 <div className="space-y-1.5">
                   <div className="grid grid-cols-12 gap-2">
                     {/* Số điện thoại (Bắt buộc) - 7 cột để không bị cắt chữ */}
-                    <div className="col-span-7 relative">
-                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
-                        <Phone className="w-3.5 h-3.5" />
+                    <div className="col-span-7">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
+                          <Phone className="w-3.5 h-3.5" />
+                        </div>
+                        <input
+                          type="tel"
+                          value={customerPhone}
+                          onChange={(e) => {
+                            setCustomerPhone(e.target.value);
+                            if (phoneError) setPhoneError(null);
+                          }}
+                          placeholder="Số điện thoại *"
+                          autoComplete="tel"
+                          suppressHydrationWarning
+                          data-invalid={phoneError ? "true" : undefined}
+                          className={`w-full pl-8 pr-2.5 py-2 rounded-xl border text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:outline-none bg-white shadow-2xs transition ${
+                            phoneError
+                              ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                              : "border-flandi-pink focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30"
+                          }`}
+                        />
                       </div>
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="Số điện thoại *"
-                        autoComplete="tel"
-                        suppressHydrationWarning
-                        className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
-                      />
+                      {phoneError && (
+                        <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 px-1 animate-in fade-in">
+                          <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                          <span>{phoneError}</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Tên khách (Tuỳ chọn) - 5 cột */}
@@ -1075,7 +1181,7 @@ export default function QuickSingleScreenOrderPage() {
                         type="text"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Tên bạn"
+                        placeholder="Tên bạn (tuỳ chọn)"
                         autoComplete="name"
                         suppressHydrationWarning
                         className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
@@ -1084,18 +1190,35 @@ export default function QuickSingleScreenOrderPage() {
                   </div>
 
                   {/* Địa chỉ giao hàng - Full width */}
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
-                      <MapPin className="w-3.5 h-3.5" />
+                  <div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
+                        <MapPin className="w-3.5 h-3.5" />
+                      </div>
+                      <input
+                        type="text"
+                        value={customerAddress}
+                        onChange={(e) => {
+                          setCustomerAddress(e.target.value);
+                          if (addressError) setAddressError(null);
+                        }}
+                        placeholder="Địa chỉ giao hàng (hoặc giờ ghé lấy) *"
+                        autoComplete="street-address"
+                        suppressHydrationWarning
+                        data-invalid={addressError ? "true" : undefined}
+                        className={`w-full pl-8 pr-2.5 py-2 rounded-xl border text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:outline-none bg-white shadow-2xs transition ${
+                          addressError
+                            ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                            : "border-flandi-pink focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30"
+                        }`}
+                      />
                     </div>
-                    <input
-                      type="text"
-                      value={customerAddress}
-                      onChange={(e) => setCustomerAddress(e.target.value)}
-                      placeholder="Địa chỉ giao hàng (hoặc giờ ghé lấy bánh)"
-                      suppressHydrationWarning
-                      className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
-                    />
+                    {addressError && (
+                      <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 px-1 animate-in fade-in">
+                        <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                        <span>{addressError}</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 

@@ -37,6 +37,10 @@ import {
   Layout,
   BookOpen,
   Eye,
+  Lock,
+  ShieldCheck,
+  KeyRound,
+  AlertCircle,
 } from "lucide-react";
 import {
   Product,
@@ -85,6 +89,12 @@ export default function FlandiAdminPage() {
   const [adminReplyText, setAdminReplyText] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [pinInput, setPinInput] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
 
   // POS State
   const [posCategory, setPosCategory] = useState<string>("ALL");
@@ -159,9 +169,64 @@ export default function FlandiAdminPage() {
     }
   };
 
+  const checkAuthAndFetch = async () => {
+    try {
+      const authRes = await fetch("/api/auth");
+      const authData = await authRes.json();
+      setIsAuthenticated(authData.authenticated);
+      if (authData.authenticated) {
+        await fetchAll();
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("Auth check failed:", err);
+      setIsAuthenticated(false);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchAll();
+    checkAuthAndFetch();
   }, []);
+
+  const handleVerifyPin = async (pinToSubmit?: string) => {
+    const finalPin = pinToSubmit || pinInput;
+    if (!finalPin.trim()) {
+      setAuthError("Vui lòng nhập mã PIN bảo mật");
+      return;
+    }
+    setIsVerifyingPin(true);
+    setAuthError(null);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: finalPin }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data.error || "Mã PIN không đúng, vui lòng thử lại!");
+        return;
+      }
+      setIsAuthenticated(true);
+      setPinInput("");
+      notify("✅ Xác thực quyền quản trị viên thành công!");
+      await fetchAll();
+    } catch {
+      setAuthError("Lỗi kết nối máy chủ khi xác thực PIN");
+    } finally {
+      setIsVerifyingPin(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth", { method: "DELETE" });
+    } catch {}
+    setIsAuthenticated(false);
+    notify("🔒 Đã khóa cổng quản trị.");
+  };
 
   // --- POS Helpers ---
   const addToPosCart = (product: Product, variant: ProductVariant) => {
@@ -509,6 +574,140 @@ export default function FlandiAdminPage() {
     });
   }, [orders, orderStatusFilter, orderSearch]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FFF9F8] flex flex-col items-center justify-center p-4">
+        <div className="w-12 h-12 border-4 border-flandi-pink border-t-flandi-coral rounded-full animate-spin mb-3"></div>
+        <p className="text-xs font-bold text-flandi-muted">Đang kiểm tra bảo mật & tải dữ liệu tiệm bánh FLANDI...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#FFF9F8] flex flex-col items-center justify-center p-4">
+        {toast && (
+          <div className="fixed bottom-5 right-5 z-50 bg-flandi-dark text-white px-5 py-3 rounded-2xl shadow-cute-lg flex items-center gap-2.5 animate-bounce">
+            <Sparkles className="w-4 h-4 text-flandi-salmon" />
+            <span className="text-xs sm:text-sm font-bold">{toast}</span>
+          </div>
+        )}
+
+        <div className="max-w-md w-full bg-white rounded-3xl border-2 border-flandi-pink p-6 sm:p-8 shadow-cute-lg text-center relative overflow-hidden">
+          <div className="w-16 h-16 mx-auto mb-4 bg-flandi-bg rounded-2xl border border-flandi-pink flex items-center justify-center text-flandi-coral shadow-2xs">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+
+          <h2 className="font-display text-2xl text-sticker leading-tight mb-1">
+            FLANDI BẾP TRƯỞNG
+          </h2>
+          <p className="text-xs font-bold text-flandi-muted mb-6">
+            Khu vực Quản trị Đơn hàng, Tồn kho & Sổ sách Tài chính
+          </p>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleVerifyPin();
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <div className="relative">
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={pinInput}
+                  onChange={(e) => {
+                    setPinInput(e.target.value);
+                    if (authError) setAuthError(null);
+                  }}
+                  placeholder="Nhập mã PIN bảo mật"
+                  autoFocus
+                  maxLength={10}
+                  className="w-full text-center tracking-widest text-2xl font-black px-4 py-3 rounded-2xl border-2 border-flandi-pink focus:border-flandi-coral focus:ring-2 focus:ring-flandi-coral/20 focus:outline-none bg-flandi-bg text-flandi-dark transition placeholder:tracking-normal placeholder:text-sm placeholder:font-bold"
+                />
+              </div>
+
+              {authError && (
+                <div className="mt-2 text-xs font-bold text-red-500 bg-red-50 border border-red-200 rounded-xl p-2.5 flex items-center justify-center gap-1.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Touch Keypad for Tablet & Mobile POS */}
+            <div className="grid grid-cols-3 gap-2 pt-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  type="button"
+                  key={num}
+                  onClick={() => {
+                    if (pinInput.length < 8) {
+                      setPinInput((prev) => prev + num);
+                      if (authError) setAuthError(null);
+                    }
+                  }}
+                  className="py-3 rounded-xl bg-flandi-cream/60 hover:bg-flandi-pink/50 text-flandi-dark font-black text-lg transition active:scale-95 shadow-2xs"
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPinInput("")}
+                className="py-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition active:scale-95"
+              >
+                Xóa
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pinInput.length < 8) {
+                    setPinInput((prev) => prev + "0");
+                    if (authError) setAuthError(null);
+                  }
+                }}
+                className="py-3 rounded-xl bg-flandi-cream/60 hover:bg-flandi-pink/50 text-flandi-dark font-black text-lg transition active:scale-95 shadow-2xs"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                onClick={() => setPinInput((prev) => prev.slice(0, -1))}
+                className="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition active:scale-95"
+              >
+                ⌫
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isVerifyingPin || !pinInput.trim()}
+              className="w-full py-3.5 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon disabled:opacity-50 text-white font-extrabold text-sm transition shadow-cute-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>{isVerifyingPin ? "Đang xác thực..." : "Mở Khóa Quản Trị"}</span>
+            </button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-dashed border-flandi-pink/60 flex items-center justify-between text-[11px] font-bold text-flandi-muted">
+            <span>Mã PIN mặc định: <strong className="text-flandi-coral">8888</strong></span>
+            <Link
+              href="/"
+              className="text-flandi-coral hover:underline inline-flex items-center gap-1"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              <span>Về Web</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FFF9F8] flex flex-col">
       {/* Toast */}
@@ -684,6 +883,14 @@ export default function FlandiAdminPage() {
           >
             Web Khách
           </Link>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-600 font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer"
+            title="Khóa bảo mật trang quản trị"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Khóa</span>
+          </button>
         </div>
       </header>
 

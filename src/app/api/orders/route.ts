@@ -1,38 +1,66 @@
 import { NextResponse } from "next/server";
 import { readDb, writeDb } from "@/lib/db";
-import { Order, OrderStatus } from "@/lib/types";
+import { OrderStatus } from "@/lib/types";
+import {
+  getClientIp,
+  orderRateLimiter,
+  adminApiRateLimiter,
+  createRateLimitErrorResponse,
+  attachRateLimitHeaders,
+} from "@/lib/rate-limit";
+import {
+  verifyAndSanitizeOrder,
+  verifyAdminAuth,
+  verifySameOrigin,
+} from "@/lib/security";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as Partial<Order>;
+    const ip = getClientIp(request);
+
+    // 1. Kiểm tra Same Origin (chống CSRF từ web lạ)
+    if (!verifySameOrigin(request)) {
+      return NextResponse.json(
+        { error: "Forbidden: Yêu cầu bị từ chối do nguồn gốc không hợp lệ" },
+        { status: 403 }
+      );
+    }
+
+    // 2. Kiểm tra Rate Limiting đặt hàng (Chống spam và cạn kiệt tồn kho)
+    const rateLimitResult = orderRateLimiter.check(`order-${ip}`);
+    if (!rateLimitResult.allowed) {
+      return createRateLimitErrorResponse(rateLimitResult);
+    }
+
+    const body = await request.json();
     const db = readDb();
 
-    const nextNumber = 1001 + db.orders.length;
-    const code = body.code || `FL-${nextNumber}`;
+    // 3. Khử độc và xác thực đơn hàng trên Server-Side (Anti-Tampering)
+    const verifiedResult = verifyAndSanitizeOrder(body, db);
 
-    const newOrder: Order = {
-      id: `ord-${Date.now()}`,
-      code,
-      source: body.source || "ONLINE",
-      status: body.status || (body.source === "POS" ? "COMPLETED" : "PENDING"),
-      customerName: body.customerName?.trim() || "Khách lẻ tại quầy",
-      customerPhone: body.customerPhone?.trim() || "",
-      customerAddress: body.customerAddress?.trim() || "",
-      note: body.note?.trim() || "",
-      attachmentImage: body.attachmentImage || undefined,
-      items: body.items || [],
-      subtotal: Number(body.subtotal) || 0,
-      discount: Number(body.discount) || 0,
-      shippingFee: Number(body.shippingFee) || 0,
-      total: Number(body.total) || 0,
-      paymentMethod: body.paymentMethod || "CASH",
-      isPaid: body.isPaid ?? (body.source === "POS"),
-      cashReceived: body.cashReceived,
-      changeGiven: body.changeGiven,
-      createdAt: new Date().toISOString(),
-    };
+    if (verifiedResult.isBot) {
+      // Bẫy Honeypot: Giả lập thành công để bot không phát hiện nhưng không lưu DB
+      return NextResponse.json(
+        {
+          order: { id: "ord-fake", code: "FL-9999", total: 0 },
+          message: "Order placed",
+        },
+        { status: 200 }
+      );
+    }
 
-    // Deduct stock for each item
+    if (!verifiedResult.valid || !verifiedResult.order) {
+      return NextResponse.json(
+        { error: verifiedResult.error || "Thông tin đơn hàng không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
+    const newOrder = verifiedResult.order;
+
+    // 4. Trừ tồn kho an toàn cho từng món
     for (const item of newOrder.items) {
       const product = db.products.find((p) => p.id === item.productId);
       if (product) {
@@ -57,10 +85,13 @@ export async function POST(request: Request) {
 
     db.orders.unshift(newOrder);
     writeDb(db);
-    return NextResponse.json({ order: newOrder, db });
+
+    const response = NextResponse.json({ order: newOrder, db });
+    attachRateLimitHeaders(response.headers, rateLimitResult);
+    return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to create order", details: String(error) },
+      { error: "Không thể tạo đơn hàng", details: String(error) },
       { status: 400 }
     );
   }
@@ -68,6 +99,22 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // 1. Kiểm tra quyền Quản trị viên
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json(
+        { error: "Yêu cầu quyền quản trị viên (Admin authentication required)" },
+        { status: 401 }
+      );
+    }
+
+    // 2. Kiểm tra Rate Limiting quản trị
+    const rateLimit = adminApiRateLimiter.check(`admin-order-patch-${ip}`);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
     const body = await request.json();
     const { orderId, status, isPaid, attachmentImage, note } = body as {
       orderId: string;
@@ -80,12 +127,12 @@ export async function PATCH(request: Request) {
     const db = readDb();
     const order = db.orders.find((o) => o.id === orderId);
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
     }
 
     const prevStatus = order.status;
     if (status && status !== prevStatus) {
-      // If cancelling an active order, restore stock
+      // Nếu hủy đơn hàng đang mở -> hoàn lại tồn kho
       if (status === "CANCELLED" && prevStatus !== "CANCELLED") {
         for (const item of order.items) {
           const product = db.products.find((p) => p.id === item.productId);
@@ -117,14 +164,16 @@ export async function PATCH(request: Request) {
       order.attachmentImage = attachmentImage || undefined;
     }
     if (typeof note === "string") {
-      order.note = note;
+      order.note = note.slice(0, 300);
     }
 
     writeDb(db);
-    return NextResponse.json({ order, db });
+    const response = NextResponse.json({ order, db });
+    attachRateLimitHeaders(response.headers, rateLimit);
+    return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to update order", details: String(error) },
+      { error: "Lỗi cập nhật đơn hàng", details: String(error) },
       { status: 400 }
     );
   }

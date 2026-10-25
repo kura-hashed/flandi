@@ -1,9 +1,34 @@
 import { NextResponse } from "next/server";
 import { readDb, writeDb } from "@/lib/db";
 import { IngredientItem, StockLog } from "@/lib/types";
+import {
+  getClientIp,
+  adminApiRateLimiter,
+  createRateLimitErrorResponse,
+  attachRateLimitHeaders,
+} from "@/lib/rate-limit";
+import { verifyAdminAuth, sanitizeString } from "@/lib/security";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // 1. Kiểm tra quyền Quản trị viên
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json(
+        { error: "Yêu cầu quyền quản trị viên" },
+        { status: 401 }
+      );
+    }
+
+    // 2. Rate limit
+    const rateLimit = adminApiRateLimiter.check(`inv-post-${ip}`);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
     const body = await request.json();
     const { targetId, targetType, change, reason, setExact } = body as {
       targetId: string;
@@ -13,12 +38,13 @@ export async function POST(request: Request) {
       reason: string;
     };
 
+    const sanitizedReason = sanitizeString(reason || "Điều chỉnh tồn kho", 200);
     const db = readDb();
 
     if (targetType === "product") {
       const product = db.products.find((p) => p.id === targetId);
       if (!product) {
-        return NextResponse.json({ error: "Product not found" }, { status: 404 });
+        return NextResponse.json({ error: "Không tìm thấy món" }, { status: 404 });
       }
       const prev = product.stock;
       const nextStock =
@@ -36,14 +62,14 @@ export async function POST(request: Request) {
         change: delta,
         previousStock: prev,
         newStock: nextStock,
-        reason: reason || "Điều chỉnh tồn kho",
+        reason: sanitizedReason,
         createdAt: new Date().toISOString(),
       };
       db.stockLogs.unshift(log);
     } else {
       const ing = db.ingredients.find((i) => i.id === targetId);
       if (!ing) {
-        return NextResponse.json({ error: "Ingredient not found" }, { status: 404 });
+        return NextResponse.json({ error: "Không tìm thấy nguyên liệu" }, { status: 404 });
       }
       const prev = ing.quantity;
       const nextStock =
@@ -62,17 +88,19 @@ export async function POST(request: Request) {
         change: delta,
         previousStock: prev,
         newStock: nextStock,
-        reason: reason || "Nhập / Xuất nguyên liệu",
+        reason: sanitizedReason,
         createdAt: new Date().toISOString(),
       };
       db.stockLogs.unshift(log);
     }
 
     writeDb(db);
-    return NextResponse.json(db);
+    const response = NextResponse.json({ db });
+    attachRateLimitHeaders(response.headers, rateLimit);
+    return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to adjust inventory", details: String(error) },
+      { error: "Lỗi cập nhật kho", details: String(error) },
       { status: 400 }
     );
   }
@@ -80,41 +108,44 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const body = (await request.json()) as Partial<IngredientItem>;
-    const db = readDb();
+    const ip = getClientIp(request);
 
-    if (body.id) {
-      const idx = db.ingredients.findIndex((i) => i.id === body.id);
-      if (idx !== -1) {
-        db.ingredients[idx] = {
-          ...db.ingredients[idx],
-          ...body,
-          quantity: Number(body.quantity ?? db.ingredients[idx].quantity),
-          minThreshold: Number(body.minThreshold ?? db.ingredients[idx].minThreshold),
-          costPerUnit: Number(body.costPerUnit ?? db.ingredients[idx].costPerUnit),
-          lastUpdated: new Date().toISOString(),
-        };
-        writeDb(db);
-        return NextResponse.json(db);
-      }
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json(
+        { error: "Yêu cầu quyền quản trị viên" },
+        { status: 401 }
+      );
     }
 
-    const newIng: IngredientItem = {
-      id: `ing-${Date.now()}`,
-      name: body.name || "Nguyên liệu mới",
-      category: body.category || "Nguyên liệu",
-      quantity: Number(body.quantity) || 0,
-      unit: body.unit || "kg",
-      minThreshold: Number(body.minThreshold) || 5,
-      costPerUnit: Number(body.costPerUnit) || 10000,
+    const rateLimit = adminApiRateLimiter.check(`inv-put-${ip}`);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
+    const body = (await request.json()) as IngredientItem;
+    const db = readDb();
+    const index = db.ingredients.findIndex((i) => i.id === body.id);
+    if (index === -1) {
+      return NextResponse.json({ error: "Không tìm thấy nguyên liệu" }, { status: 404 });
+    }
+
+    db.ingredients[index] = {
+      ...db.ingredients[index],
+      ...body,
+      name: sanitizeString(body.name, 100),
+      quantity: Math.max(0, Number(body.quantity) || 0),
+      minThreshold: Math.max(0, Number(body.minThreshold) || 0),
+      costPerUnit: Math.max(0, Number(body.costPerUnit) || 0),
       lastUpdated: new Date().toISOString(),
     };
-    db.ingredients.push(newIng);
+
     writeDb(db);
-    return NextResponse.json(db);
+    const response = NextResponse.json({ ingredient: db.ingredients[index], db });
+    attachRateLimitHeaders(response.headers, rateLimit);
+    return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to save ingredient", details: String(error) },
+      { error: "Lỗi cập nhật thông tin nguyên liệu", details: String(error) },
       { status: 400 }
     );
   }

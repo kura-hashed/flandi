@@ -51,6 +51,7 @@ export default function QuickSingleScreenOrderPage() {
   const [customerAddress, setCustomerAddress] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
 
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -447,13 +448,24 @@ export default function QuickSingleScreenOrderPage() {
         total: grandTotal,
         paymentMethod: "COD",
         isPaid: false,
+        _hp_company: honeypot,
       };
 
-      await fetch("/api/orders", {
+      const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderPayload),
       });
+
+      if (!orderRes.ok) {
+        const errData = await orderRes.json().catch(() => ({}));
+        if (orderRes.status === 429) {
+          notify(`⏱️ ${errData.error || "Bạn đang gửi đơn quá nhanh, vui lòng thử lại sau ít phút!"}`);
+          return;
+        }
+        notify(`⚠️ ${errData.error || "Không thể tạo đơn hàng. Vui lòng kiểm tra lại thông tin!"}`);
+        return;
+      }
 
       // 3. Send the order text directly into the on-page Messenger / Zalo Chat (/api/chat)
       const storedSession =
@@ -475,6 +487,7 @@ export default function QuickSingleScreenOrderPage() {
           customerPhone: customerPhone.trim(),
           sender: "CUSTOMER",
           text: billText,
+          _hp_website: honeypot,
         }),
       });
 
@@ -803,6 +816,17 @@ export default function QuickSingleScreenOrderPage() {
 
                   {/* Form Nhập Thông Tin Khách */}
                   <div className="space-y-1.5">
+                    {/* Bot Honeypot hidden input */}
+                    <input
+                      type="text"
+                      name="_hp_company"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                      tabIndex={-1}
+                      autoComplete="off"
+                      className="hidden"
+                      aria-hidden="true"
+                    />
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <input
@@ -1139,6 +1163,17 @@ export default function QuickSingleScreenOrderPage() {
 
                 {/* 3. Form Thông Tin Nhận Bánh (Không bị cắt chữ, có icon chỉ dẫn trực quan) */}
                 <div className="space-y-1.5">
+                  {/* Bot Honeypot hidden input */}
+                  <input
+                    type="text"
+                    name="_hp_company"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    className="hidden"
+                    aria-hidden="true"
+                  />
                   <div className="grid grid-cols-12 gap-2">
                     {/* Số điện thoại (Bắt buộc) - 7 cột để không bị cắt chữ */}
                     <div className="col-span-7">

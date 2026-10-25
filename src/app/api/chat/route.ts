@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { readDb, writeDb } from "@/lib/db";
 import { ChatSession, ChatMessage } from "@/lib/types";
+import {
+  getClientIp,
+  chatRateLimiter,
+  publicApiRateLimiter,
+  createRateLimitErrorResponse,
+  attachRateLimitHeaders,
+} from "@/lib/rate-limit";
+import { sanitizeString, verifyAdminAuth } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +41,12 @@ function generateSmartAutoReply(
 }
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimit = publicApiRateLimiter.check(`chat-get-${ip}`);
+  if (!rateLimit.allowed) {
+    return createRateLimitErrorResponse(rateLimit);
+  }
+
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get("sessionId");
   const db = readDb();
@@ -40,19 +54,43 @@ export async function GET(request: Request) {
 
   if (sessionId) {
     const session = chats.find((c) => c.id === sessionId) || null;
-    return NextResponse.json({ session });
+    const response = NextResponse.json({ session });
+    attachRateLimitHeaders(response.headers, rateLimit);
+    return response;
   }
 
-  return NextResponse.json({ chats });
+  // Lấy toàn bộ danh sách chat yêu cầu quyền Admin
+  if (!verifyAdminAuth(request)) {
+    return NextResponse.json(
+      { error: "Yêu cầu quyền quản trị viên" },
+      { status: 401 }
+    );
+  }
+
+  const response = NextResponse.json({ chats });
+  attachRateLimitHeaders(response.headers, rateLimit);
+  return response;
 }
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // 1. Kiểm tra Rate Limiting tin nhắn chat
+    const rateLimit = chatRateLimiter.check(`chat-post-${ip}`);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
     const body = await request.json();
+
+    // 2. Kiểm tra Honeypot
+    if (body._hp_website || body.website) {
+      return NextResponse.json({ success: true, message: "OK" });
+    }
+
     const {
       sessionId,
-      customerName,
-      customerPhone,
       sender,
       text,
       markReadForAdmin,
@@ -65,16 +103,34 @@ export async function POST(request: Request) {
       markReadForAdmin?: boolean;
     };
 
+    // Khử trùng chuỗi đầu vào (Chống XSS và Payload lớn)
+    const customerName = sanitizeString(body.customerName || "Khách truy cập Web", 80);
+    const customerPhone = sanitizeString(body.customerPhone || "", 20);
+    const sanitizedText = sanitizeString(text || "", 1000);
+
+    const msgSender = sender === "SHOP" ? "SHOP" : "CUSTOMER";
+
+    // Nếu là SHOP gửi hoặc đánh dấu đã đọc -> bắt buộc quyền Admin
+    if (msgSender === "SHOP" || markReadForAdmin) {
+      if (!verifyAdminAuth(request)) {
+        return NextResponse.json(
+          { error: "Yêu cầu quyền quản trị viên để trả lời với vai trò SHOP" },
+          { status: 401 }
+        );
+      }
+    }
+
     const db = readDb();
     if (!db.chats) db.chats = [];
 
-    let session = db.chats.find((c) => c.id === sessionId);
+    const safeSessionId = sanitizeString(sessionId || `chat-${Date.now()}`, 50);
+    let session = db.chats.find((c) => c.id === safeSessionId);
 
     if (!session) {
       session = {
-        id: sessionId || `chat-${Date.now()}`,
-        customerName: customerName?.trim() || "Khách truy cập Web",
-        customerPhone: customerPhone?.trim() || "",
+        id: safeSessionId,
+        customerName: customerName || "Khách truy cập Web",
+        customerPhone: customerPhone || "",
         unreadForAdmin: 0,
         updatedAt: new Date().toISOString(),
         messages: [
@@ -82,7 +138,7 @@ export async function POST(request: Request) {
             id: `msg-welcome-${Date.now()}`,
             sender: "BOT",
             text: `Xin chào ${
-              customerName?.trim() || "bạn"
+              customerName || "bạn"
             }! 🍮 Chào mừng bạn đến với tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”). Bạn nhắn tin trực tiếp tại đây, tiệm sẽ trả lời ngay lập tức nha!`,
             createdAt: new Date().toISOString(),
           },
@@ -90,8 +146,8 @@ export async function POST(request: Request) {
       };
       db.chats.unshift(session);
     } else {
-      if (customerName?.trim()) session.customerName = customerName.trim();
-      if (customerPhone?.trim()) session.customerPhone = customerPhone.trim();
+      if (customerName) session.customerName = customerName;
+      if (customerPhone) session.customerPhone = customerPhone;
     }
 
     if (markReadForAdmin) {
@@ -100,12 +156,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ session, chats: db.chats });
     }
 
-    if (text && text.trim()) {
-      const msgSender = sender || "CUSTOMER";
+    if (sanitizedText) {
       const newMsg: ChatMessage = {
         id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         sender: msgSender,
-        text: text.trim(),
+        text: sanitizedText,
         createdAt: new Date().toISOString(),
       };
       session.messages.push(newMsg);
@@ -114,9 +169,9 @@ export async function POST(request: Request) {
       if (msgSender === "CUSTOMER") {
         session.unreadForAdmin = (session.unreadForAdmin || 0) + 1;
 
-        // Check if we can provide an instant helpful assistant response while waiting for admin
+        // Trợ lý ảo tự động phản hồi tức thì
         const autoReply = generateSmartAutoReply(
-          text.trim(),
+          sanitizedText,
           db.settings.phone || "0703166903",
           db.settings.freeShipMinimum || 150000
         );
@@ -139,7 +194,7 @@ export async function POST(request: Request) {
         session.unreadForAdmin = 0;
       }
 
-      // Move updated session to top
+      // Đưa session vừa có tin nhắn lên đầu
       db.chats = [
         session,
         ...db.chats.filter((c) => c.id !== session!.id),
@@ -147,10 +202,12 @@ export async function POST(request: Request) {
     }
 
     writeDb(db);
-    return NextResponse.json({ session, chats: db.chats });
+    const response = NextResponse.json({ session, chats: db.chats });
+    attachRateLimitHeaders(response.headers, rateLimit);
+    return response;
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to process chat message", details: String(error) },
+      { error: "Lỗi xử lý tin nhắn", details: String(error) },
       { status: 400 }
     );
   }

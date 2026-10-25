@@ -189,9 +189,22 @@ export default function LiveChatWidget({
           customerPhone: customerPhone.trim(),
           sender: "CUSTOMER",
           text: raw,
+          _hp_website: "",
         }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            sender: "BOT",
+            text: `⏱️ ${data.error || "Gửi tin nhắn không thành công, vui lòng thử lại sau giây lát!"}`,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
       if (data.session) {
         setMessages(data.session.messages || []);
       }

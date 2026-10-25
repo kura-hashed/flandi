@@ -45,6 +45,8 @@ export default function QuickSingleScreenOrderPage() {
   // Cart keyed by productId
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
   const [isExpanded, setIsExpanded] = useState(false);
+  const isReadyToSaveCartRef = useRef(false);
+  const isReadyToSaveCustRef = useRef(false);
 
   // Compact customer info
   const [customerName, setCustomerName] = useState("");
@@ -92,6 +94,83 @@ export default function QuickSingleScreenOrderPage() {
     return `${Number(inK.toFixed(1))}k`;
   };
 
+  const getBaseVariant = (product: Product): ProductVariant => {
+    return (
+      product.variants?.[0] || {
+        id: `${product.id}-base`,
+        name: product.name,
+        price: product.price,
+        unitLabel: product.unit || "cái",
+        stockDeduction: 1,
+      }
+    );
+  };
+
+  // 1. Khôi phục giỏ hàng và thông tin khách từ localStorage sau khi mount (tránh SSR hydration mismatch)
+  useEffect(() => {
+    try {
+      const savedName = localStorage.getItem("flandi_customer_name");
+      const savedPhone = localStorage.getItem("flandi_customer_phone");
+      const savedAddress = localStorage.getItem("flandi_customer_address");
+      const savedCart = localStorage.getItem("flandi_order_cart");
+
+      if (savedName) setCustomerName(savedName);
+      if (savedPhone) setCustomerPhone(savedPhone);
+      if (savedAddress) setCustomerAddress(savedAddress);
+
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+          setCartMap(parsed);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore cart from localStorage:", e);
+    }
+  }, []);
+
+  // 2. Lưu giỏ hàng vào localStorage mỗi khi thay đổi (bỏ qua lượt chạy khởi tạo đầu tiên)
+  useEffect(() => {
+    if (!isReadyToSaveCartRef.current) {
+      isReadyToSaveCartRef.current = true;
+      return;
+    }
+    try {
+      if (Object.keys(cartMap).length > 0) {
+        localStorage.setItem("flandi_order_cart", JSON.stringify(cartMap));
+      } else {
+        localStorage.removeItem("flandi_order_cart");
+      }
+    } catch (e) {
+      console.error("Failed to save cart to localStorage:", e);
+    }
+  }, [cartMap]);
+
+  // 3. Tự động lưu thông tin khách hàng để khi lỡ tay refresh không phải nhập lại
+  useEffect(() => {
+    if (!isReadyToSaveCustRef.current) {
+      isReadyToSaveCustRef.current = true;
+      return;
+    }
+    try {
+      if (customerName) {
+        localStorage.setItem("flandi_customer_name", customerName);
+      } else {
+        localStorage.removeItem("flandi_customer_name");
+      }
+      if (customerPhone) {
+        localStorage.setItem("flandi_customer_phone", customerPhone);
+      } else {
+        localStorage.removeItem("flandi_customer_phone");
+      }
+      if (customerAddress) {
+        localStorage.setItem("flandi_customer_address", customerAddress);
+      } else {
+        localStorage.removeItem("flandi_customer_address");
+      }
+    } catch {}
+  }, [customerName, customerPhone, customerAddress]);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -108,6 +187,29 @@ export default function QuickSingleScreenOrderPage() {
         });
         setProducts(activeProds);
         setSettings(data.settings || null);
+
+        // Đồng bộ dữ liệu món trong giỏ với danh sách sản phẩm mới nhất từ tiệm
+        setCartMap((prevCart) => {
+          if (!prevCart || Object.keys(prevCart).length === 0) return prevCart;
+          let changed = false;
+          const updated: Record<string, QuickLineItem> = {};
+          for (const [id, item] of Object.entries(prevCart)) {
+            const freshProd = activeProds.find((p) => p.id === id);
+            if (freshProd && item.quantity > 0) {
+              const freshVariant = getBaseVariant(freshProd);
+              updated[id] = {
+                product: freshProd,
+                variant: freshVariant,
+                quantity: item.quantity,
+              };
+              changed = true;
+            } else if (item && item.quantity > 0) {
+              // Giữ nguyên sản phẩm đã chọn nếu chưa tìm thấy trong activeProds
+              updated[id] = item;
+            }
+          }
+          return changed ? updated : prevCart;
+        });
       } catch (e) {
         console.error(e);
       } finally {
@@ -116,18 +218,6 @@ export default function QuickSingleScreenOrderPage() {
     };
     load();
   }, []);
-
-  const getBaseVariant = (product: Product): ProductVariant => {
-    return (
-      product.variants?.[0] || {
-        id: `${product.id}-base`,
-        name: product.name,
-        price: product.price,
-        unitLabel: product.unit || "cái",
-        stockDeduction: 1,
-      }
-    );
-  };
 
   const getQtyForProduct = (productId: string): number => {
     return cartMap[productId]?.quantity || 0;
@@ -491,6 +581,12 @@ export default function QuickSingleScreenOrderPage() {
           _hp_website: honeypot,
         }),
       });
+
+      // Xoá giỏ hàng sau khi chốt đơn thành công
+      setCartMap({});
+      try {
+        localStorage.removeItem("flandi_order_cart");
+      } catch {}
 
       setChatRefreshTrigger((n) => n + 1);
 

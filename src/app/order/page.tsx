@@ -121,7 +121,21 @@ export default function QuickSingleScreenOrderPage() {
       if (savedCart) {
         const parsed = JSON.parse(savedCart);
         if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
-          setCartMap(parsed);
+          const cleanCart: Record<string, QuickLineItem> = {};
+          for (const [k, v] of Object.entries(parsed)) {
+            const item = v as any;
+            if (
+              item &&
+              item.product &&
+              typeof item.product.price === "number" &&
+              item.quantity > 0
+            ) {
+              cleanCart[k] = item;
+            }
+          }
+          if (Object.keys(cleanCart).length > 0) {
+            setCartMap(cleanCart);
+          }
         }
       }
     } catch (e) {
@@ -344,7 +358,14 @@ export default function QuickSingleScreenOrderPage() {
     [sortedProducts, cartMap]
   );
 
-  const cartItems = useMemo(() => Object.values(cartMap), [cartMap]);
+  const cartItems = useMemo(
+    () =>
+      Object.values(cartMap).filter(
+        (item): item is QuickLineItem =>
+          Boolean(item && item.product && typeof item.product.price === "number")
+      ),
+    [cartMap]
+  );
 
   const subtotal = useMemo(
     () => cartItems.reduce((s, i) => s + i.product.price * i.quantity, 0),

@@ -411,7 +411,7 @@ export default function QuickSingleScreenOrderPage() {
     [cartItems]
   );
 
-  const freeShipMin = settings?.freeShipMinimum || 150000;
+  const freeShipMin = settings?.freeShipMinimum || 100000;
   const shippingFee =
     subtotal === 0
       ? 0
@@ -801,7 +801,7 @@ export default function QuickSingleScreenOrderPage() {
             type="button"
             onClick={() => setIsContactModalOpen(true)}
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-flandi-pink/40 text-flandi-coral border border-flandi-pink flex items-center justify-center shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
-            title="Liên hệ tiệm: Hotline, Zalo, Messenger & Địa chỉ"
+            title="Liên hệ tiệm: Zalo, Messenger & Địa chỉ"
             aria-label="Liên hệ tiệm"
           >
             <Phone className="w-4 h-4 text-flandi-coral" />

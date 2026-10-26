@@ -126,7 +126,7 @@ export default function FlandiLandingPage() {
             <Sparkles className="w-4 h-4 shrink-0" />
             <span>
               {settings?.announcement ||
-                "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!"}
+                "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 100k!"}
             </span>
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function FlandiLandingPage() {
               type="button"
               onClick={() => setIsContactModalOpen(true)}
               className="w-9 h-9 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-coral border border-flandi-pink/90 hover:border-flandi-coral flex items-center justify-center shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
-              title="Liên hệ tiệm: Hotline, Zalo, Messenger & Địa chỉ"
+              title="Liên hệ tiệm: Zalo, Messenger & Địa chỉ"
               aria-label="Liên hệ tiệm"
             >
               <Phone className="w-4 h-4 text-flandi-coral" />

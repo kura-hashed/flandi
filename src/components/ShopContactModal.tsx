@@ -96,7 +96,7 @@ export default function ShopContactModal({
                 Liên Hệ Tiệm FLANDI
               </h3>
               <p className="text-[11px] font-bold text-flandi-muted">
-                Hotline, Zalo, Messenger & Địa chỉ tiệm
+                Zalo, Messenger & Địa chỉ tiệm
               </p>
             </div>
           </div>
@@ -147,8 +147,8 @@ export default function ShopContactModal({
               </span>
             </div>
 
-            {/* Quick Actions for Hotline, Zalo & Messenger */}
-            <div className="space-y-2 pt-1">
+            {/* Quick Actions: Nhắn Zalo & Messenger */}
+            <div className="pt-1">
               <div className="grid grid-cols-2 gap-2">
                 <a
                   href={`https://zalo.me/${cleanZalo}`}
@@ -170,14 +170,6 @@ export default function ShopContactModal({
                   <span>Messenger</span>
                 </a>
               </div>
-
-              <a
-                href={`tel:${phone}`}
-                className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-flandi-cream/60 border border-flandi-pink text-flandi-dark font-extrabold text-xs flex items-center justify-center gap-2 shadow-2xs transition active:scale-95"
-              >
-                <Phone className="w-3.5 h-3.5 text-flandi-coral" />
-                <span>Gọi hotline trực tiếp ({phone})</span>
-              </a>
             </div>
           </div>
 

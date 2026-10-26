@@ -723,9 +723,9 @@
     "bankBin": "970436",
     "bankAccountNo": "1029384756",
     "bankAccountName": "TIEM BANH FLANDI",
-    "freeShipMinimum": 150000,
+    "freeShipMinimum": 100000,
     "defaultShippingFee": 15000,
-    "announcement": "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 150k!",
+    "announcement": "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 100k!",
     "brandKit": {
       "brandName": "FLANDI",
       "tagline": "Muốn ăn hãy Flăn vào tớ",
@@ -745,7 +745,7 @@
       "thankYouMessage": "Mỗi chiếc bánh đều được bếp nhà FLANDI chuẩn bị tỉ mỉ với nguyên liệu tươi mới trong ngày. Chúc bạn có một bữa tráng miệng ngọt ngào và mát lành nha!",
       "storageInstruction": "Bảo quản ngăn mát tủ lạnh (2°C – 6°C) ngay khi nhận bánh. Ngon nhất khi dùng trong vòng 2 – 3 ngày.",
       "promoHeadline": "MẺ BÁNH MỚI RA LÒ MỖI SÁNG!",
-      "promoSubheadline": "Freeship đơn từ 150k • Đặt nhanh qua Zalo 0703166903",
+      "promoSubheadline": "Freeship đơn từ 100k • Đặt nhanh qua Zalo 0703166903",
       "colors": [
         {
           "id": "col-coral",
@@ -912,7 +912,7 @@
         {
           "id": "msg-bot-1793001650569",
           "sender": "BOT",
-          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 100k trở lên nha!",
           "createdAt": "2026-10-26T08:00:50.819Z"
         }
       ]
@@ -939,7 +939,7 @@
         {
           "id": "msg-bot-1792982669878",
           "sender": "BOT",
-          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 100k trở lên nha!",
           "createdAt": "2026-10-26T02:44:30.128Z"
         }
       ]
@@ -981,7 +981,7 @@
         {
           "id": "msg-bot-1792865374053",
           "sender": "BOT",
-          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 100k trở lên nha!",
           "createdAt": "2026-10-24T18:09:34.303Z"
         },
         {
@@ -993,7 +993,7 @@
         {
           "id": "msg-bot-1792865561150",
           "sender": "BOT",
-          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 100k trở lên nha!",
           "createdAt": "2026-10-24T18:12:41.400Z"
         }
       ]

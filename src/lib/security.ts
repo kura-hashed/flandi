@@ -228,7 +228,7 @@ export function verifyAndSanitizeOrder(
   }
 
   // 5. Tính toán phí ship chuẩn theo cấu hình tiệm
-  const freeShipMin = db.settings.freeShipMinimum ?? 150000;
+  const freeShipMin = db.settings.freeShipMinimum ?? 100000;
   const standardShippingFee = db.settings.defaultShippingFee ?? 15000;
 
   let verifiedShippingFee = 0;

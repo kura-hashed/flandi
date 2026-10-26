@@ -173,7 +173,7 @@ export async function POST(request: Request) {
         const autoReply = generateSmartAutoReply(
           sanitizedText,
           db.settings.phone || "0703166903",
-          db.settings.freeShipMinimum || 150000
+          db.settings.freeShipMinimum || 100000
         );
         if (autoReply) {
           session.messages.push({

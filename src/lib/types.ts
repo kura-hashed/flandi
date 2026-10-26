@@ -208,6 +208,7 @@ export interface ShopSettings {
   phone: string;
   zaloPhone: string;
   facebookUrl?: string;
+  messengerUrl?: string;
   address: string;
   openHours: string;
   bankName: string;

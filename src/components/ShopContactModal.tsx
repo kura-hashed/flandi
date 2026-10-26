@@ -18,8 +18,18 @@ interface ShopContactModalProps {
   onClose: () => void;
   phone?: string;
   zaloPhone?: string;
+  messengerUrl?: string;
+  facebookUrl?: string;
   address?: string;
   openHours?: string;
+}
+
+function MessengerIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.2 5.51 3.16 7.37.16.15.26.36.26.58l.06 2.05c.02.68.7 1.14 1.3.88l2.36-1.02c.18-.08.38-.1.57-.06.74.19 1.51.3 2.29.3 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm1.18 13.06l-2.73-2.91-5.33 2.91 5.86-6.22 2.79 2.91 5.27-2.91-5.86 6.22z" />
+    </svg>
+  );
 }
 
 export default function ShopContactModal({
@@ -27,6 +37,8 @@ export default function ShopContactModal({
   onClose,
   phone = "0703166903",
   zaloPhone = "0703166903",
+  messengerUrl,
+  facebookUrl = "https://www.facebook.com/tiem.flandi",
   address = "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh",
   openHours = "08:00 – 21:30 mỗi ngày",
 }: ShopContactModalProps) {
@@ -46,6 +58,19 @@ export default function ShopContactModal({
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     address
   )}`;
+
+  const resolvedMessengerUrl = (() => {
+    if (messengerUrl) return messengerUrl;
+    if (facebookUrl) {
+      const clean = facebookUrl.replace(/\/$/, "");
+      const parts = clean.split("/");
+      const slug = parts[parts.length - 1];
+      if (slug && !slug.includes("facebook.com")) {
+        return `https://m.me/${slug}`;
+      }
+    }
+    return "https://m.me/tiem.flandi";
+  })();
 
   return (
     <div
@@ -67,7 +92,7 @@ export default function ShopContactModal({
                 Liên Hệ Tiệm FLANDI
               </h3>
               <p className="text-[11px] font-bold text-flandi-muted">
-                Hotline Zalo & Địa chỉ tiệm bánh
+                Hotline, Zalo, Messenger & Địa chỉ tiệm
               </p>
             </div>
           </div>
@@ -118,24 +143,36 @@ export default function ShopContactModal({
               </span>
             </div>
 
-            {/* Quick Actions for Phone */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <a
-                href={`tel:${phone}`}
-                className="py-2 px-3 rounded-xl bg-white hover:bg-flandi-cream/60 border border-flandi-pink text-flandi-dark font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
-              >
-                <Phone className="w-3.5 h-3.5 text-flandi-coral" />
-                <span>Gọi điện</span>
-              </a>
+            {/* Quick Actions for Hotline, Zalo & Messenger */}
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={`https://zalo.me/${cleanZalo}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
+                >
+                  <MessageCircle className="w-4 h-4 fill-white/20" />
+                  <span>Nhắn Zalo</span>
+                </a>
+
+                <a
+                  href={resolvedMessengerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#0084FF] via-[#6355F6] to-[#A82BFF] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
+                >
+                  <MessengerIcon className="w-4 h-4 shrink-0" />
+                  <span>Messenger</span>
+                </a>
+              </div>
 
               <a
-                href={`https://zalo.me/${cleanZalo}`}
-                target="_blank"
-                rel="noreferrer"
-                className="py-2 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
+                href={`tel:${phone}`}
+                className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-flandi-cream/60 border border-flandi-pink text-flandi-dark font-extrabold text-xs flex items-center justify-center gap-2 shadow-2xs transition active:scale-95"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>Nhắn Zalo</span>
+                <Phone className="w-3.5 h-3.5 text-flandi-coral" />
+                <span>Gọi hotline trực tiếp ({phone})</span>
               </a>
             </div>
           </div>

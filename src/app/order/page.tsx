@@ -800,11 +800,11 @@ export default function QuickSingleScreenOrderPage() {
           <button
             type="button"
             onClick={() => setIsContactModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark font-extrabold border border-flandi-pink flex items-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
-            title="Xem số Zalo & Địa chỉ tiệm bánh"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-flandi-pink/40 text-flandi-coral border border-flandi-pink flex items-center justify-center shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+            title="Liên hệ tiệm: Hotline, Zalo, Messenger & Địa chỉ"
+            aria-label="Liên hệ tiệm"
           >
-            <Phone className="w-3.5 h-3.5 text-flandi-coral" />
-            <span suppressHydrationWarning>{settings?.phone || "0703166903"}</span>
+            <Phone className="w-4 h-4 text-flandi-coral" />
           </button>
         </div>
       </header>
@@ -1852,6 +1852,8 @@ export default function QuickSingleScreenOrderPage() {
         onClose={() => setIsContactModalOpen(false)}
         phone={settings?.phone || "0703166903"}
         zaloPhone={settings?.zaloPhone || settings?.phone || "0703166903"}
+        messengerUrl={settings?.messengerUrl}
+        facebookUrl={settings?.facebookUrl || "https://www.facebook.com/tiem.flandi"}
         address={settings?.address || "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh"}
         openHours={settings?.openHours || "08:00 – 21:30 mỗi ngày"}
       />

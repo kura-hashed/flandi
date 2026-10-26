@@ -181,11 +181,11 @@ export default function FlandiLandingPage() {
             <button
               type="button"
               onClick={() => setIsContactModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-dark font-extrabold text-xs border border-flandi-pink/90 hover:border-flandi-coral shadow-2xs transition active:scale-95 cursor-pointer"
-              title="Xem số Zalo & Địa chỉ tiệm bánh"
+              className="w-9 h-9 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-coral border border-flandi-pink/90 hover:border-flandi-coral flex items-center justify-center shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+              title="Liên hệ tiệm: Hotline, Zalo, Messenger & Địa chỉ"
+              aria-label="Liên hệ tiệm"
             >
-              <Phone className="w-3.5 h-3.5 text-flandi-coral" />
-              <span>{settings?.phone || "0703166903"}</span>
+              <Phone className="w-4 h-4 text-flandi-coral" />
             </button>
             <CustomerHeaderAuthButton />
             <Link
@@ -630,6 +630,8 @@ export default function FlandiLandingPage() {
         onClose={() => setIsContactModalOpen(false)}
         phone={settings?.phone || "0703166903"}
         zaloPhone={settings?.zaloPhone || settings?.phone || "0703166903"}
+        messengerUrl={settings?.messengerUrl}
+        facebookUrl={settings?.facebookUrl || "https://www.facebook.com/tiem.flandi"}
         address={settings?.address || "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh"}
         openHours={settings?.openHours || "08:00 – 21:30 mỗi ngày"}
       />

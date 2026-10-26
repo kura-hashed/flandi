@@ -32,7 +32,6 @@ import LiveChatWidget, {
 } from "@/components/LiveChatWidget";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import CustomerHeaderAuthButton from "@/components/CustomerHeaderAuthButton";
-import GoogleAuthModal from "@/components/GoogleAuthModal";
 import CustomerAccountDrawer from "@/components/CustomerAccountDrawer";
 
 interface QuickLineItem {
@@ -1834,8 +1833,7 @@ export default function QuickSingleScreenOrderPage() {
         </div>
       )}
 
-      {/* Google Sign-in Modal & Customer Account / Order Lookup Drawer */}
-      <GoogleAuthModal googleClientId={settings?.pageConfig?.googleClientId} />
+      {/* Customer Account & Order Lookup Drawer */}
       <CustomerAccountDrawer
         onReorder={handleReorder}
         shopPhone={settings?.phone}

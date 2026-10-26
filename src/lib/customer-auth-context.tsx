@@ -201,19 +201,48 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [googleClientId, user, loginWithGoogle]);
 
-  // 7. Kích hoạt trực tiếp Google Quick Authentication khi người dùng bấm nút
+  // 7. Kích hoạt trực tiếp Google Quick Authentication khi người dùng bấm nút (Giống các Big Tech: bấm là mở trực tiếp Google)
   const triggerGoogleSignIn = useCallback(() => {
-    setIsAuthModalOpen(true);
+    if (!googleClientId) {
+      console.warn("Chưa cấu hình Google Client ID");
+      return;
+    }
 
     const google = (window as any).google;
-    if (google?.accounts?.id && googleClientId) {
+
+    // 7.1 Mở popup OAuth chuẩn Google Identity Services (native popup, không qua modal trung gian)
+    if (google?.accounts?.oauth2) {
       try {
-        google.accounts.id.prompt();
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: "email profile openid",
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.access_token) {
+              await loginWithGoogle({ accessToken: tokenResponse.access_token });
+            }
+          },
+        });
+        client.requestAccessToken({ prompt: "select_account" });
+        return;
       } catch (err) {
-        console.warn("Google One Tap prompt warning:", err);
+        console.warn("Google OAuth popup error, falling back to direct redirect:", err);
       }
     }
-  }, [googleClientId]);
+
+    // 7.2 Fallback: Redirect trực tiếp đến Google OAuth (cho mobile hoặc khi popup bị chặn)
+    if (typeof window !== "undefined") {
+      const redirectUri = window.location.origin + "/auth/callback";
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
+        googleClientId
+      )}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&response_type=token&scope=${encodeURIComponent(
+        "email profile openid"
+      )}&prompt=select_account`;
+
+      window.location.href = googleAuthUrl;
+    }
+  }, [googleClientId, loginWithGoogle]);
 
   // 8. Đăng xuất
   const logout = async () => {

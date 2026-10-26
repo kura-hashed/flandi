@@ -18,7 +18,6 @@ import { Product, ShopSettings } from "@/lib/types";
 import LiveChatWidget from "@/components/LiveChatWidget";
 import { FALLBACK_PAGE_CONFIG } from "@/components/PageManager";
 import CustomerHeaderAuthButton from "@/components/CustomerHeaderAuthButton";
-import GoogleAuthModal from "@/components/GoogleAuthModal";
 import CustomerAccountDrawer from "@/components/CustomerAccountDrawer";
 
 export default function FlandiLandingPage() {
@@ -602,8 +601,7 @@ export default function FlandiLandingPage() {
         preferredChannel={preferredChatChannel}
       />
 
-      {/* Google Authentication & Customer Orders Drawer */}
-      <GoogleAuthModal googleClientId={pageConfig.googleClientId} />
+      {/* Customer Orders Drawer */}
       <CustomerAccountDrawer
         shopPhone={settings?.phone}
         shopName={settings?.shopName}

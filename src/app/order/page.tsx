@@ -33,6 +33,7 @@ import LiveChatWidget, {
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import CustomerHeaderAuthButton from "@/components/CustomerHeaderAuthButton";
 import CustomerAccountDrawer from "@/components/CustomerAccountDrawer";
+import ShopContactModal from "@/components/ShopContactModal";
 
 interface QuickLineItem {
   product: Product;
@@ -45,6 +46,7 @@ export default function QuickSingleScreenOrderPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   // Cart keyed by productId
   const [cartMap, setCartMap] = useState<Record<string, QuickLineItem>>({});
@@ -795,13 +797,15 @@ export default function QuickSingleScreenOrderPage() {
             <Sparkles className="w-3.5 h-3.5" />
             Freeship đơn từ {formatVND(freeShipMin)}
           </span>
-          <a
-            href={`tel:${settings?.phone || "0703166903"}`}
-            className="px-3.5 py-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark font-extrabold border border-flandi-pink flex items-center gap-1.5 shadow-2xs transition"
+          <button
+            type="button"
+            onClick={() => setIsContactModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark font-extrabold border border-flandi-pink flex items-center gap-1.5 shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
+            title="Xem số Zalo & Địa chỉ tiệm bánh"
           >
             <Phone className="w-3.5 h-3.5 text-flandi-coral" />
             <span suppressHydrationWarning>{settings?.phone || "0703166903"}</span>
-          </a>
+          </button>
         </div>
       </header>
 
@@ -1840,6 +1844,16 @@ export default function QuickSingleScreenOrderPage() {
         shopName={settings?.shopName}
         bankBin={settings?.bankBin}
         bankAccountNo={settings?.bankAccountNo}
+      />
+
+      {/* Shop Contact & Address Popup Modal */}
+      <ShopContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        phone={settings?.phone || "0703166903"}
+        zaloPhone={settings?.zaloPhone || settings?.phone || "0703166903"}
+        address={settings?.address || "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh"}
+        openHours={settings?.openHours || "08:00 – 21:30 mỗi ngày"}
       />
     </div>
   );

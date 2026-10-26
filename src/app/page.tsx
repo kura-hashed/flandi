@@ -19,11 +19,13 @@ import LiveChatWidget from "@/components/LiveChatWidget";
 import { FALLBACK_PAGE_CONFIG } from "@/components/PageManager";
 import CustomerHeaderAuthButton from "@/components/CustomerHeaderAuthButton";
 import CustomerAccountDrawer from "@/components/CustomerAccountDrawer";
+import ShopContactModal from "@/components/ShopContactModal";
 
 export default function FlandiLandingPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -166,12 +168,25 @@ export default function FlandiLandingPage() {
                 Điểm Khác Biệt
               </a>
             )}
-            <a href="#contact" className="hover:text-flandi-coral transition">
+            <button
+              type="button"
+              onClick={() => setIsContactModalOpen(true)}
+              className="hover:text-flandi-coral transition cursor-pointer"
+            >
               Liên Hệ & Đặt Tiệc
-            </a>
+            </button>
           </nav>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsContactModalOpen(true)}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-dark font-extrabold text-xs border border-flandi-pink/90 hover:border-flandi-coral shadow-2xs transition active:scale-95 cursor-pointer"
+              title="Xem số Zalo & Địa chỉ tiệm bánh"
+            >
+              <Phone className="w-3.5 h-3.5 text-flandi-coral" />
+              <span>{settings?.phone || "0703166903"}</span>
+            </button>
             <CustomerHeaderAuthButton />
             <Link
               href="/order"
@@ -607,6 +622,16 @@ export default function FlandiLandingPage() {
         shopName={settings?.shopName}
         bankBin={settings?.bankBin}
         bankAccountNo={settings?.bankAccountNo}
+      />
+
+      {/* Shop Contact & Address Popup Modal */}
+      <ShopContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        phone={settings?.phone || "0703166903"}
+        zaloPhone={settings?.zaloPhone || settings?.phone || "0703166903"}
+        address={settings?.address || "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh"}
+        openHours={settings?.openHours || "08:00 – 21:30 mỗi ngày"}
       />
     </div>
   );

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Caramel Sauce Top Gradient -->
+    <linearGradient id="caramelTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C2D12" />
+      <stop offset="50%" stop-color="#9A3412" />
+      <stop offset="100%" stop-color="#C2410C" />
+    </linearGradient>
+
+    <!-- Custard Body Gradient -->
+    <linearGradient id="custardBody" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="25%" stop-color="#FDE047" />
+      <stop offset="70%" stop-color="#FACC15" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+
+    <!-- Caramel Pool at Base -->
+    <linearGradient id="caramelPool" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#B45309" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#78350F" stop-opacity="0.95" />
+    </linearGradient>
+
+    <!-- Gloss highlight -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Mint leaf gradient -->
+    <linearGradient id="mint" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80" />
+      <stop offset="100%" stop-color="#15803D" />
+    </linearGradient>
+  </defs>
+
+  <!-- Drop Shadow / Plate base -->
+  <ellipse cx="32" cy="53" rx="27" ry="7" fill="#000000" fill-opacity="0.12" />
+
+  <!-- Caramel Syrup Pool at base -->
+  <ellipse cx="32" cy="51" rx="25" ry="6.5" fill="url(#caramelPool)" />
+
+  <!-- Flan Body (Custard pudding base) -->
+  <path d="M 14 46 C 14 52 50 52 50 46 L 44 22 C 44 19 20 19 20 22 Z" fill="url(#custardBody)" />
+
+  <!-- Flan Base Curve overlay -->
+  <path d="M 14 46 C 14 52.5 50 52.5 50 46 C 45 49 19 49 14 46 Z" fill="#B45309" fill-opacity="0.4" />
+
+  <!-- Caramel Dripping Layer -->
+  <path d="M 20 22
+           C 20 18.5 44 18.5 44 22
+           C 44 23 43 27 42 29
+           C 41 31 39 31 38 27
+           C 37 24 35 25 34 33
+           C 33.5 37 31 37 30.5 32
+           C 30 26 28 26 27 28
+           C 26 30 24 30 23 25
+           C 21.5 25 20.5 24 20 22 Z"
+        fill="url(#caramelTop)" />
+
+  <!-- Top Caramel Surface Oval -->
+  <ellipse cx="32" cy="22" rx="12" ry="4" fill="url(#caramelTop)" />
+
+  <!-- Glossy Reflection on Caramel Top -->
+  <ellipse cx="30" cy="21" rx="8" ry="2" fill="url(#gloss)" />
+  <ellipse cx="27" cy="20.5" rx="3.5" ry="1" fill="#FFFFFF" fill-opacity="0.9" />
+
+  <!-- Drip highlights -->
+  <circle cx="34" cy="34" r="0.8" fill="#FEF08A" fill-opacity="0.8" />
+  <circle cx="42" cy="28" r="0.6" fill="#FEF08A" fill-opacity="0.8" />
+
+  <!-- Mint Leaves on top -->
+  <path d="M 32 18 C 30 14 36 12 37 15 C 38 18 34 18 32 18 Z" fill="url(#mint)" />
+  <path d="M 32 18 C 34 16 38 17 38 19 C 37 21 33 19 32 18 Z" fill="url(#mint)" />
+  <path d="M 32 18 Q 35 15 36.5 15" stroke="#14532D" stroke-width="0.5" stroke-linecap="round" fill="none" />
+</svg>

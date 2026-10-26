@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readDb, writeDb } from "@/lib/db";
+import { readDb, writeDb, findCustomerById } from "@/lib/db";
 import { OrderStatus } from "@/lib/types";
 import {
   getClientIp,
@@ -12,6 +12,8 @@ import {
   verifyAndSanitizeOrder,
   verifyAdminAuth,
   verifySameOrigin,
+  getCustomerTokenFromRequest,
+  verifyCustomerToken,
 } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +61,19 @@ export async function POST(request: Request) {
     }
 
     const newOrder = verifiedResult.order;
+
+    // Tự động liên kết đơn hàng với tài khoản khách hàng nếu đang đăng nhập
+    const customerToken = getCustomerTokenFromRequest(request);
+    if (customerToken) {
+      const verifiedCustId = verifyCustomerToken(customerToken);
+      if (verifiedCustId) {
+        const customer = findCustomerById(verifiedCustId);
+        if (customer) {
+          newOrder.customerId = customer.id;
+          newOrder.customerEmail = customer.email;
+        }
+      }
+    }
 
     // 4. Trừ tồn kho an toàn cho từng món
     for (const item of newOrder.items) {

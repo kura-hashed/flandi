@@ -17,6 +17,9 @@ import {
 import { Product, ShopSettings } from "@/lib/types";
 import LiveChatWidget from "@/components/LiveChatWidget";
 import { FALLBACK_PAGE_CONFIG } from "@/components/PageManager";
+import CustomerHeaderAuthButton from "@/components/CustomerHeaderAuthButton";
+import GoogleAuthModal from "@/components/GoogleAuthModal";
+import CustomerAccountDrawer from "@/components/CustomerAccountDrawer";
 
 export default function FlandiLandingPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -170,6 +173,7 @@ export default function FlandiLandingPage() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <CustomerHeaderAuthButton />
             <Link
               href="/order"
               className="px-5 py-2.5 rounded-full bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-cute transition transform hover:-translate-y-0.5 active:scale-95"
@@ -596,6 +600,15 @@ export default function FlandiLandingPage() {
         cartCount={0}
         externalOpenTrigger={openChatTrigger}
         preferredChannel={preferredChatChannel}
+      />
+
+      {/* Google Authentication & Customer Orders Drawer */}
+      <GoogleAuthModal googleClientId={pageConfig.googleClientId} />
+      <CustomerAccountDrawer
+        shopPhone={settings?.phone}
+        shopName={settings?.shopName}
+        bankBin={settings?.bankBin}
+        bankAccountNo={settings?.bankAccountNo}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit, PageConfig, LedgerEntry } from "./types";
+import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit, PageConfig, LedgerEntry, CustomerUser } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "store.json");
@@ -740,6 +740,9 @@ export function readDb(): StoreDatabase {
     if (!parsed.ledger) {
       parsed.ledger = INITIAL_DB.ledger;
     }
+    if (!parsed.customers) {
+      parsed.customers = [];
+    }
     return parsed;
   } catch (err) {
     console.error("Failed to read DB, returning initial DB:", err);
@@ -752,4 +755,139 @@ export function writeDb(data: StoreDatabase): void {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf-8");
+}
+
+// ----------------------------------------------------
+// Customer & Order Tracking Helpers
+// ----------------------------------------------------
+
+export function findCustomerById(id: string): CustomerUser | undefined {
+  const db = readDb();
+  return (db.customers || []).find((c) => c.id === id);
+}
+
+export function findCustomerByEmail(email: string): CustomerUser | undefined {
+  const db = readDb();
+  const normalized = email.toLowerCase().trim();
+  return (db.customers || []).find((c) => c.email.toLowerCase().trim() === normalized);
+}
+
+export function upsertCustomer(data: {
+  email: string;
+  name: string;
+  picture?: string;
+  googleId?: string;
+  phone?: string;
+  address?: string;
+  deliveryNote?: string;
+}): CustomerUser {
+  const db = readDb();
+  if (!db.customers) db.customers = [];
+
+  const normalizedEmail = data.email.toLowerCase().trim();
+  const existingIdx = db.customers.findIndex(
+    (c) => c.email.toLowerCase().trim() === normalizedEmail
+  );
+
+  const now = new Date().toISOString();
+
+  if (existingIdx > -1) {
+    const existing = db.customers[existingIdx];
+    const updated: CustomerUser = {
+      ...existing,
+      name: data.name || existing.name,
+      picture: data.picture || existing.picture,
+      googleId: data.googleId || existing.googleId,
+      phone: data.phone || existing.phone,
+      address: data.address || existing.address,
+      deliveryNote: data.deliveryNote || existing.deliveryNote,
+      updatedAt: now,
+    };
+    db.customers[existingIdx] = updated;
+    writeDb(db);
+    return updated;
+  }
+
+  const newId = `cust_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const newCustomer: CustomerUser = {
+    id: newId,
+    googleId: data.googleId,
+    email: normalizedEmail,
+    name: data.name,
+    picture: data.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(normalizedEmail)}`,
+    phone: data.phone,
+    address: data.address,
+    deliveryNote: data.deliveryNote,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  db.customers.push(newCustomer);
+  writeDb(db);
+  return newCustomer;
+}
+
+export function updateCustomerProfile(
+  id: string,
+  updates: Partial<Pick<CustomerUser, "name" | "phone" | "address" | "deliveryNote" | "picture">>
+): CustomerUser | null {
+  const db = readDb();
+  if (!db.customers) return null;
+
+  const idx = db.customers.findIndex((c) => c.id === id);
+  if (idx === -1) return null;
+
+  const existing = db.customers[idx];
+  const updated: CustomerUser = {
+    ...existing,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+
+  db.customers[idx] = updated;
+  writeDb(db);
+  return updated;
+}
+
+export function getCustomerOrders(params: {
+  customerId?: string;
+  email?: string;
+  phone?: string;
+  code?: string;
+}): Order[] {
+  const db = readDb();
+  const orders = db.orders || [];
+
+  const normEmail = params.email ? params.email.toLowerCase().trim() : undefined;
+  const normPhone = params.phone ? params.phone.replace(/[\s.-]/g, "").trim() : undefined;
+  const normCode = params.code ? params.code.toUpperCase().trim() : undefined;
+
+  return orders
+    .filter((order) => {
+      // 1. Match by Order Code if explicitly provided
+      if (normCode && order.code.toUpperCase() === normCode) {
+        return true;
+      }
+
+      // 2. Match by Customer ID
+      if (params.customerId && order.customerId === params.customerId) {
+        return true;
+      }
+
+      // 3. Match by Customer Email
+      if (normEmail && order.customerEmail && order.customerEmail.toLowerCase().trim() === normEmail) {
+        return true;
+      }
+
+      // 4. Match by Customer Phone
+      if (normPhone && order.customerPhone) {
+        const orderPhoneClean = order.customerPhone.replace(/[\s.-]/g, "").trim();
+        if (orderPhoneClean && orderPhoneClean === normPhone) {
+          return true;
+        }
+      }
+
+      return false;
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }

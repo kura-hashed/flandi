@@ -222,6 +222,19 @@ export const adminApiRateLimiter = new SlidingWindowRateLimiter([
 ]);
 
 /**
+ * Rate Limiter cho Đăng nhập Khách Hàng (/api/customer/auth):
+ * - Tối đa 20 yêu cầu / 1 phút
+ */
+export const customerAuthRateLimiter = new SlidingWindowRateLimiter([
+  {
+    name: "customer-auth",
+    windowMs: 60 * 1000,
+    maxRequests: 20,
+    message: "Bạn đang thao tác quá nhanh, vui lòng chờ giây lát.",
+  },
+]);
+
+/**
  * Rate Limiter cho Public API & Scraper:
  * - Tối đa 120 requests / 1 phút
  */

@@ -69,6 +69,8 @@ export interface Order {
   code: string; // e.g. FL-2401
   source: OrderSource;
   status: OrderStatus;
+  customerId?: string;
+  customerEmail?: string;
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
@@ -193,6 +195,9 @@ export interface PageConfig {
   // Footer Content
   footerDescription: string;
 
+  // Authentication & Third-party integrations
+  googleClientId?: string;
+
   // Managed Media Resources
   resources: MediaResourceItem[];
 }
@@ -232,6 +237,24 @@ export interface ChatSession {
   messages: ChatMessage[];
 }
 
+export interface CustomerUser {
+  id: string; // e.g. "cust_google_12345678"
+  googleId?: string;
+  email: string;
+  name: string;
+  picture?: string;
+  phone?: string;
+  address?: string;
+  deliveryNote?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CustomerSession {
+  user: CustomerUser;
+  token: string;
+}
+
 export interface StoreDatabase {
   products: Product[];
   ingredients: IngredientItem[];
@@ -240,4 +263,5 @@ export interface StoreDatabase {
   settings: ShopSettings;
   chats?: ChatSession[];
   ledger?: LedgerEntry[];
+  customers?: CustomerUser[];
 }

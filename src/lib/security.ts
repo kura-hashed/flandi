@@ -251,6 +251,8 @@ export function verifyAndSanitizeOrder(
     code,
     source: body.source || "ONLINE",
     status: body.status || (body.source === "POS" ? "COMPLETED" : "PENDING"),
+    customerId: body.customerId ? sanitizeString(String(body.customerId), 80) : undefined,
+    customerEmail: body.customerEmail ? sanitizeString(String(body.customerEmail), 120) : undefined,
     customerName,
     customerPhone: rawPhone,
     customerAddress,
@@ -274,4 +276,82 @@ export function verifyAndSanitizeOrder(
     valid: true,
     order: verifiedOrder,
   };
+}
+
+// ----------------------------------------------------
+// Customer Google Authentication & Session Helpers
+// ----------------------------------------------------
+
+export const CUSTOMER_COOKIE_NAME = "flandi_customer_session";
+const CUSTOMER_TOKEN_SECRET = process.env.CUSTOMER_AUTH_SECRET || "flandi_cust_secret_2026";
+
+export function generateCustomerToken(customerId: string): string {
+  const payload = {
+    sub: customerId,
+    iat: Date.now(),
+    exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 ngày
+  };
+  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+}
+
+export function verifyCustomerToken(token: string): string | null {
+  try {
+    const raw = Buffer.from(token, "base64url").toString("utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.sub) return null;
+    if (parsed.exp && Date.now() > parsed.exp) return null;
+    return parsed.sub;
+  } catch {
+    return null;
+  }
+}
+
+export function parseGoogleCredential(credential: string): {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+} | null {
+  try {
+    const parts = credential.split(".");
+    if (parts.length !== 3) return null;
+    const payloadRaw = Buffer.from(parts[1], "base64").toString("utf8");
+    const payload = JSON.parse(payloadRaw);
+
+    if (!payload || !payload.email) return null;
+
+    return {
+      sub: payload.sub || "",
+      email: payload.email,
+      name: payload.name || payload.given_name || payload.email.split("@")[0],
+      picture: payload.picture,
+    };
+  } catch (err) {
+    console.error("Failed to parse Google credential:", err);
+    return null;
+  }
+}
+
+export function getCustomerTokenFromRequest(request: Request): string | null {
+  // 1. Authorization: Bearer <token>
+  const authHeader = request.headers.get("authorization");
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.substring(7).trim();
+  }
+
+  // 2. Cookie flandi_customer_session
+  const cookieHeader = request.headers.get("cookie");
+  if (cookieHeader) {
+    const cookies = Object.fromEntries(
+      cookieHeader.split(";").map((c) => {
+        const [k, ...v] = c.trim().split("=");
+        return [k, v.join("=")];
+      })
+    );
+    if (cookies[CUSTOMER_COOKIE_NAME]) {
+      return cookies[CUSTOMER_COOKIE_NAME];
+    }
+  }
+
+  return null;
 }

@@ -11,7 +11,7 @@
       "unit": "cái",
       "badgeText": "6k / cái",
       "image": "/images/products/flan.png",
-      "stock": 100,
+      "stock": 95,
       "stockUnit": "cái",
       "lowStockThreshold": 30,
       "isActive": true,
@@ -271,6 +271,28 @@
   ],
   "stockLogs": [
     {
+      "id": "log-1792982669672-ephp",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -3,
+      "previousStock": 98,
+      "newStock": 95,
+      "reason": "Đơn hàng ONLINE #FL-6303 (3x Bánh Flan Trứng Sữa)",
+      "createdAt": "2026-10-26T02:44:29.672Z"
+    },
+    {
+      "id": "log-1792928289602-249j",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -2,
+      "previousStock": 100,
+      "newStock": 98,
+      "reason": "Đơn hàng WEB #FL-1007 (2x Flan)",
+      "createdAt": "2026-10-25T11:38:09.602Z"
+    },
+    {
       "id": "log-1792865560946-7mn4",
       "targetId": "prod-yogurt",
       "targetName": "Yogurt",
@@ -338,6 +360,66 @@
     }
   ],
   "orders": [
+    {
+      "id": "ord-1792982669672",
+      "code": "FL-6303",
+      "source": "ONLINE",
+      "status": "PENDING",
+      "customerId": "cust_1792982450784_sr1pu",
+      "customerEmail": "maianh.flandi@gmail.com",
+      "customerName": "Nguyễn Mai Anh",
+      "customerPhone": "0909888999",
+      "customerAddress": "84 Lê Duẩn, Bến Nghé, Quận 1, TP.HCM",
+      "note": "[Đặt nhanh qua DIRECT]",
+      "items": [
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-1",
+          "variantName": "Bánh Flan Trứng Sữa",
+          "quantity": 3,
+          "unitPrice": 6000,
+          "subtotal": 18000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 18000,
+      "discount": 0,
+      "shippingFee": 15000,
+      "total": 33000,
+      "paymentMethod": "COD",
+      "isPaid": false,
+      "createdAt": "2026-10-26T02:44:29.672Z"
+    },
+    {
+      "id": "ord-1792928289601",
+      "code": "FL-1007",
+      "source": "WEB",
+      "status": "PENDING",
+      "customerName": "Nguyễn Văn A",
+      "customerPhone": "0901234567",
+      "customerAddress": "123 Lê Lợi, Q1",
+      "note": "Giao trước 11h",
+      "items": [
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "prod-flan-base",
+          "variantName": "Flan",
+          "quantity": 2,
+          "unitPrice": 6000,
+          "subtotal": 12000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 12000,
+      "discount": 0,
+      "shippingFee": 15000,
+      "total": 27000,
+      "paymentMethod": "COD",
+      "isPaid": false,
+      "createdAt": "2026-10-25T11:38:09.601Z"
+    },
     {
       "id": "ord-1792865560946",
       "code": "FL-3302",
@@ -743,6 +825,48 @@
   },
   "chats": [
     {
+      "id": "chat-1792982658466-t9fi",
+      "customerName": "Nguyễn Mai Anh",
+      "customerPhone": "0909888999",
+      "unreadForAdmin": 1,
+      "updatedAt": "2026-10-26T02:44:29.878Z",
+      "messages": [
+        {
+          "id": "msg-welcome-1792982669878",
+          "sender": "BOT",
+          "text": "Xin chào Nguyễn Mai Anh! 🍮 Chào mừng bạn đến với tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”). Bạn nhắn tin trực tiếp tại đây, tiệm sẽ trả lời ngay lập tức nha!",
+          "createdAt": "2026-10-26T02:44:29.878Z"
+        },
+        {
+          "id": "msg-1792982669878-o5rw",
+          "sender": "CUSTOMER",
+          "text": "🍮 ĐƠN ĐẶT BÁNH FLANDI (#FL-6303)\n------------------------\n1. Flan: 3 cái x 6k = 18k\n------------------------\n• Tạm tính: 18k\n• Phí ship: 15k\n💰 TỔNG CỘNG: 33k\n👤 Khách: Nguyễn Mai Anh - SĐT: 0909888999\n📍 Địa chỉ nhận: 84 Lê Duẩn, Bến Nghé, Quận 1, TP.HCM",
+          "createdAt": "2026-10-26T02:44:29.878Z"
+        },
+        {
+          "id": "msg-bot-1792982669878",
+          "sender": "BOT",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "createdAt": "2026-10-26T02:44:30.128Z"
+        }
+      ]
+    },
+    {
+      "id": "chat-1792936066779-jowy",
+      "customerName": "Khách Web",
+      "customerPhone": "",
+      "unreadForAdmin": 0,
+      "updatedAt": "2026-10-25T13:49:18.874Z",
+      "messages": [
+        {
+          "id": "msg-welcome-1792936158874",
+          "sender": "BOT",
+          "text": "Xin chào Khách Web! 🍮 Chào mừng bạn đến với tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”). Bạn nhắn tin trực tiếp tại đây, tiệm sẽ trả lời ngay lập tức nha!",
+          "createdAt": "2026-10-25T13:49:18.874Z"
+        }
+      ]
+    },
+    {
       "id": "chat-1792863135588-lbaz",
       "customerName": "Loi",
       "customerPhone": "0703880456",
@@ -839,6 +963,19 @@
       "note": "Bàn giao đủ 80 Flan, 55 Panna Cotta, 45 Rau câu dừa",
       "imageUrl": "/images/menu-board.png",
       "createdAt": "2026-10-24T17:09:33.809Z"
+    }
+  ],
+  "customers": [
+    {
+      "id": "cust_1792982450784_sr1pu",
+      "email": "maianh.flandi@gmail.com",
+      "name": "Nguyễn Mai Anh",
+      "picture": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+      "createdAt": "2026-10-26T02:40:50.784Z",
+      "updatedAt": "2026-10-26T02:44:22.875Z",
+      "phone": "0909888999",
+      "address": "84 Lê Duẩn, Bến Nghé, Quận 1, TP.HCM",
+      "deliveryNote": "Bấm chuông lầu 2 giúp em"
     }
   ]
 }

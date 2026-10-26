@@ -30,6 +30,10 @@ import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import LiveChatWidget, {
   copyToClipboardInstant,
 } from "@/components/LiveChatWidget";
+import { useCustomerAuth } from "@/lib/customer-auth-context";
+import CustomerHeaderAuthButton from "@/components/CustomerHeaderAuthButton";
+import GoogleAuthModal from "@/components/GoogleAuthModal";
+import CustomerAccountDrawer from "@/components/CustomerAccountDrawer";
 
 interface QuickLineItem {
   product: Product;
@@ -38,6 +42,7 @@ interface QuickLineItem {
 }
 
 export default function QuickSingleScreenOrderPage() {
+  const { user, openAuthModal, openAccountDrawer } = useCustomerAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +60,21 @@ export default function QuickSingleScreenOrderPage() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+
+  // Tự động điền thông tin từ tài khoản Google nếu có
+  useEffect(() => {
+    if (user) {
+      if (!customerName && user.name) {
+        setCustomerName(user.name);
+      }
+      if (!customerPhone && user.phone) {
+        setCustomerPhone(user.phone);
+      }
+      if (!customerAddress && user.address) {
+        setCustomerAddress(user.address);
+      }
+    }
+  }, [user]);
 
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -83,6 +103,24 @@ export default function QuickSingleScreenOrderPage() {
     setTimeout(() => {
       setToast((prev) => (prev === msg ? null : prev));
     }, 3500);
+  };
+
+  const handleReorder = (items: { productId: string; quantity: number }[]) => {
+    setCartMap((prev) => {
+      const copy = { ...prev };
+      for (const item of items) {
+        const prod = products.find((p) => p.id === item.productId);
+        if (prod) {
+          copy[prod.id] = {
+            product: prod,
+            variant: getBaseVariant(prod),
+            quantity: item.quantity,
+          };
+        }
+      }
+      return copy;
+    });
+    notify("🍮 Đã nạp lại các món từ đơn cũ vào giỏ bánh!");
   };
 
   const formatVND = (n: number) => {
@@ -534,6 +572,8 @@ export default function QuickSingleScreenOrderPage() {
         code: generatedCode,
         source: channel === "ZALO" ? "ZALO" : "ONLINE",
         status: "PENDING",
+        customerId: user?.id,
+        customerEmail: user?.email,
         customerName:
           customerName.trim() ||
           (channel === "MESSENGER"
@@ -751,6 +791,7 @@ export default function QuickSingleScreenOrderPage() {
         </Link>
 
         <div className="flex items-center gap-2 text-xs">
+          <CustomerHeaderAuthButton />
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink/80 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5" />
             Freeship đơn từ {formatVND(freeShipMin)}
@@ -947,6 +988,45 @@ export default function QuickSingleScreenOrderPage() {
                       className="hidden"
                       aria-hidden="true"
                     />
+
+                    {/* Google Sync Status / Non-intrusive Hint */}
+                    {user ? (
+                      <div className="flex items-center justify-between px-2.5 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-[11px] text-emerald-800">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                          <span className="truncate">
+                            Đã điền từ Google: <strong>{user.name}</strong>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openAccountDrawer("profile")}
+                          className="text-emerald-700 underline hover:text-emerald-900 font-bold shrink-0 ml-1.5 cursor-pointer text-[10px]"
+                        >
+                          Đổi địa chỉ
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={openAuthModal}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-flandi-coral/50 rounded-xl text-[11px] text-slate-600 font-medium transition cursor-pointer group"
+                      >
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                          </svg>
+                          <span className="truncate">Đăng nhập Google để tự điền & tra cứu đơn</span>
+                        </span>
+                        <span className="text-flandi-coral font-bold group-hover:underline text-[10px] shrink-0 ml-1">
+                          Đăng nhập
+                        </span>
+                      </button>
+                    )}
+
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <input
@@ -1304,6 +1384,45 @@ export default function QuickSingleScreenOrderPage() {
                     className="hidden"
                     aria-hidden="true"
                   />
+
+                  {/* Google Sync Status / Non-intrusive Hint */}
+                  {user ? (
+                    <div className="flex items-center justify-between px-2.5 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-[11px] text-emerald-800">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span className="truncate">
+                          Đã điền từ Google: <strong>{user.name}</strong>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openAccountDrawer("profile")}
+                        className="text-emerald-700 underline hover:text-emerald-900 font-bold shrink-0 ml-1.5 cursor-pointer text-[10px]"
+                      >
+                        Đổi địa chỉ
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={openAuthModal}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-flandi-coral/50 rounded-xl text-[11px] text-slate-600 font-medium transition cursor-pointer group"
+                    >
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                        </svg>
+                        <span className="truncate">Đăng nhập Google để tự điền</span>
+                      </span>
+                      <span className="text-flandi-coral font-bold group-hover:underline text-[10px] shrink-0 ml-1">
+                        Đăng nhập
+                      </span>
+                    </button>
+                  )}
+
                   <div className="grid grid-cols-12 gap-2">
                     {/* Số điện thoại (Bắt buộc) - 7 cột để không bị cắt chữ */}
                     <div className="col-span-7">
@@ -1714,6 +1833,16 @@ export default function QuickSingleScreenOrderPage() {
           </div>
         </div>
       )}
+
+      {/* Google Sign-in Modal & Customer Account / Order Lookup Drawer */}
+      <GoogleAuthModal googleClientId={settings?.pageConfig?.googleClientId} />
+      <CustomerAccountDrawer
+        onReorder={handleReorder}
+        shopPhone={settings?.phone}
+        shopName={settings?.shopName}
+        bankBin={settings?.bankBin}
+        bankAccountNo={settings?.bankAccountNo}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Coiny, Quicksand } from "next/font/google";
 import "./globals.css";
+import { CustomerAuthProvider } from "@/lib/customer-auth-context";
 
 const coiny = Coiny({
   weight: "400",
@@ -43,7 +44,7 @@ export default function RootLayout({
         className="antialiased selection:bg-flandi-pink selection:text-flandi-dark"
         suppressHydrationWarning
       >
-        {children}
+        <CustomerAuthProvider>{children}</CustomerAuthProvider>
       </body>
     </html>
   );

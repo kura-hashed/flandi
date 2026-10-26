@@ -50,7 +50,7 @@ export default function CustomerAccountDrawer({
     setAccountDrawerTab,
     logout,
     updateProfile,
-    setIsAuthModalOpen,
+    triggerGoogleSignIn,
   } = useCustomerAuth();
 
   // Tab State
@@ -305,10 +305,10 @@ export default function CustomerAccountDrawer({
               </div>
               <button
                 type="button"
-                onClick={() => setIsAuthModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-flandi-coral to-flandi-salmon text-white text-xs font-black shrink-0 shadow-2xs hover:opacity-95 transition"
+                onClick={triggerGoogleSignIn}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-flandi-coral to-flandi-salmon text-white text-xs font-black shrink-0 shadow-2xs hover:opacity-95 transition cursor-pointer"
               >
-                Đăng Nhập
+                Đăng Nhập Google
               </button>
             </div>
           )}
@@ -689,8 +689,8 @@ export default function CustomerAccountDrawer({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon text-white text-xs font-black shadow-cute hover:opacity-95 transition inline-flex items-center gap-2"
+                  onClick={triggerGoogleSignIn}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon text-white text-xs font-black shadow-cute hover:opacity-95 transition inline-flex items-center gap-2 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Đăng Nhập Với Google Ngay</span>

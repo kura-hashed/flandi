@@ -820,7 +820,8 @@
           "url": "/images/products/yogurt.png",
           "category": "PRODUCT"
         }
-      ]
+      ],
+      "googleClientId": "1029384756-testflandiquickauth.apps.googleusercontent.com"
     }
   },
   "chats": [

@@ -1,130 +1,102 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Sparkles, ShieldCheck, Package, Check, ArrowRight, User } from "lucide-react";
+import { X, Sparkles, ShieldCheck, Package, Check, KeyRound, ExternalLink } from "lucide-react";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 
 interface GoogleAuthModalProps {
   googleClientId?: string;
 }
 
-export default function GoogleAuthModal({ googleClientId }: GoogleAuthModalProps) {
-  const { isAuthModalOpen, setIsAuthModalOpen, loginWithGoogle } = useCustomerAuth();
-  const [customEmail, setCustomEmail] = useState("");
-  const [customName, setCustomName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function GoogleAuthModal({ googleClientId: propClientId }: GoogleAuthModalProps) {
+  const {
+    isAuthModalOpen,
+    setIsAuthModalOpen,
+    googleClientId,
+    saveGoogleClientId,
+    triggerGoogleSignIn,
+    loginWithGoogle,
+  } = useCustomerAuth();
+
+  const [inputClientId, setInputClientId] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [isManualInput, setIsManualInput] = useState(false);
 
   const googleBtnContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const activeClientId =
-    googleClientId ||
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-    "";
+  const activeClientId = propClientId || googleClientId;
 
-  // Khởi tạo Google Identity Services nếu có Google Client ID
+  // Render official Google Sign In button khi modal mở và đã có activeClientId
   useEffect(() => {
-    if (!isAuthModalOpen || !activeClientId) return;
+    if (!isAuthModalOpen || !activeClientId || typeof window === "undefined") return;
 
-    const initGsi = () => {
-      if (typeof window !== "undefined" && (window as any).google?.accounts?.id) {
-        try {
-          (window as any).google.accounts.id.initialize({
-            client_id: activeClientId,
-            callback: async (response: any) => {
-              if (response?.credential) {
-                setIsSubmitting(true);
-                setErrorMsg(null);
-                const res = await loginWithGoogle({ credential: response.credential });
-                setIsSubmitting(false);
-                if (!res.success) {
-                  setErrorMsg(res.error || "Đăng nhập Google không thành công");
-                }
-              }
-            },
-            auto_select: false,
-          });
+    let timer: NodeJS.Timeout;
 
-          if (googleBtnContainerRef.current) {
-            googleBtnContainerRef.current.innerHTML = "";
-            (window as any).google.accounts.id.renderButton(
-              googleBtnContainerRef.current,
-              {
-                theme: "outline",
-                size: "large",
-                width: 320,
-                text: "continue_with",
-                shape: "pill",
-                logo_alignment: "left",
+    const renderGoogleButton = () => {
+      const google = (window as any).google;
+      if (!google?.accounts?.id || !googleBtnContainerRef.current) {
+        timer = setTimeout(renderGoogleButton, 200);
+        return;
+      }
+
+      try {
+        googleBtnContainerRef.current.innerHTML = "";
+        google.accounts.id.initialize({
+          client_id: activeClientId,
+          callback: async (response: any) => {
+            if (response?.credential) {
+              const res = await loginWithGoogle({ credential: response.credential });
+              if (!res.success) {
+                setErrorMsg(res.error || "Đăng nhập Google thất bại");
               }
-            );
-          }
-        } catch (err) {
-          console.error("GSI Init error:", err);
-        }
+            }
+          },
+          auto_select: false,
+        });
+
+        google.accounts.id.renderButton(googleBtnContainerRef.current, {
+          theme: "outline",
+          size: "large",
+          type: "standard",
+          shape: "pill",
+          text: "continue_with",
+          logo_alignment: "left",
+          width: 320,
+        });
+      } catch (err) {
+        console.error("Failed to render Google Sign-In button:", err);
       }
     };
 
-    // Load gsi script nếu chưa có
-    if (!(window as any).google?.accounts?.id) {
-      const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      script.onload = initGsi;
-      document.body.appendChild(script);
-    } else {
-      initGsi();
-    }
+    renderGoogleButton();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isAuthModalOpen, activeClientId, loginWithGoogle]);
 
   if (!isAuthModalOpen) return null;
 
-  // Demo / Fast Google Profiles
-  const sampleAccounts = [
-    {
-      name: "Nguyễn Mai Anh",
-      email: "maianh.flandi@gmail.com",
-      picture: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-    },
-    {
-      name: "Trần Minh Quân",
-      email: "minhquan.hcm@gmail.com",
-      picture: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80",
-    },
-  ];
-
-  const handleSelectSample = async (acc: { name: string; email: string; picture: string }) => {
-    setIsSubmitting(true);
-    setErrorMsg(null);
-    const res = await loginWithGoogle({
-      name: acc.name,
-      email: acc.email,
-      picture: acc.picture,
-    });
-    setIsSubmitting(false);
-    if (!res.success) {
-      setErrorMsg(res.error || "Đăng nhập thất bại");
-    }
-  };
-
-  const handleManualSubmit = async (e: React.FormEvent) => {
+  const handleSaveClientId = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customEmail || !customEmail.includes("@")) {
-      setErrorMsg("Vui lòng nhập địa chỉ email Google hợp lệ (ví dụ: banhflan@gmail.com)");
+    const cleanId = inputClientId.trim();
+    if (!cleanId || !cleanId.includes(".apps.googleusercontent.com")) {
+      setErrorMsg("Vui lòng nhập Google Client ID hợp lệ (kết thúc bằng .apps.googleusercontent.com)");
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSaving(true);
     setErrorMsg(null);
-    const res = await loginWithGoogle({
-      email: customEmail.trim(),
-      name: customName.trim() || customEmail.split("@")[0],
-    });
-    setIsSubmitting(false);
-    if (!res.success) {
-      setErrorMsg(res.error || "Đăng nhập thất bại");
+    const res = await saveGoogleClientId(cleanId);
+    setIsSaving(false);
+
+    if (res.success) {
+      // Tự động kích hoạt đăng nhập Google
+      setTimeout(() => {
+        triggerGoogleSignIn();
+      }, 300);
+    } else {
+      setErrorMsg(res.error || "Không thể lưu Google Client ID");
     }
   };
 
@@ -166,22 +138,23 @@ export default function GoogleAuthModal({ googleClientId }: GoogleAuthModalProps
                 Đăng Nhập Google
               </h3>
               <p className="text-xs font-bold text-flandi-muted">
-                Lưu địa chỉ & Tra cứu đơn bánh FLANDI
+                Quick Authentication with Google
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setIsAuthModalOpen(false)}
-            className="w-8 h-8 rounded-full bg-white/80 hover:bg-flandi-pink/50 text-flandi-dark flex items-center justify-center transition border border-flandi-pink/60"
+            className="w-8 h-8 rounded-full bg-white/80 hover:bg-flandi-pink/50 text-flandi-dark flex items-center justify-center transition border border-flandi-pink/60 cursor-pointer"
             title="Đóng"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Value Proposition: Non-intrusive benefits */}
+        {/* Body Content */}
         <div className="p-5 space-y-4">
+          {/* Lợi ích khi đăng nhập */}
           <div className="bg-flandi-bg/60 rounded-2xl p-3 border border-flandi-pink/60 space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-flandi-dark">
               <Check className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -203,119 +176,97 @@ export default function GoogleAuthModal({ googleClientId }: GoogleAuthModalProps
             </div>
           )}
 
-          {/* Official Google GSI Button Container (Rendered when Client ID is configured) */}
-          {activeClientId && (
-            <div className="flex flex-col items-center justify-center pt-1 pb-2">
-              <div ref={googleBtnContainerRef} className="min-h-[44px]" />
-              <div className="relative w-full my-3 flex items-center justify-center">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-flandi-pink/70" />
-                </div>
-                <span className="relative bg-white px-3 text-[11px] font-bold text-flandi-muted uppercase">
-                  hoặc chọn nhanh
-                </span>
-              </div>
-            </div>
-          )}
+          {/* TRƯỜNG HỢP 1: ĐÃ CÓ GOOGLE CLIENT ID -> HIỂN THỊ NÚT GOOGLE CHUẨN */}
+          {activeClientId ? (
+            <div className="space-y-3 pt-2">
+              <p className="text-xs font-bold text-slate-600 text-center">
+                Đăng nhập nhanh chóng và bảo mật bằng tài khoản Google của bạn:
+              </p>
 
-          {/* Quick Select Profile (Instant 1-Click for best UX without typing) */}
-          {!isManualInput ? (
-            <div className="space-y-2.5">
-              <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider block">
-                Chọn tài khoản Google:
-              </span>
-
-              <div className="space-y-2">
-                {sampleAccounts.map((acc) => (
-                  <button
-                    key={acc.email}
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => handleSelectSample(acc)}
-                    className="w-full p-2.5 rounded-2xl border-2 border-flandi-pink/70 hover:border-flandi-coral hover:bg-flandi-cream/30 bg-white flex items-center justify-between transition group shadow-2xs text-left"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <img
-                        src={acc.picture}
-                        alt={acc.name}
-                        className="w-9 h-9 rounded-full object-cover border border-flandi-pink shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-black text-flandi-dark group-hover:text-flandi-coral transition-colors truncate">
-                          {acc.name}
-                        </p>
-                        <p className="text-[11px] font-semibold text-flandi-muted truncate">
-                          {acc.email}
-                        </p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-flandi-muted group-hover:text-flandi-coral transition-transform group-hover:translate-x-0.5 shrink-0 mr-1" />
-                  </button>
-                ))}
+              {/* Official Google Button Rendered by GSI */}
+              <div className="flex justify-center items-center min-h-[46px] my-2">
+                <div ref={googleBtnContainerRef} className="flex justify-center" />
               </div>
 
-              <div className="pt-1 text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsManualInput(true)}
-                  className="text-xs font-extrabold text-flandi-coral hover:underline inline-flex items-center gap-1"
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span>Dùng địa chỉ Gmail khác của bạn</span>
-                </button>
-              </div>
+              {/* Native Google OAuth Popup Button */}
+              <button
+                type="button"
+                onClick={triggerGoogleSignIn}
+                className="w-full py-2.5 px-4 rounded-2xl border-2 border-flandi-pink/80 hover:border-flandi-coral bg-white hover:bg-flandi-cream/30 text-flandi-dark font-extrabold text-xs flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Mở cửa sổ chọn tài khoản Google</span>
+              </button>
             </div>
           ) : (
-            <form onSubmit={handleManualSubmit} className="space-y-3 pt-1">
-              <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider block">
-                Nhập tài khoản Google của bạn:
-              </span>
-              <div>
-                <label className="text-[11px] font-bold text-flandi-muted block mb-1">
-                  Địa chỉ Gmail *
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="vidu@gmail.com"
-                  value={customEmail}
-                  onChange={(e) => setCustomEmail(e.target.value)}
-                  className="w-full text-xs font-bold text-flandi-dark bg-flandi-bg/50 border border-flandi-pink rounded-xl px-3 py-2.5 focus:outline-none focus:border-flandi-coral"
-                />
+            /* TRƯỜNG HỢP 2: CHƯA CÓ GOOGLE CLIENT ID -> HƯỚNG DẪN KÍCH HOẠT NHANH */
+            <form onSubmit={handleSaveClientId} className="space-y-3 pt-1">
+              <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200 text-amber-900 text-xs space-y-1">
+                <div className="font-extrabold flex items-center gap-1.5">
+                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  <span>Kích hoạt Google Quick Authentication</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  Để đăng nhập tài khoản Google thực tế, hãy dán <strong>Google Client ID</strong> của bạn bên dưới (hoặc cấu hình biến môi trường <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>).
+                </p>
               </div>
+
               <div>
-                <label className="text-[11px] font-bold text-flandi-muted block mb-1">
-                  Họ và tên của bạn
+                <label className="text-[11px] font-extrabold text-flandi-dark block mb-1">
+                  Google Client ID (Web Application) *
                 </label>
                 <input
                   type="text"
-                  placeholder="Tên bạn muốn tiệm gọi khi giao bánh"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  className="w-full text-xs font-bold text-flandi-dark bg-flandi-bg/50 border border-flandi-pink rounded-xl px-3 py-2.5 focus:outline-none focus:border-flandi-coral"
+                  required
+                  placeholder="xxxx-xxxxxxxx.apps.googleusercontent.com"
+                  value={inputClientId}
+                  onChange={(e) => setInputClientId(e.target.value)}
+                  className="w-full text-xs font-bold text-flandi-dark bg-white border border-flandi-pink rounded-xl px-3 py-2.5 focus:outline-none focus:border-flandi-coral"
                 />
               </div>
 
               <div className="flex items-center gap-2 pt-1">
                 <button
-                  type="button"
-                  onClick={() => setIsManualInput(false)}
-                  className="py-2.5 px-4 rounded-xl border border-flandi-pink text-xs font-extrabold text-flandi-muted hover:bg-flandi-bg"
-                >
-                  Quay lại
-                </button>
-                <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white font-black text-xs shadow-cute flex items-center justify-center gap-2"
+                  disabled={isSaving}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white font-black text-xs shadow-cute flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {isSubmitting ? "Đang xử lý..." : "Tiếp tục đăng nhập"}
+                  {isSaving ? "Đang lưu cấu hình..." : "Lưu & Bắt đầu Đăng nhập Google"}
                 </button>
+              </div>
+
+              <div className="text-center pt-1">
+                <a
+                  href="https://console.cloud.google.com/apis/credentials"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] font-bold text-flandi-coral hover:underline inline-flex items-center gap-1"
+                >
+                  <span>Lấy Client ID từ Google Cloud Console</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             </form>
           )}
 
-          {/* Privacy Note: Respectful UX */}
+          {/* Privacy Note */}
           <div className="pt-2 border-t border-flandi-pink/50 flex items-center justify-between text-[11px] text-flandi-muted">
             <span className="flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -324,7 +275,7 @@ export default function GoogleAuthModal({ googleClientId }: GoogleAuthModalProps
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(false)}
-              className="font-bold hover:text-flandi-dark underline"
+              className="font-bold hover:text-flandi-dark underline cursor-pointer"
             >
               Để sau (Tiếp tục đặt bánh)
             </button>

@@ -42,7 +42,7 @@ interface QuickLineItem {
 }
 
 export default function QuickSingleScreenOrderPage() {
-  const { user, openAuthModal, openAccountDrawer } = useCustomerAuth();
+  const { user, triggerGoogleSignIn, openAccountDrawer } = useCustomerAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1009,7 +1009,7 @@ export default function QuickSingleScreenOrderPage() {
                     ) : (
                       <button
                         type="button"
-                        onClick={openAuthModal}
+                        onClick={triggerGoogleSignIn}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-flandi-coral/50 rounded-xl text-[11px] text-slate-600 font-medium transition cursor-pointer group"
                       >
                         <span className="flex items-center gap-1.5 min-w-0">
@@ -1405,7 +1405,7 @@ export default function QuickSingleScreenOrderPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={openAuthModal}
+                      onClick={triggerGoogleSignIn}
                       className="w-full flex items-center justify-between px-2.5 py-1.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-flandi-coral/50 rounded-xl text-[11px] text-slate-600 font-medium transition cursor-pointer group"
                     >
                       <span className="flex items-center gap-1.5 min-w-0">

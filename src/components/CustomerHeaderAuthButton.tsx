@@ -13,7 +13,7 @@ export default function CustomerHeaderAuthButton({
   className = "",
   variant = "pill",
 }: CustomerHeaderAuthButtonProps) {
-  const { user, loading, setIsAuthModalOpen, openAccountDrawer } =
+  const { user, loading, triggerGoogleSignIn, openAccountDrawer } =
     useCustomerAuth();
 
   if (loading) {
@@ -59,8 +59,8 @@ export default function CustomerHeaderAuthButton({
     <div className="flex items-center gap-1.5">
       <button
         type="button"
-        onClick={() => setIsAuthModalOpen(true)}
-        className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-dark font-extrabold text-xs border border-flandi-pink/90 hover:border-flandi-coral shadow-2xs transition active:scale-95 ${className}`}
+        onClick={triggerGoogleSignIn}
+        className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-dark font-extrabold text-xs border border-flandi-pink/90 hover:border-flandi-coral shadow-2xs transition active:scale-95 cursor-pointer ${className}`}
         title="Đăng nhập Google để lưu địa chỉ & tra cứu đơn hàng"
       >
         {/* Google Icon 4 colors */}

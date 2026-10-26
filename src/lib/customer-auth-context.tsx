@@ -203,45 +203,17 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
   // 7. Kích hoạt trực tiếp Google Quick Authentication khi người dùng bấm nút
   const triggerGoogleSignIn = useCallback(() => {
+    setIsAuthModalOpen(true);
+
     const google = (window as any).google;
-    if (!googleClientId) {
-      // Nếu chưa có Google Client ID thì mở hộp thoại cấu hình
-      setIsAuthModalOpen(true);
-      return;
-    }
-
-    // 7.1 Thử mở Google OAuth Popup trực tiếp (native Google account picker)
-    if (google?.accounts?.oauth2) {
-      try {
-        const client = google.accounts.oauth2.initTokenClient({
-          client_id: googleClientId,
-          scope: "email profile openid",
-          callback: async (tokenResponse: any) => {
-            if (tokenResponse?.access_token) {
-              await loginWithGoogle({ accessToken: tokenResponse.access_token });
-            }
-          },
-        });
-        client.requestAccessToken({ prompt: "select_account" });
-        return;
-      } catch (err) {
-        console.warn("Google OAuth popup failed, falling back to One Tap:", err);
-      }
-    }
-
-    // 7.2 Thử gọi Google One Tap Prompt
-    if (google?.accounts?.id) {
+    if (google?.accounts?.id && googleClientId) {
       try {
         google.accounts.id.prompt();
-        return;
       } catch (err) {
-        console.warn("Google One Tap prompt failed:", err);
+        console.warn("Google One Tap prompt warning:", err);
       }
     }
-
-    // 7.3 Mở modal nếu cần
-    setIsAuthModalOpen(true);
-  }, [googleClientId, loginWithGoogle]);
+  }, [googleClientId]);
 
   // 8. Đăng xuất
   const logout = async () => {

@@ -77,6 +77,29 @@ export default function GoogleAuthModal({ googleClientId: propClientId }: Google
 
   if (!isAuthModalOpen) return null;
 
+  const handleOAuthPopup = () => {
+    const google = (window as any).google;
+    if (google?.accounts?.oauth2 && activeClientId) {
+      try {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: activeClientId,
+          scope: "email profile openid",
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.access_token) {
+              const res = await loginWithGoogle({ accessToken: tokenResponse.access_token });
+              if (!res.success) {
+                setErrorMsg(res.error || "Đăng nhập Google thất bại");
+              }
+            }
+          },
+        });
+        client.requestAccessToken({ prompt: "select_account" });
+      } catch (err) {
+        console.error("OAuth popup failed:", err);
+      }
+    }
+  };
+
   const handleSaveClientId = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanId = inputClientId.trim();
@@ -191,7 +214,7 @@ export default function GoogleAuthModal({ googleClientId: propClientId }: Google
               {/* Native Google OAuth Popup Button */}
               <button
                 type="button"
-                onClick={triggerGoogleSignIn}
+                onClick={handleOAuthPopup}
                 className="w-full py-2.5 px-4 rounded-2xl border-2 border-flandi-pink/80 hover:border-flandi-coral bg-white hover:bg-flandi-cream/30 text-flandi-dark font-extrabold text-xs flex items-center justify-center gap-2 shadow-2xs transition cursor-pointer"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">

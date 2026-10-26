@@ -209,6 +209,7 @@ export interface ShopSettings {
   zaloPhone: string;
   facebookUrl?: string;
   messengerUrl?: string;
+  googleMapsUrl?: string;
   address: string;
   openHours: string;
   bankName: string;

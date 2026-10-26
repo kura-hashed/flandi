@@ -20,6 +20,7 @@ interface ShopContactModalProps {
   zaloPhone?: string;
   messengerUrl?: string;
   facebookUrl?: string;
+  googleMapsUrl?: string;
   address?: string;
   openHours?: string;
 }
@@ -39,6 +40,7 @@ export default function ShopContactModal({
   zaloPhone = "0703166903",
   messengerUrl,
   facebookUrl = "https://www.facebook.com/tiem.flandi",
+  googleMapsUrl = "https://maps.app.goo.gl/8eTbXKBdtogUjvUU7",
   address = "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh",
   openHours = "08:00 – 21:30 mỗi ngày",
 }: ShopContactModalProps) {
@@ -55,9 +57,11 @@ export default function ShopContactModal({
   };
 
   const cleanZalo = zaloPhone.replace(/\D/g, "");
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    address
-  )}`;
+  const mapsUrl =
+    googleMapsUrl ||
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      address
+    )}`;
 
   const resolvedMessengerUrl = (() => {
     if (messengerUrl) return messengerUrl;

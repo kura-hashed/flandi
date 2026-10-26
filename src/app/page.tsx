@@ -632,6 +632,7 @@ export default function FlandiLandingPage() {
         zaloPhone={settings?.zaloPhone || settings?.phone || "0703166903"}
         messengerUrl={settings?.messengerUrl}
         facebookUrl={settings?.facebookUrl || "https://www.facebook.com/tiem.flandi"}
+        googleMapsUrl={settings?.googleMapsUrl || "https://maps.app.goo.gl/8eTbXKBdtogUjvUU7"}
         address={settings?.address || "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh"}
         openHours={settings?.openHours || "08:00 – 21:30 mỗi ngày"}
       />

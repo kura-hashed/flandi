@@ -11,7 +11,7 @@
       "unit": "cái",
       "badgeText": "6k / cái",
       "image": "/images/products/flan.png",
-      "stock": 95,
+      "stock": 90,
       "stockUnit": "cái",
       "lowStockThreshold": 30,
       "isActive": true,
@@ -181,7 +181,7 @@
       "unit": "cái",
       "badgeText": "5k / cái",
       "image": "/images/products/yogurt.png",
-      "stock": 85,
+      "stock": 80,
       "stockUnit": "cái",
       "lowStockThreshold": 20,
       "isActive": true,
@@ -270,6 +270,28 @@
     }
   ],
   "stockLogs": [
+    {
+      "id": "log-1793001650345-o5b5",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -5,
+      "previousStock": 95,
+      "newStock": 90,
+      "reason": "Đơn hàng ONLINE #FL-7502 (5x Bánh Flan Trứng Sữa)",
+      "createdAt": "2026-10-26T08:00:50.345Z"
+    },
+    {
+      "id": "log-1793001650345-yrgj",
+      "targetId": "prod-yogurt",
+      "targetName": "Yogurt",
+      "targetType": "product",
+      "change": -5,
+      "previousStock": 85,
+      "newStock": 80,
+      "reason": "Đơn hàng ONLINE #FL-7502 (5x Sữa Chua Nhà Làm)",
+      "createdAt": "2026-10-26T08:00:50.345Z"
+    },
     {
       "id": "log-1792982669672-ephp",
       "targetId": "prod-flan",
@@ -360,6 +382,47 @@
     }
   ],
   "orders": [
+    {
+      "id": "ord-1793001650344",
+      "code": "FL-7502",
+      "source": "ONLINE",
+      "status": "PREPARING",
+      "customerId": "cust_1793001301928_ws23p",
+      "customerEmail": "lazyloadsloth@gmail.com",
+      "customerName": "Sloth",
+      "customerPhone": "0366053058",
+      "customerAddress": "123 Nguyễn Hữu Cảnh",
+      "note": "[Đặt nhanh qua DIRECT]",
+      "items": [
+        {
+          "productId": "prod-yogurt",
+          "productName": "Yogurt",
+          "variantId": "var-yg-1",
+          "variantName": "Sữa Chua Nhà Làm",
+          "quantity": 5,
+          "unitPrice": 5000,
+          "subtotal": 25000,
+          "stockDeductionPerItem": 1
+        },
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-1",
+          "variantName": "Bánh Flan Trứng Sữa",
+          "quantity": 5,
+          "unitPrice": 6000,
+          "subtotal": 30000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 55000,
+      "discount": 0,
+      "shippingFee": 15000,
+      "total": 70000,
+      "paymentMethod": "COD",
+      "isPaid": false,
+      "createdAt": "2026-10-26T08:00:50.344Z"
+    },
     {
       "id": "ord-1792982669672",
       "code": "FL-6303",
@@ -826,6 +889,33 @@
   },
   "chats": [
     {
+      "id": "chat-1792863095606-tr5y",
+      "customerName": "Sloth",
+      "customerPhone": "0366053058",
+      "unreadForAdmin": 1,
+      "updatedAt": "2026-10-26T08:00:50.569Z",
+      "messages": [
+        {
+          "id": "msg-welcome-1793001650569",
+          "sender": "BOT",
+          "text": "Xin chào Sloth! 🍮 Chào mừng bạn đến với tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”). Bạn nhắn tin trực tiếp tại đây, tiệm sẽ trả lời ngay lập tức nha!",
+          "createdAt": "2026-10-26T08:00:50.569Z"
+        },
+        {
+          "id": "msg-1793001650569-qa5r",
+          "sender": "CUSTOMER",
+          "text": "🍮 ĐƠN ĐẶT BÁNH FLANDI (#FL-7502)\n------------------------\n1. Yogurt: 5 cái x 5k = 25k\n2. Flan: 5 cái x 6k = 30k\n------------------------\n• Tạm tính: 55k\n• Phí ship: 15k\n💰 TỔNG CỘNG: 70k\n👤 Khách: Sloth - SĐT: 0366053058\n📍 Địa chỉ nhận: 123 Nguyễn Hữu Cảnh",
+          "createdAt": "2026-10-26T08:00:50.569Z"
+        },
+        {
+          "id": "msg-bot-1793001650569",
+          "sender": "BOT",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 150k trở lên nha!",
+          "createdAt": "2026-10-26T08:00:50.819Z"
+        }
+      ]
+    },
+    {
       "id": "chat-1792982658466-t9fi",
       "customerName": "Nguyễn Mai Anh",
       "customerPhone": "0909888999",
@@ -977,6 +1067,18 @@
       "phone": "0909888999",
       "address": "84 Lê Duẩn, Bến Nghé, Quận 1, TP.HCM",
       "deliveryNote": "Bấm chuông lầu 2 giúp em"
+    },
+    {
+      "id": "cust_1793001301928_ws23p",
+      "googleId": "108790470483766544550",
+      "email": "lazyloadsloth@gmail.com",
+      "name": "Sloth",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocJIPmDp84NzLMqpyvK2BP8b56S1Hh1NlEIEUOHhInMMnEUqeg0=s96-c",
+      "createdAt": "2026-10-26T07:55:01.928Z",
+      "updatedAt": "2026-10-26T08:00:36.772Z",
+      "phone": "0366053058",
+      "address": "123 Nguyễn Hữu Cảnh",
+      "deliveryNote": ""
     }
   ]
 }

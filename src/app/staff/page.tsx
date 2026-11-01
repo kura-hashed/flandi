@@ -208,6 +208,96 @@ export default function StaffPortalPage() {
   // Modal QR Code thanh toán nhanh
   const [qrModalOrder, setQrModalOrder] = useState<Order | null>(null);
 
+  // Bàn phím số Keypad nhập số lượng khác
+  const [keypadProduct, setKeypadProduct] = useState<Product | null>(null);
+  const [keypadDraftQty, setKeypadDraftQty] = useState<number>(0);
+  const [isFreshKeypadInput, setIsFreshKeypadInput] = useState<boolean>(true);
+
+  const getQtyForProduct = (productId: string): number => {
+    const item = cart.find((it) => it.product.id === productId);
+    return item?.quantity || 0;
+  };
+
+  const setExactQty = (product: Product, qty: number) => {
+    const baseVariant = product.variants && product.variants.length > 0 ? product.variants[0] : undefined;
+    const mult = baseVariant?.stockDeduction || 1;
+    if (product.stock < mult * qty) {
+      notify(`⚠️ Món "${product.name}" chỉ còn ${product.stock} ${product.stockUnit}!`);
+      return;
+    }
+
+    setCart((prev) => {
+      const idx = prev.findIndex((it) => it.product.id === product.id);
+      if (qty <= 0) {
+        if (idx > -1) {
+          const next = [...prev];
+          next.splice(idx, 1);
+          return next;
+        }
+        return prev;
+      }
+
+      if (idx > -1) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], quantity: qty };
+        return next;
+      }
+      return [...prev, { product, variant: baseVariant, quantity: qty }];
+    });
+    notify(` Đã chọn ${qty} ${product.unit || "cái"} ${product.name}`);
+  };
+
+  const openKeypad = (product: Product) => {
+    setKeypadProduct(product);
+    setKeypadDraftQty(getQtyForProduct(product.id));
+    setIsFreshKeypadInput(true);
+  };
+
+  const cancelKeypad = () => {
+    setKeypadProduct(null);
+    setIsFreshKeypadInput(true);
+  };
+
+  const confirmKeypad = () => {
+    if (keypadProduct) {
+      setExactQty(keypadProduct, keypadDraftQty);
+    }
+    setKeypadProduct(null);
+    setIsFreshKeypadInput(true);
+  };
+
+  const handleKeypadDigit = (digit: number) => {
+    if (!keypadProduct) return;
+    let nextVal: number;
+    if (isFreshKeypadInput) {
+      nextVal = digit;
+      setIsFreshKeypadInput(false);
+    } else {
+      if (keypadDraftQty === 0) {
+        nextVal = digit;
+      } else {
+        nextVal = Math.min(parseInt(`${keypadDraftQty}${digit}`, 10) || 0, 999);
+      }
+    }
+    setKeypadDraftQty(nextVal);
+  };
+
+  const handleKeypadBackspace = () => {
+    if (!keypadProduct) return;
+    setIsFreshKeypadInput(false);
+    const str = keypadDraftQty.toString();
+    if (str.length <= 1) {
+      setKeypadDraftQty(0);
+    } else {
+      setKeypadDraftQty(parseInt(str.slice(0, -1), 10) || 0);
+    }
+  };
+
+  const handleKeypadClear = () => {
+    setKeypadDraftQty(0);
+    setIsFreshKeypadInput(false);
+  };
+
   const notify = (msg: string) => {
     setToast(msg);
     setTimeout(() => {
@@ -858,94 +948,86 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
                 </div>
               </div>
 
-              {/* Product Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Product Cards Grid - Chọn nhanh 5, 10 hoặc Khác (ẩn tùy chọn vị) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {filteredProducts.map((product) => {
-                  const hasVariants = product.variants && product.variants.length > 0;
+                  const currentQty = getQtyForProduct(product.id);
+                  const isSelected = currentQty > 0;
+                  const unitLabel = product.unit || "cái";
+
                   return (
                     <div
                       key={product.id}
-                      className="bg-white rounded-3xl border-2 border-flandi-pink/80 p-3 shadow-2xs hover:shadow-cute transition flex flex-col justify-between"
+                      onClick={() => openKeypad(product)}
+                      className={`rounded-2xl border-2 transition-all p-3 cursor-pointer select-none flex items-center justify-between gap-2.5 shadow-2xs hover:shadow-cute ${
+                        isSelected
+                          ? "bg-white border-flandi-coral ring-1.5 ring-flandi-salmon/40"
+                          : "bg-white border-flandi-pink/80 hover:border-flandi-salmon"
+                      }`}
                     >
-                      <div className="flex gap-2.5">
-                        {/* Image */}
-                        <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden bg-flandi-cream border border-flandi-salmon/30 shrink-0 relative">
+                      {/* Left: Product image + Name + Price + Selected Qty */}
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs overflow-hidden">
                           <img
                             src={product.image || "/images/banner-hero.png"}
                             alt={product.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover rounded-[14px]"
                           />
                           {product.stock <= product.lowStockThreshold && (
-                            <span className="absolute bottom-0 inset-x-0 bg-red-600/90 text-white text-[9px] font-black text-center py-0.5">
+                            <span className="absolute bottom-0 inset-x-0 bg-red-600/90 text-white text-[8px] font-black text-center py-0.5">
                               Còn {product.stock}
                             </span>
                           )}
                         </div>
 
-                        {/* Title & Price */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-1">
-                            <h3 className="font-display text-sm text-flandi-dark leading-tight line-clamp-1">
-                              {product.name}
-                            </h3>
-                          </div>
-                          <p className="text-[11px] font-bold text-flandi-muted line-clamp-1">
-                            {product.subtitle || product.category}
-                          </p>
-                          <div className="mt-1 flex items-baseline gap-1.5">
-                            <span className="font-black text-sm text-flandi-coral">
-                              {formatVND(product.price)}
+                        <div className="min-w-0 flex flex-col justify-center">
+                          <h3 className="font-display text-sm text-flandi-dark leading-tight truncate">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span className="text-xs font-black text-flandi-coral tabular-nums">
+                              {product.badgeText || `${formatVND(product.price)}/${unitLabel}`}
                             </span>
-                            <span className="text-[10px] font-bold text-flandi-muted">
-                              /{product.unit || "cái"}
-                            </span>
+                            {isSelected && (
+                              <span className="text-[10px] font-black text-flandi-coral bg-flandi-cream px-1.5 py-0.5 rounded-md border border-flandi-pink/80 tabular-nums">
+                                = {formatVND(product.price * currentQty)} ({currentQty} {unitLabel})
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Quick Add Buttons */}
-                      <div className="mt-2.5 pt-2 border-t border-flandi-pink/40 flex items-center justify-between gap-1.5">
-                        {hasVariants ? (
-                          <div className="w-full flex items-center gap-1 overflow-x-auto no-scrollbar">
-                            {product.variants.map((variant) => (
-                              <button
-                                key={variant.id}
-                                type="button"
-                                onClick={() => addToCart(product, variant, 1)}
-                                className="px-2 py-1 rounded-xl bg-flandi-cream hover:bg-flandi-pink text-flandi-coral text-[11px] font-black whitespace-nowrap border border-flandi-salmon/40 transition active:scale-95 cursor-pointer"
-                              >
-                                + {variant.name} ({formatVND(variant.price)})
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="w-full flex items-center justify-between gap-1">
-                            <button
-                              type="button"
-                              onClick={() => addToCart(product, undefined, 1)}
-                              className="flex-1 py-1.5 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white text-xs font-black shadow-2xs transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>+1 cái</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => addToCart(product, undefined, 5)}
-                              className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-black border border-amber-300 transition active:scale-95 cursor-pointer"
-                              title="Thêm 5 cái"
-                            >
-                              +5
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => addToCart(product, undefined, 10)}
-                              className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300 transition active:scale-95 cursor-pointer"
-                              title="Thêm 10 cái (1 chục)"
-                            >
-                              +10
-                            </button>
-                          </div>
-                        )}
+                      {/* Right: Quick +5, +10, Khác buttons */}
+                      <div
+                        className="flex items-center gap-1 sm:gap-1.5 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {[5, 10].map((presetQty) => (
+                          <button
+                            key={presetQty}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExactQty(product, presetQty);
+                            }}
+                            title={`Chọn nhanh ${presetQty} ${unitLabel}`}
+                            className="h-8 sm:h-9 px-2 sm:px-3 min-w-[36px] sm:min-w-[42px] rounded-xl border border-flandi-salmon/85 bg-flandi-cream/90 hover:bg-flandi-coral hover:border-flandi-coral text-flandi-coral hover:text-white text-xs sm:text-[13px] font-black tabular-nums shadow-2xs hover:shadow-cute transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                          >
+                            +{presetQty}
+                          </button>
+                        ))}
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openKeypad(product);
+                          }}
+                          title="Nhập số lượng khác"
+                          className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-flandi-pink/90 hover:border-flandi-coral bg-white hover:bg-flandi-cream/60 text-flandi-dark/80 hover:text-flandi-coral text-xs font-extrabold shadow-2xs transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                        >
+                          Khác
+                        </button>
                       </div>
                     </div>
                   );
@@ -2051,6 +2133,142 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
             >
               ✓ Xác nhận khách đã chuyển khoản đủ
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* BÀN PHÍM SỐ KEYPAD CHỌN SỐ LƯỢNG KHÁC (GIỐNG TRANG ORDER)  */}
+      {/* ======================================================== */}
+      {keypadProduct && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+          onClick={cancelKeypad}
+        >
+          <div
+            className="w-full max-w-sm sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-cute-lg border-2 border-flandi-salmon overflow-hidden animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Keypad Header */}
+            <div className="bg-gradient-to-r from-flandi-cream via-[#FFF3EE] to-flandi-cream px-4 py-3 border-b border-flandi-pink/80 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+                  <img
+                    src={keypadProduct.image || "/images/banner-hero.png"}
+                    alt={keypadProduct.name}
+                    className="w-full h-full object-cover rounded-[10px] border border-white"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-display text-base sm:text-lg text-flandi-dark truncate">
+                    {keypadProduct.name}
+                  </h3>
+                  <p className="text-[13px] sm:text-sm font-extrabold text-flandi-coral tabular-nums">
+                    {keypadProduct.badgeText || `${formatVND(keypadProduct.price)}/${keypadProduct.unit || "cái"}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={cancelKeypad}
+                className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-flandi-muted hover:text-flandi-dark flex items-center justify-center border border-flandi-pink shadow-2xs transition active:scale-90 cursor-pointer"
+                title="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Live Quantity Display & Subtotal */}
+            <div className="px-5 py-2.5 sm:py-3 bg-white border-b border-flandi-pink/40 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider block">
+                  Số lượng
+                </span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-3xl sm:text-4xl font-black text-flandi-coral tracking-tight tabular-nums leading-none">
+                    {keypadDraftQty}
+                  </span>
+                  <span className="text-sm font-bold text-flandi-dark/70">
+                    {keypadProduct.unit || "cái"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider block">
+                  Thành tiền
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-flandi-dark mt-0.5 block tabular-nums leading-none">
+                  {formatVND(keypadProduct.price * keypadDraftQty)}
+                </span>
+              </div>
+            </div>
+
+            {/* Numeric Keypad Grid */}
+            <div className="p-3.5 sm:p-5 bg-flandi-bg/40 space-y-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => handleKeypadDigit(num)}
+                    className="h-12 sm:h-13 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark text-xl sm:text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none cursor-pointer tabular-nums"
+                  >
+                    {num}
+                  </button>
+                ))}
+
+                {/* Nút Xoá hết */}
+                <button
+                  type="button"
+                  onClick={handleKeypadClear}
+                  className="h-12 sm:h-13 rounded-2xl bg-amber-50 hover:bg-amber-100 active:bg-amber-200 border-2 border-amber-200/80 text-amber-700 font-extrabold text-[13px] sm:text-sm shadow-2xs transition active:scale-95 flex items-center justify-center select-none cursor-pointer"
+                >
+                  Xoá hết
+                </button>
+
+                {/* Số 0 */}
+                <button
+                  type="button"
+                  onClick={() => handleKeypadDigit(0)}
+                  className="h-12 sm:h-13 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark text-xl sm:text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none cursor-pointer tabular-nums"
+                >
+                  0
+                </button>
+
+                {/* Backspace ⌫ */}
+                <button
+                  type="button"
+                  onClick={handleKeypadBackspace}
+                  className="h-12 sm:h-13 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 border-2 border-slate-300/80 text-slate-700 font-black text-xl shadow-2xs transition active:scale-95 flex items-center justify-center select-none cursor-pointer"
+                >
+                  ⌫
+                </button>
+              </div>
+
+              {/* Action Buttons: Xác nhận & Hủy */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={cancelKeypad}
+                  className="w-1/3 py-3 rounded-2xl bg-white hover:bg-flandi-cream border-2 border-flandi-pink text-flandi-dark font-extrabold text-xs sm:text-sm shadow-2xs transition active:scale-95 cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmKeypad}
+                  className="flex-1 py-3 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-black text-xs sm:text-sm shadow-cute transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>
+                    {keypadDraftQty > 0
+                      ? `Xác nhận (${keypadDraftQty} ${keypadProduct.unit || "cái"})`
+                      : "Bỏ món khỏi đơn"}
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

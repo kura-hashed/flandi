@@ -1314,28 +1314,39 @@ export default function FlandiPosPage() {
                         </div>
                       </div>
 
-                      {/* Quick Variant Tap Buttons for Fast Cashier Entry */}
-                      <div className="grid grid-cols-1 gap-1.5 pt-2 border-t border-flandi-pink/50">
-                        {product.variants.map((v) => {
-                          const disabled = product.stock < v.stockDeduction;
-                          return (
-                            <button
-                              key={v.id}
-                              disabled={disabled}
-                              onClick={() => addToPosCart(product, v)}
-                              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between border transition ${
-                                disabled
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                  : "bg-flandi-bg hover:bg-flandi-salmon hover:text-white border-flandi-pink text-flandi-dark active:scale-98"
-                              }`}
-                            >
-                              <span className="truncate">+ {v.name}</span>
-                              <span className="font-extrabold shrink-0 ml-2">
-                                {formatVND(v.price)}
-                              </span>
-                            </button>
-                          );
-                        })}
+                      {/* Quick 5, 10, Khác buttons (ẩn tùy chọn vị) */}
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-flandi-pink/50">
+                        {[5, 10].map((presetQty) => (
+                          <button
+                            key={presetQty}
+                            disabled={product.stock < presetQty}
+                            onClick={() => {
+                              const baseVariant = product.variants && product.variants.length > 0
+                                ? product.variants[0]
+                                : { id: "base", name: product.unit || "cái", price: product.price, unitLabel: product.unit || "cái", stockDeduction: 1 };
+                              addToPosCart(product, baseVariant, presetQty);
+                            }}
+                            className="flex-1 py-1.5 rounded-xl border border-flandi-salmon/80 bg-flandi-cream hover:bg-flandi-coral hover:text-white text-flandi-coral text-xs font-black shadow-2xs transition active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
+                          >
+                            +{presetQty}
+                          </button>
+                        ))}
+                        <button
+                          disabled={product.stock < 1}
+                          onClick={() => {
+                            const customVal = prompt(`Nhập số lượng cho ${product.name}:`, "1");
+                            const num = parseInt(customVal || "0", 10);
+                            if (num > 0) {
+                              const baseVariant = product.variants && product.variants.length > 0
+                                ? product.variants[0]
+                                : { id: "base", name: product.unit || "cái", price: product.price, unitLabel: product.unit || "cái", stockDeduction: 1 };
+                              addToPosCart(product, baseVariant, num);
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-xl border border-flandi-pink hover:border-flandi-coral bg-white hover:bg-flandi-cream/60 text-flandi-dark text-xs font-extrabold shadow-2xs transition active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
+                        >
+                          Khác
+                        </button>
                       </div>
                     </div>
                   );

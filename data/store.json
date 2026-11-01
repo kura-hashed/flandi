@@ -1413,12 +1413,13 @@
     {
       "id": "cust_1793518295502_utrli",
       "email": "kura.hashed@gmail.com",
-      "name": "Kura Admin",
+      "name": "Hashed",
       "role": "admin",
       "roleUpdatedAt": "2026-11-01T07:31:35.487Z",
       "createdAt": "2026-11-01T07:31:35.487Z",
-      "updatedAt": "2026-11-01T07:31:35.487Z",
-      "picture": "https://api.dicebear.com/7.x/bottts/svg?seed=kura.hashed%40gmail.com"
+      "updatedAt": "2026-11-01T07:33:22.587Z",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocKWH4-dtUBYNLxG7h8OdKZCPmkJrUW4rO0DtI7MOk0ghPcY35kH=s96-c",
+      "googleId": "102988348234485440639"
     }
   ],
   "auditLogs": [

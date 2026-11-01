@@ -84,7 +84,12 @@ export interface AuditLogEntry {
 }
 
 export type OrderSource = "POS" | "ONLINE" | "ZALO" | "GRAB_SHOPEE";
-export type OrderStatus = "PENDING" | "PREPARING" | "COMPLETED" | "CANCELLED";
+export type OrderStatus =
+  | "PENDING"
+  | "PREPARING"
+  | "DELIVERING"
+  | "COMPLETED"
+  | "CANCELLED";
 export type PaymentMethod = "CASH" | "VIETQR" | "COD" | "MOMO";
 
 export interface Order {

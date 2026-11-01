@@ -42,6 +42,7 @@ import {
   KeyRound,
   AlertCircle,
   Users,
+  Bike,
 } from "lucide-react";
 import {
   Product,
@@ -877,6 +878,15 @@ export default function FlandiAdminPage() {
               <RefreshCw className="w-4 h-4" />
             </button>
             <Link
+              href="/ship"
+              className="px-3 py-1.5 sm:py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 font-extrabold text-xs flex items-center gap-1.5 shadow-2xs transition active:scale-95"
+              title="Tổng hợp đơn & Đi giao hàng (/ship)"
+            >
+              <Bike className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Giao Hàng</span>
+              <span className="sm:hidden">Ship</span>
+            </Link>
+            <Link
               href="/pos"
               className="px-3 py-1.5 sm:py-2 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs flex items-center gap-1.5 shadow-2xs"
             >
@@ -1503,6 +1513,7 @@ export default function FlandiAdminPage() {
                   { id: "ALL", label: "Tất cả đơn" },
                   { id: "PENDING", label: "⏳ Chờ xác nhận" },
                   { id: "PREPARING", label: "🍮 Đang chuẩn bị" },
+                  { id: "DELIVERING", label: "🛵 Đang đi giao" },
                   { id: "COMPLETED", label: "✅ Hoàn thành" },
                   { id: "CANCELLED", label: "❌ Đã huỷ" },
                 ].map((st) => (
@@ -1558,6 +1569,8 @@ export default function FlandiAdminPage() {
                             ? "bg-amber-100 text-amber-800"
                             : order.status === "PREPARING"
                             ? "bg-blue-100 text-blue-700"
+                            : order.status === "DELIVERING"
+                            ? "bg-sky-100 text-sky-800"
                             : "bg-red-100 text-red-700"
                         }`}
                       >
@@ -1567,6 +1580,8 @@ export default function FlandiAdminPage() {
                           ? "Chờ xác nhận"
                           : order.status === "PREPARING"
                           ? "Đang chuẩn bị"
+                          : order.status === "DELIVERING"
+                          ? "🛵 Đang đi giao"
                           : "Đã huỷ (Đã hoàn kho)"}
                       </span>
                       <span className="text-xs text-flandi-muted font-semibold">
@@ -1649,11 +1664,23 @@ export default function FlandiAdminPage() {
                           }
                           className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-extrabold hover:bg-blue-700"
                         >
-                          Nhận đơn
+                          Làm bánh
                         </button>
                       )}
                       {(order.status === "PENDING" ||
                         order.status === "PREPARING") && (
+                        <button
+                          onClick={() =>
+                            handleUpdateOrderStatus(order.id, "DELIVERING")
+                          }
+                          className="px-3 py-2 rounded-xl bg-sky-600 text-white text-xs font-extrabold hover:bg-sky-700"
+                        >
+                          Đi giao
+                        </button>
+                      )}
+                      {(order.status === "PENDING" ||
+                        order.status === "PREPARING" ||
+                        order.status === "DELIVERING") && (
                         <button
                           onClick={() =>
                             handleUpdateOrderStatus(order.id, "COMPLETED", true)

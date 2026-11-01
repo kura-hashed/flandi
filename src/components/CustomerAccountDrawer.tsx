@@ -186,6 +186,12 @@ export default function CustomerAccountDrawer({
           bg: "bg-orange-100 text-orange-800 border-orange-300",
           icon: <Sparkles className="w-3 h-3" />,
         };
+      case "DELIVERING":
+        return {
+          label: "Đang đi giao",
+          bg: "bg-sky-100 text-sky-800 border-sky-300",
+          icon: <Truck className="w-3 h-3" />,
+        };
       case "COMPLETED":
         return {
           label: "Giao thành công",
@@ -320,6 +326,13 @@ export default function CustomerAccountDrawer({
                 className="px-3 py-1.5 rounded-xl bg-white hover:bg-flandi-cream text-flandi-coral border border-flandi-salmon/80 text-xs font-extrabold shadow-2xs transition"
               >
                 Máy POS (/pos)
+              </Link>
+              <Link
+                href="/ship"
+                onClick={() => setIsAccountDrawerOpen(false)}
+                className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 text-xs font-extrabold shadow-2xs transition"
+              >
+                🛵 Giao hàng (/ship)
               </Link>
               {can("orders:manage") && (
                 <Link

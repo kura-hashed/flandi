@@ -34,6 +34,7 @@ import {
   AlertTriangle,
   Clipboard,
   Maximize2,
+  Bike,
   Smartphone,
 } from "lucide-react";
 import {
@@ -718,6 +719,14 @@ export default function FlandiPosPage() {
           >
             <RefreshCw className="w-4 h-4" />
           </button>
+          <Link
+            href="/ship"
+            className="px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 font-extrabold text-xs hidden sm:flex items-center gap-1.5 shadow-2xs transition active:scale-95"
+            title="Trang giao hàng & Soạn thùng bánh (/ship)"
+          >
+            <Bike className="w-3.5 h-3.5" />
+            <span>Giao Hàng (/ship)</span>
+          </Link>
           <Link
             href="/admin"
             className="px-3.5 py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-salmon font-extrabold text-xs hidden md:flex items-center gap-1.5"

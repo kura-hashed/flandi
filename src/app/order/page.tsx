@@ -28,6 +28,7 @@ import {
   Download,
   Lock,
   Maximize2,
+  Bike,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import { ROLE_META } from "@/lib/rbac";
@@ -1527,6 +1528,16 @@ export default function QuickSingleScreenOrderPage() {
         </Link>
 
         <div className="flex items-center gap-2 text-xs sm:text-[13px] shrink-0">
+          {(role === "staff" || role === "admin") && (
+            <Link
+              href="/ship"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-700 font-extrabold border border-sky-300 shadow-2xs transition active:scale-95"
+              title="Khu vực điều phối & giao hàng"
+            >
+              <Bike className="w-3.5 h-3.5" />
+              <span>Giao Hàng</span>
+            </Link>
+          )}
           <CustomerHeaderAuthButton />
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink/80 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5" />

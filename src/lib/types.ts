@@ -52,7 +52,7 @@ export interface StockLog {
 export interface OrderItem {
   productId: string;
   productName: string;
-  variantId: string;
+  variantId?: string;
   variantName: string;
   quantity: number;
   unitPrice: number;
@@ -105,6 +105,7 @@ export interface Order {
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
+  deliveryTime?: string;
   note?: string;
   attachmentImage?: string; // Photo of handwritten order, chat screenshot, or payment bill
   items: OrderItem[];

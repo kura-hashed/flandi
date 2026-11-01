@@ -713,6 +713,13 @@ export default function ShippingDispatchPage() {
             </button>
 
             <Link
+              href="/staff"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-flandi-pink/40 text-flandi-dark border border-flandi-pink text-xs font-extrabold shadow-2xs"
+            >
+              <span>Staff</span>
+            </Link>
+
+            <Link
               href="/pos"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-flandi-pink/40 text-flandi-dark border border-flandi-pink text-xs font-extrabold shadow-2xs"
             >

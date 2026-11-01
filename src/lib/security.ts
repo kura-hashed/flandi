@@ -362,6 +362,7 @@ export function verifyAndSanitizeOrder(
     customerName,
     customerPhone: rawPhone,
     customerAddress,
+    deliveryTime: body.deliveryTime ? sanitizeString(String(body.deliveryTime), 120) : undefined,
     note,
     attachmentImage: typeof body.attachmentImage === "string" && body.attachmentImage.startsWith("data:image/")
       ? body.attachmentImage

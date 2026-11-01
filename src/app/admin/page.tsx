@@ -878,6 +878,13 @@ export default function FlandiAdminPage() {
               <RefreshCw className="w-4 h-4" />
             </button>
             <Link
+              href="/staff"
+              className="px-3 py-1.5 sm:py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-pink font-extrabold text-xs flex items-center gap-1.5 shadow-2xs transition active:scale-95"
+              title="Kênh nhân viên lên & quản lý đơn (/staff)"
+            >
+              <span>Staff</span>
+            </Link>
+            <Link
               href="/ship"
               className="px-3 py-1.5 sm:py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 font-extrabold text-xs flex items-center gap-1.5 shadow-2xs transition active:scale-95"
               title="Tổng hợp đơn & Đi giao hàng (/ship)"

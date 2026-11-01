@@ -313,6 +313,15 @@ export default function CustomerAccountDrawer({
           {/* Lối tắt nội bộ cho Staff & Admin */}
           {(can("orders:create") || can("orders:manage")) && (
             <div className="mt-3 flex items-center gap-2 flex-wrap">
+              {(role === "staff" || role === "admin" || can("orders:manage")) && (
+                <Link
+                  href="/staff"
+                  onClick={() => setIsAccountDrawerOpen(false)}
+                  className="px-3 py-1.5 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white text-xs font-black shadow-2xs transition"
+                >
+                  👩‍💼 Màn hình Staff (/staff)
+                </Link>
+              )}
               <Link
                 href="/order"
                 onClick={() => setIsAccountDrawerOpen(false)}
@@ -338,7 +347,7 @@ export default function CustomerAccountDrawer({
                 <Link
                   href="/admin"
                   onClick={() => setIsAccountDrawerOpen(false)}
-                  className="px-3 py-1.5 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white text-xs font-extrabold shadow-2xs transition"
+                  className="px-3 py-1.5 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-pink text-xs font-extrabold shadow-2xs transition"
                 >
                   {can("users:manage") ? "Quản trị & Phân quyền" : "Đơn hàng trong ca"}
                 </Link>

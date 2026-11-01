@@ -1529,14 +1529,23 @@ export default function QuickSingleScreenOrderPage() {
 
         <div className="flex items-center gap-2 text-xs sm:text-[13px] shrink-0">
           {(role === "staff" || role === "admin") && (
-            <Link
-              href="/ship"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-700 font-extrabold border border-sky-300 shadow-2xs transition active:scale-95"
-              title="Khu vực điều phối & giao hàng"
-            >
-              <Bike className="w-3.5 h-3.5" />
-              <span>Giao Hàng</span>
-            </Link>
+            <>
+              <Link
+                href="/staff"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral font-extrabold border border-flandi-pink shadow-2xs transition active:scale-95"
+                title="Màn hình lên đơn & quản lý đơn cho Staff"
+              >
+                <span>Màn hình Staff</span>
+              </Link>
+              <Link
+                href="/ship"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 text-sky-700 font-extrabold border border-sky-300 shadow-2xs transition active:scale-95"
+                title="Khu vực điều phối & giao hàng"
+              >
+                <Bike className="w-3.5 h-3.5" />
+                <span>Giao Hàng</span>
+              </Link>
+            </>
           )}
           <CustomerHeaderAuthButton />
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink/80 shadow-2xs">

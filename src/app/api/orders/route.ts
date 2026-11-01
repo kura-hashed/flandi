@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readDb, writeDb } from "@/lib/db";
-import { OrderStatus } from "@/lib/types";
+import { OrderStatus, PaymentMethod, OrderItem } from "@/lib/types";
 import {
   getClientIp,
   orderRateLimiter,
@@ -167,12 +167,34 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { orderId, status, isPaid, attachmentImage, note } = body as {
+    const {
+      orderId,
+      status,
+      isPaid,
+      attachmentImage,
+      note,
+      customerName,
+      customerPhone,
+      customerAddress,
+      deliveryTime,
+      shippingFee,
+      discount,
+      paymentMethod,
+      items,
+    } = body as {
       orderId: string;
       status?: OrderStatus;
       isPaid?: boolean;
       attachmentImage?: string;
       note?: string;
+      customerName?: string;
+      customerPhone?: string;
+      customerAddress?: string;
+      deliveryTime?: string;
+      shippingFee?: number;
+      discount?: number;
+      paymentMethod?: PaymentMethod;
+      items?: OrderItem[];
     };
 
     const order = db.orders.find((o) => o.id === orderId);
@@ -215,6 +237,38 @@ export async function PATCH(request: Request) {
     if (typeof note === "string") {
       order.note = note.slice(0, 300);
     }
+    if (typeof customerName === "string" && customerName.trim()) {
+      order.customerName = customerName.trim();
+    }
+    if (typeof customerPhone === "string") {
+      order.customerPhone = customerPhone.trim();
+    }
+    if (typeof customerAddress === "string") {
+      order.customerAddress = customerAddress.trim();
+    }
+    if (typeof deliveryTime === "string") {
+      order.deliveryTime = deliveryTime.trim();
+    }
+    if (typeof shippingFee === "number" && !isNaN(shippingFee)) {
+      order.shippingFee = Math.max(0, shippingFee);
+    }
+    if (typeof discount === "number" && !isNaN(discount)) {
+      order.discount = Math.max(0, discount);
+    }
+    if (paymentMethod) {
+      order.paymentMethod = paymentMethod;
+    }
+    if (Array.isArray(items) && items.length > 0) {
+      order.items = items;
+      order.subtotal = items.reduce(
+        (sum, it) => sum + (it.subtotal || it.quantity * it.unitPrice || 0),
+        0
+      );
+    }
+    order.total = Math.max(
+      0,
+      (order.subtotal || 0) - (order.discount || 0) + (order.shippingFee || 0)
+    );
 
     writeDb(db);
     const canSeeFullStore = actor.permissions.includes("store:manage");

@@ -1104,47 +1104,92 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
                         </div>
                       </div>
 
-                      {/* Right: Quick +5, +10, Khác buttons */}
+                      {/* Right: Quick Presets (+5, +10) & Quantity Stepper (-, input, +) */}
                       <div
-                        className="flex items-center gap-1 sm:gap-1.5 shrink-0"
+                        className="flex items-center gap-1.5 sm:gap-2 shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {[5, 10].map((presetQty) => (
+                        {/* Nhóm chọn nhanh +5, +10 (Style chip vàng mật ong tách biệt hoàn toàn) */}
+                        <div className="flex items-center bg-amber-50/90 p-0.5 rounded-xl border border-amber-200/90 shadow-2xs">
+                          {[5, 10].map((presetQty) => {
+                            const isPresetActive = currentQty === presetQty;
+                            return (
+                              <button
+                                key={presetQty}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExactQty(product, presetQty);
+                                }}
+                                title={`Chọn nhanh ${presetQty} ${unitLabel}`}
+                                className={`h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg text-xs font-black tabular-nums transition-all active:scale-95 flex items-center justify-center cursor-pointer ${
+                                  isPresetActive
+                                    ? "bg-amber-500 text-white shadow-xs font-black"
+                                    : "text-amber-800 hover:bg-amber-200/70"
+                                }`}
+                              >
+                                +{presetQty}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Bộ điều khiển số lượng (Stepper: [-] [ input ] [+]) */}
+                        <div
+                          className={`flex items-center rounded-xl border-2 transition-all overflow-hidden ${
+                            isSelected
+                              ? "border-flandi-coral bg-white shadow-2xs ring-2 ring-flandi-coral/20"
+                              : "border-slate-200 bg-slate-50/80 hover:border-slate-300"
+                          }`}
+                        >
                           <button
-                            key={presetQty}
+                            type="button"
+                            disabled={currentQty <= 0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExactQty(product, Math.max(0, currentQty - 1));
+                            }}
+                            title="Giảm 1"
+                            aria-label={`Giảm 1 ${unitLabel} ${product.name}`}
+                            className="w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center text-slate-500 hover:text-flandi-coral hover:bg-flandi-cream/60 transition disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer text-sm font-black select-none"
+                          >
+                            −
+                          </button>
+
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={currentQty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, "");
+                              const num = parseInt(val, 10) || 0;
+                              setExactQty(product, Math.min(num, 999));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className={`w-9 sm:w-11 h-7 sm:h-8 text-center font-black text-xs sm:text-sm tabular-nums bg-transparent border-x transition-colors focus:outline-none cursor-text ${
+                              isSelected
+                                ? "text-flandi-coral border-flandi-coral/25 bg-flandi-cream/25 focus:bg-flandi-cream/60"
+                                : "text-slate-600 border-slate-200 focus:bg-white"
+                            }`}
+                            title="Nhập số lượng trực tiếp (gõ phím bất kỳ số nào)"
+                            aria-label={`Số lượng ${product.name}`}
+                          />
+
+                          <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setExactQty(product, presetQty);
+                              setExactQty(product, currentQty + 1);
                             }}
-                            title={`Chọn nhanh ${presetQty} ${unitLabel}`}
-                            className="h-8 sm:h-9 px-2 sm:px-3 min-w-[36px] sm:min-w-[42px] rounded-xl border border-flandi-salmon/85 bg-flandi-cream/90 hover:bg-flandi-coral hover:border-flandi-coral text-flandi-coral hover:text-white text-xs sm:text-[13px] font-black tabular-nums shadow-2xs hover:shadow-cute transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                            title="Tăng 1"
+                            aria-label={`Tăng 1 ${unitLabel} ${product.name}`}
+                            className="w-7 sm:w-8 h-7 sm:h-8 flex items-center justify-center text-slate-500 hover:text-flandi-coral hover:bg-flandi-cream/60 transition cursor-pointer text-sm font-black select-none"
                           >
-                            +{presetQty}
+                            +
                           </button>
-                        ))}
-
-                        {/* Ô nhập số lượng trực tiếp (mặc định 0) thay cho ô Khác */}
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={currentQty}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, "");
-                            const num = parseInt(val, 10) || 0;
-                            setExactQty(product, Math.min(num, 999));
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className={`h-8 sm:h-9 w-12 sm:w-14 text-center font-black text-xs sm:text-sm rounded-xl border-2 transition-all tabular-nums focus:outline-none focus:ring-2 focus:ring-flandi-coral/30 cursor-text ${
-                            isSelected
-                              ? "bg-flandi-cream/90 border-flandi-coral text-flandi-coral shadow-2xs"
-                              : "bg-white border-flandi-pink/80 hover:border-flandi-salmon text-flandi-dark/70"
-                          }`}
-                          title="Nhập số lượng trực tiếp (mặc định 0)"
-                          aria-label={`Số lượng ${product.name}`}
-                        />
+                        </div>
                       </div>
                     </div>
                   );

@@ -1162,62 +1162,108 @@ export default function FlandiAdminPage() {
                         </div>
                       </div>
 
-                      {/* Quick 5, 10, Khác buttons (ẩn tùy chọn vị) */}
-                      <div className="flex items-center gap-1.5 pt-2 border-t border-flandi-pink/50">
-                        {[5, 10].map((presetQty) => (
-                          <button
-                            key={presetQty}
-                            disabled={product.stock < presetQty}
-                            onClick={() => {
-                              const baseVariant = product.variants && product.variants.length > 0
-                                ? product.variants[0]
-                                : { id: "base", name: product.unit || "cái", price: product.price, unitLabel: product.unit || "cái", stockDeduction: 1 };
-                              addToPosCart(product, baseVariant, presetQty);
-                            }}
-                            className="flex-1 py-1.5 rounded-xl border border-flandi-salmon/80 bg-flandi-cream hover:bg-flandi-coral hover:text-white text-flandi-coral text-xs font-black shadow-2xs transition active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
-                          >
-                            +{presetQty}
-                          </button>
-                        ))}
-                        {/* Ô nhập số lượng trực tiếp (mặc định 0) thay cho ô Khác */}
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={posCart.find((it) => it.product.id === product.id)?.quantity || 0}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, "");
-                            const num = parseInt(val, 10) || 0;
-                            const baseVariant = product.variants && product.variants.length > 0
-                              ? product.variants[0]
-                              : { id: "base", name: product.unit || "cái", price: product.price, unitLabel: product.unit || "cái", stockDeduction: 1 };
-                            setPosCart((prev) => {
-                              const idx = prev.findIndex((i) => i.product.id === product.id);
-                              if (num <= 0) {
-                                if (idx > -1) {
-                                  const next = [...prev];
-                                  next.splice(idx, 1);
-                                  return next;
-                                }
-                                return prev;
-                              }
+                      {/* Quick Presets (+5, +10) & Quantity Stepper (-, input, +) */}
+                      {(() => {
+                        const baseVariant = product.variants && product.variants.length > 0
+                          ? product.variants[0]
+                          : { id: "base", name: product.unit || "cái", price: product.price, unitLabel: product.unit || "cái", stockDeduction: 1 };
+                        const posQty = posCart.find((it) => it.product.id === product.id)?.quantity || 0;
+                        const isSelected = posQty > 0;
+                        const setPosQty = (qty: number) => {
+                          setPosCart((prev) => {
+                            const idx = prev.findIndex((i) => i.product.id === product.id);
+                            if (qty <= 0) {
                               if (idx > -1) {
                                 const next = [...prev];
-                                next[idx] = { ...next[idx], quantity: num };
+                                next.splice(idx, 1);
                                 return next;
                               }
-                              return [...prev, { product, variant: baseVariant, quantity: num }];
-                            });
-                          }}
-                          className={`h-8 w-12 text-center font-black text-xs rounded-xl border-2 transition-all tabular-nums focus:outline-none focus:ring-2 focus:ring-flandi-coral/30 cursor-text ${
-                            (posCart.find((it) => it.product.id === product.id)?.quantity || 0) > 0
-                              ? "bg-flandi-cream border-flandi-coral text-flandi-coral shadow-2xs"
-                              : "bg-white border-flandi-pink text-flandi-dark/70"
-                          }`}
-                          title="Nhập số lượng trực tiếp (mặc định 0)"
-                        />
-                      </div>
+                              return prev;
+                            }
+                            if (idx > -1) {
+                              const next = [...prev];
+                              next[idx] = { ...next[idx], quantity: qty };
+                              return next;
+                            }
+                            return [...prev, { product, variant: baseVariant, quantity: qty }];
+                          });
+                        };
+
+                        return (
+                          <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-flandi-pink/50">
+                            {/* Nhóm chọn nhanh +5, +10 (Style chip vàng mật ong) */}
+                            <div className="flex items-center bg-amber-50/90 p-0.5 rounded-xl border border-amber-200/90 shadow-2xs">
+                              {[5, 10].map((presetQty) => {
+                                const isPresetActive = posQty === presetQty;
+                                return (
+                                  <button
+                                    key={presetQty}
+                                    type="button"
+                                    disabled={product.stock < presetQty}
+                                    onClick={() => setPosQty(presetQty)}
+                                    title={`Chọn nhanh ${presetQty} ${product.unit || "cái"}`}
+                                    className={`h-7 px-2 rounded-lg text-xs font-black tabular-nums transition-all active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40 ${
+                                      isPresetActive
+                                        ? "bg-amber-500 text-white shadow-xs font-black"
+                                        : "text-amber-800 hover:bg-amber-200/70"
+                                    }`}
+                                  >
+                                    +{presetQty}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Stepper: [-] [ input ] [+] */}
+                            <div
+                              className={`flex items-center rounded-xl border-2 transition-all overflow-hidden ${
+                                isSelected
+                                  ? "border-flandi-coral bg-white shadow-2xs ring-2 ring-flandi-coral/20"
+                                  : "border-slate-200 bg-slate-50/80 hover:border-slate-300"
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                disabled={posQty <= 0}
+                                onClick={() => setPosQty(Math.max(0, posQty - 1))}
+                                title="Giảm 1"
+                                className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-flandi-coral hover:bg-flandi-cream/60 transition disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer text-sm font-black select-none"
+                              >
+                                −
+                              </button>
+
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={posQty}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9]/g, "");
+                                  const num = parseInt(val, 10) || 0;
+                                  setPosQty(Math.min(num, product.stock));
+                                }}
+                                className={`w-9 h-7 text-center font-black text-xs tabular-nums bg-transparent border-x transition-colors focus:outline-none cursor-text ${
+                                  isSelected
+                                    ? "text-flandi-coral border-flandi-coral/25 bg-flandi-cream/25 focus:bg-flandi-cream/60"
+                                    : "text-slate-600 border-slate-200 focus:bg-white"
+                                }`}
+                                title="Nhập số lượng trực tiếp"
+                              />
+
+                              <button
+                                type="button"
+                                disabled={product.stock <= posQty}
+                                onClick={() => setPosQty(posQty + 1)}
+                                title="Tăng 1"
+                                className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-flandi-coral hover:bg-flandi-cream/60 transition disabled:opacity-25 cursor-pointer text-sm font-black select-none"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

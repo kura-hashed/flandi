@@ -38,7 +38,20 @@ import {
   Lock,
   ArrowRight,
   ExternalLink,
+  Camera,
+  Wand2,
+  Upload,
+  Eye,
+  Image as ImageIcon,
+  Loader2,
+  FileSearch,
 } from "lucide-react";
+import { compressImageFile } from "@/components/LedgerBookManager";
+import {
+  parseOrderText,
+  ParsedOrderResult,
+  ParsedItemMatch,
+} from "@/lib/order-ocr-parser";
 import {
   Product,
   ProductVariant,
@@ -180,6 +193,14 @@ export default function StaffPortalPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [lastCreatedOrder, setLastCreatedOrder] = useState<Order | null>(null);
+
+  // --- AI OCR Image Order Import State ---
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isScanningOcr, setIsScanningOcr] = useState(false);
+  const [ocrConfidence, setOcrConfidence] = useState<number | null>(null);
+  const [parsedOcrResult, setParsedOcrResult] = useState<ParsedOrderResult | null>(null);
+  const [ocrImagePreview, setOcrImagePreview] = useState<string | null>(null);
+  const [showOcrResultModal, setShowOcrResultModal] = useState(false);
 
   // -------------------------
   // TAB 2: QUẢN LÝ ĐƠN STATE
@@ -448,6 +469,7 @@ export default function StaffPortalPage() {
         customerAddress: customerAddress.trim() || undefined,
         deliveryTime: deliveryTime.trim() || undefined,
         note: orderNote.trim() || undefined,
+        attachmentImage: ocrImagePreview || undefined,
         items: itemsPayload,
         shippingFee: customShippingFee,
         discount: customDiscount,
@@ -483,12 +505,76 @@ export default function StaffPortalPage() {
       setCustomDiscount(0);
       setCustomShippingFee(0);
       setIsPaidDraft(false);
+      setOcrImagePreview(null);
+      setParsedOcrResult(null);
+      setOcrConfidence(null);
 
       notify(`🎉 Đã lên đơn thành công #${createdOrder.code}!`);
     } catch (err: any) {
       notify(`❌ Lỗi tạo đơn: ${err.message || String(err)}`);
     } finally {
       setIsSubmittingOrder(false);
+    }
+  };
+
+  // --- Xử lý quét ảnh đơn hàng (AI OCR Extractor) ---
+  const handleOcrImageFile = async (file: File) => {
+    setIsScanningOcr(true);
+    setOcrConfidence(null);
+    try {
+      const dataUrl = await compressImageFile(file, 1600);
+      setOcrImagePreview(dataUrl);
+
+      const res = await fetch("/api/pos/ocr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Không thể quét ảnh");
+      }
+
+      const data = await res.json();
+      const rawText = data.rawText || "";
+      setOcrConfidence(data.confidence ?? null);
+
+      const parsed: ParsedOrderResult =
+        data.parsed || parseOrderText(rawText, products);
+      setParsedOcrResult(parsed);
+      setShowOcrResultModal(true);
+
+      // Tự động trích xuất thông tin khách hàng vào form
+      if (parsed.customerName) {
+        setCustomerName(parsed.customerName);
+      }
+      if (parsed.customerPhone) {
+        setCustomerPhone(parsed.customerPhone);
+      }
+      if (parsed.customerAddress) {
+        setCustomerAddress(parsed.customerAddress);
+      }
+      if (parsed.note) {
+        setOrderNote((prev) => (prev ? `${prev} • ${parsed.note}` : parsed.note));
+      }
+
+      // Tự động lên món vào đơn
+      if (parsed.items && parsed.items.length > 0) {
+        parsed.items.forEach((itemMatch) => {
+          const targetProduct =
+            products.find((p) => p.id === itemMatch.product.id) || itemMatch.product;
+          addToCart(targetProduct, itemMatch.variant, itemMatch.quantity);
+        });
+        notify(`🎉 Đã trích xuất ${parsed.items.length} món từ ảnh vào đơn!`);
+      } else {
+        notify(`ℹ️ Đã đọc chữ từ ảnh nhưng chưa khớp món nào. Vui lòng kiểm tra lại!`);
+      }
+    } catch (err: any) {
+      console.error("OCR Error:", err);
+      notify(`❌ Lỗi nhận diện ảnh: ${err.message || String(err)}`);
+    } finally {
+      setIsScanningOcr(false);
     }
   };
 
@@ -809,7 +895,7 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
                 </span>
               </div>
               <p className="text-[11px] font-bold text-flandi-muted hidden sm:block">
-                Lên đơn giùm khách • Quản lý & chỉnh sửa thông tin đơn
+                Lên đơn • Quản lý & chỉnh sửa thông tin đơn
               </p>
             </div>
           </div>
@@ -860,7 +946,7 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
               }`}
             >
               <Plus className="w-4 h-4" />
-              <span>Lên Đơn Giùm Khách</span>
+              <span>Lên Đơn</span>
               {cart.length > 0 && (
                 <span className="w-5 h-5 rounded-full bg-white text-flandi-coral text-[11px] font-black flex items-center justify-center">
                   {cart.length}
@@ -928,6 +1014,27 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
                       </button>
                     )}
                   </div>
+
+                  {/* Nút Quét Đơn Từ Ảnh AI OCR */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isScanningOcr}
+                    className="px-3 sm:px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs shadow-cute flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
+                    title="Tải ảnh đơn Zalo / Messenger để bốc món & thông tin tự động"
+                  >
+                    {isScanningOcr ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {isScanningOcr ? "Đang quét..." : "Quét Đơn Từ Ảnh"}
+                    </span>
+                    <span className="sm:hidden">
+                      {isScanningOcr ? "..." : "Ảnh đơn"}
+                    </span>
+                  </button>
                 </div>
 
                 {/* Categories chip list */}
@@ -1045,7 +1152,7 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
                   </div>
                   <div>
                     <h2 className="font-display text-base sm:text-lg text-flandi-dark leading-tight">
-                      Hóa Đơn Lên Giùm
+                      Hóa Đơn
                     </h2>
                     <p className="text-xs font-bold text-flandi-muted">
                       {cart.length > 0 ? `${cart.length} món • ${cartTotalBanh} bánh` : "Chưa chọn món nào"}
@@ -1053,17 +1160,99 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
                   </div>
                 </div>
 
-                {cart.length > 0 && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setCart([])}
-                    className="text-xs font-extrabold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isScanningOcr}
+                    className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-black flex items-center gap-1 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                    title="Tải ảnh đơn hàng để AI tự bốc món"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Xoá hết</span>
+                    {isScanningOcr ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5" />
+                    )}
+                    <span>{isScanningOcr ? "Quét..." : "Up ảnh đơn"}</span>
                   </button>
-                )}
+
+                  {cart.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCart([])}
+                      className="p-1.5 rounded-xl text-red-500 hover:bg-red-50 flex items-center justify-center transition cursor-pointer"
+                      title="Xoá hết giỏ hàng"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Hộp truy cập nhanh Quét Ảnh Đơn AI */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 rounded-2xl bg-gradient-to-r from-purple-50 via-indigo-50/60 to-purple-50 border-2 border-dashed border-purple-300 hover:border-purple-400 cursor-pointer transition flex items-center justify-between gap-2.5 shadow-2xs"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    {isScanningOcr ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-purple-950 truncate">
+                      {isScanningOcr ? "🤖 AI đang phân tích ảnh đơn..." : "📸 Quét ảnh tin nhắn / hóa đơn"}
+                    </p>
+                    <p className="text-[10px] font-bold text-purple-700 truncate">
+                      Tự động bốc món, tên, SĐT, địa chỉ nhận bánh
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-xl bg-white text-purple-700 border border-purple-200 text-[11px] font-black shrink-0 shadow-2xs">
+                  Chọn ảnh
+                </span>
+              </div>
+
+              {/* Preview ảnh đính kèm nếu có */}
+              {ocrImagePreview && (
+                <div className="p-2.5 rounded-2xl bg-purple-50/80 border border-purple-200 flex items-center justify-between gap-2 animate-in fade-in">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <img
+                      src={ocrImagePreview}
+                      alt="Ảnh đơn gốc"
+                      onClick={() => setShowOcrResultModal(true)}
+                      className="w-10 h-10 object-cover rounded-xl border border-purple-300 shadow-2xs cursor-pointer hover:scale-105 transition shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-extrabold text-purple-950 truncate">
+                        Ảnh đơn đính kèm {ocrConfidence ? `• Tin cậy ${ocrConfidence}%` : ""}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowOcrResultModal(true)}
+                        className="text-[10px] font-bold text-purple-700 hover:underline inline-flex items-center gap-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Xem chi tiết text & món AI bốc</span>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOcrImagePreview(null);
+                      setParsedOcrResult(null);
+                    }}
+                    className="p-1 rounded-lg hover:bg-purple-200 text-purple-700"
+                    title="Bỏ ảnh này"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               {/* Nguồn đơn (Zalo, Hotline, Fanpage, POS...) */}
               <div>
@@ -2272,6 +2461,199 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
           </div>
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* MODAL XEM CHI TIẾT KẾT QUẢ AI OCR TRÍCH XUẤT ĐƠN HÀNG   */}
+      {/* ======================================================== */}
+      {showOcrResultModal && parsedOcrResult && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl border-2 border-purple-300 max-w-2xl w-full p-4 sm:p-6 shadow-cute-lg space-y-4 my-auto max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shadow-2xs">
+                  <Wand2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display text-base sm:text-lg text-purple-950 leading-tight">
+                      Kết Quả Bốc Món & Thông Tin Từ Ảnh
+                    </h3>
+                    {ocrConfidence !== null && (
+                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black border border-purple-200">
+                        Tin cậy {ocrConfidence}%
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-purple-700">
+                    AI đã đọc ảnh và tự động điền các món cùng thông tin khách vào đơn
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOcrResultModal(false)}
+                className="w-8 h-8 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-700 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
+              {/* Ảnh đơn gốc */}
+              <div className="md:col-span-5 space-y-1.5">
+                <p className="font-extrabold text-purple-900 text-[11px] uppercase">
+                  Ảnh đơn gốc đã tải lên:
+                </p>
+                {ocrImagePreview ? (
+                  <div className="rounded-2xl border-2 border-purple-200 overflow-hidden bg-purple-50/50 max-h-72">
+                    <img
+                      src={ocrImagePreview}
+                      alt="Ảnh đơn gốc"
+                      className="w-full h-auto object-contain max-h-72"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-8 text-center bg-purple-50 rounded-2xl text-purple-400">
+                    Chưa có ảnh
+                  </div>
+                )}
+              </div>
+
+              {/* Chi tiết dữ liệu đã bốc */}
+              <div className="md:col-span-7 space-y-3">
+                {/* Thông tin khách */}
+                <div className="p-3 rounded-2xl bg-purple-50/60 border border-purple-200 space-y-1.5">
+                  <p className="font-black text-purple-900 text-[11px] uppercase">
+                    Thông tin khách hàng trích xuất:
+                  </p>
+                  <div className="space-y-1 font-bold text-flandi-dark">
+                    <p className="flex items-center gap-1.5">
+                      <span className="text-purple-700 font-black">Khách:</span>
+                      <span>{parsedOcrResult.customerName || "(Chưa phát hiện tên)"}</span>
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <span className="text-purple-700 font-black">SĐT:</span>
+                      <span>{parsedOcrResult.customerPhone || "(Chưa phát hiện SĐT)"}</span>
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <span className="text-purple-700 font-black">Địa chỉ:</span>
+                      <span className="line-clamp-2">
+                        {parsedOcrResult.customerAddress || "(Chưa phát hiện địa chỉ)"}
+                      </span>
+                    </p>
+                    {parsedOcrResult.note && (
+                      <p className="flex items-center gap-1.5 text-orange-800">
+                        <span className="font-black">Ghi chú:</span>
+                        <span>{parsedOcrResult.note}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Danh sách món khớp được */}
+                <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="font-black text-emerald-950 text-[11px] uppercase">
+                      Món bánh khớp theo thực đơn ({parsedOcrResult.items.length}):
+                    </p>
+                    <span className="text-[10px] font-extrabold text-emerald-700">
+                      Đã thêm vào giỏ
+                    </span>
+                  </div>
+
+                  {parsedOcrResult.items.length === 0 ? (
+                    <p className="text-amber-800 italic text-[11px] py-1">
+                      ⚠️ Không khớp được tên món nào trong thực đơn tiệm. Vui lòng chọn bánh thủ công bên thực đơn trái!
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-emerald-200/60 max-h-36 overflow-y-auto no-scrollbar">
+                      {parsedOcrResult.items.map((it, idx) => (
+                        <div
+                          key={idx}
+                          className="py-1 flex items-center justify-between font-extrabold text-emerald-950"
+                        >
+                          <span>
+                            ✓ {it.quantity}x {it.product.name}
+                          </span>
+                          <span className="text-[11px] text-emerald-800">
+                            {formatVND((it.variant?.price ?? it.product.price) * it.quantity)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Đoạn text nhận diện thô */}
+                {parsedOcrResult.rawText && (
+                  <div className="p-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-zinc-500 uppercase">
+                        Văn bản AI đọc được:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(parsedOcrResult.rawText);
+                          notify("📋 Đã copy text nhận diện!");
+                        }}
+                        className="text-[10px] font-extrabold text-purple-700 hover:underline inline-flex items-center gap-1"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Copy text</span>
+                      </button>
+                    </div>
+                    <pre className="text-[11px] text-zinc-600 font-mono whitespace-pre-wrap max-h-20 overflow-y-auto no-scrollbar bg-white p-2 rounded-xl border border-zinc-100">
+                      {parsedOcrResult.rawText}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-2 border-t border-purple-100 flex items-center justify-between gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  fileInputRef.current?.click();
+                }}
+                className="px-3.5 py-2 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-xs transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Quét lại ảnh khác</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowOcrResultModal(false)}
+                className="px-5 py-2 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-cute transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>Đã bốc vào đơn - Tiếp tục hoàn thiện</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden file input for OCR image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleOcrImageFile(file);
+            e.target.value = "";
+          }
+        }}
+      />
 
       {/* Customer Account Drawer */}
       <CustomerAccountDrawer />

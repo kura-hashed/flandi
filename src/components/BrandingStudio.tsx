@@ -566,10 +566,14 @@ export default function BrandingStudio({
         ctx.strokeStyle = brandKit.secondaryColor || "#F48B7E";
         ctx.stroke();
 
-        const qrUrl = `https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo}-compact2.png?addInfo=${encodeURIComponent(
+        const cleanAccountNo = settings.bankAccountNo.replace(/\s+/g, "");
+        const qrUrl = `https://img.vietqr.io/image/${settings.bankBin}-${cleanAccountNo}-compact2.png?addInfo=${encodeURIComponent(
           "FLANDI"
         )}&accountName=${encodeURIComponent(settings.bankAccountName)}`;
-        const qrImg = await loadImage(qrUrl);
+        let qrImg = await loadImage(qrUrl);
+        if (!qrImg) {
+          qrImg = await loadImage("/images/payment-qr-square.png");
+        }
         if (qrImg) {
           ctx.drawImage(qrImg, 150, 1500, 300, 300);
         }
@@ -1233,8 +1237,12 @@ export default function BrandingStudio({
 
               <div className="w-full bg-white p-4 rounded-2xl border-2 border-flandi-pink flex items-center gap-3 text-left">
                 <img
-                  src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo}-compact2.png?addInfo=FLANDI`}
-                  alt="VietQR"
+                  src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo.replace(/\s+/g, "")}-compact2.png?addInfo=FLANDI`}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/images/payment-qr-square.png";
+                  }}
+                  alt="VietQR TPBank"
                   className="w-24 h-24 rounded-xl border border-flandi-pink object-contain shrink-0"
                 />
                 <div className="text-xs space-y-1">

@@ -39,8 +39,8 @@ interface CustomerAccountDrawerProps {
 export default function CustomerAccountDrawer({
   onReorder,
   shopPhone = "0703166903",
-  bankBin = "970436",
-  bankAccountNo = "1029384756",
+  bankBin = "970423",
+  bankAccountNo = "8386 0008 386",
   shopName = "FLANDI",
 }: CustomerAccountDrawerProps) {
   const {
@@ -764,10 +764,14 @@ export default function CustomerAccountDrawer({
 
               <div className="p-3 bg-flandi-cream/60 rounded-2xl border border-flandi-pink">
                 <img
-                  src={`https://img.vietqr.io/image/${bankBin}-${bankAccountNo}-compact2.png?amount=${qrOrder.total}&addInfo=${encodeURIComponent(
+                  src={`https://img.vietqr.io/image/${bankBin}-${bankAccountNo.replace(/\s+/g, "")}-compact2.png?amount=${qrOrder.total}&addInfo=${encodeURIComponent(
                     `FLANDI ${qrOrder.code}`
                   )}`}
-                  alt="VietQR"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/images/payment-qr.png";
+                  }}
+                  alt="VietQR TPBank"
                   className="w-48 h-48 mx-auto rounded-xl bg-white border border-flandi-pink object-contain shadow-xs"
                 />
                 <div className="mt-2 text-xs space-y-0.5">

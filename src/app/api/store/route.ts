@@ -87,6 +87,11 @@ export async function PUT(request: Request) {
       if (s.qrAccountNo) s.qrAccountNo = sanitizeString(s.qrAccountNo, 50);
       if (s.qrAccountName) s.qrAccountName = sanitizeString(s.qrAccountName, 100);
       if (s.qrBank) s.qrBank = sanitizeString(s.qrBank, 50);
+      if (s.bankName) s.bankName = sanitizeString(s.bankName, 50);
+      if (s.bankBin) s.bankBin = sanitizeString(s.bankBin, 20);
+      if (s.bankAccountNo) s.bankAccountNo = sanitizeString(s.bankAccountNo, 50);
+      if (s.bankAccountName) s.bankAccountName = sanitizeString(s.bankAccountName, 100);
+      if (s.qrImageUrl) s.qrImageUrl = sanitizeString(s.qrImageUrl, 255);
 
       // Giữ nguyên rbacPolicy hiện tại trừ khi được cập nhật qua /api/admin/users
       const preservedPolicy = db.settings.rbacPolicy;

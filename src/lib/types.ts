@@ -242,6 +242,7 @@ export interface ShopSettings {
   bankBin: string;
   bankAccountNo: string;
   bankAccountName: string;
+  qrImageUrl?: string;
   freeShipMinimum: number;
   defaultShippingFee: number;
   announcement: string;

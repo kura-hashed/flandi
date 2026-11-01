@@ -1418,20 +1418,27 @@ export default function FlandiAdminPage() {
                 {posPaymentMethod === "VIETQR" && posTotal > 0 && settings && (
                   <div className="p-3 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-center gap-3">
                     <img
-                      src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo}-compact2.png?amount=${posTotal}&addInfo=${encodeURIComponent(
+                      src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo.replace(/\s+/g, "")}-compact2.png?amount=${posTotal}&addInfo=${encodeURIComponent(
                         "FLANDI POS"
                       )}`}
-                      alt="VietQR"
-                      className="w-20 h-20 rounded-lg border border-flandi-pink bg-white object-contain shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/images/payment-qr.png";
+                      }}
+                      alt="VietQR TPBank"
+                      className="w-20 h-20 rounded-lg border border-flandi-pink bg-white object-contain shrink-0 shadow-2xs"
                     />
-                    <div className="text-xs space-y-1">
-                      <p className="font-extrabold text-flandi-dark">
-                        Quét mã VietQR ({settings.bankName})
+                    <div className="text-xs space-y-1 min-w-0">
+                      <p className="font-extrabold text-flandi-dark truncate">
+                        Quét mã QR ({settings.bankName})
                       </p>
-                      <p className="text-flandi-muted font-semibold">
+                      <p className="text-flandi-muted font-semibold truncate">
                         STK: {settings.bankAccountNo}
                       </p>
-                      <p className="text-flandi-coral font-extrabold">
+                      <p className="text-[11px] text-flandi-dark/80 font-bold truncate">
+                        Chủ TK: {settings.bankAccountName || "BUI VAN LOI"}
+                      </p>
+                      <p className="text-flandi-coral font-extrabold tabular-nums">
                         Số tiền: {formatVND(posTotal)}
                       </p>
                     </div>
@@ -2311,6 +2318,37 @@ export default function FlandiAdminPage() {
                         }
                         className="w-full px-3 py-2 rounded-xl border border-flandi-pink font-bold"
                       />
+                    </div>
+                    <div>
+                      <label className="font-bold text-flandi-muted block mb-1">
+                        Tên chủ tài khoản ngân hàng
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.bankAccountName || ""}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            bankAccountName: e.target.value,
+                          })
+                        }
+                        placeholder="BUI VAN LOI"
+                        className="w-full px-3 py-2 rounded-xl border border-flandi-pink font-bold uppercase"
+                      />
+                    </div>
+                  </div>
+
+                  {/* QR Card Preview */}
+                  <div className="p-3 bg-flandi-bg rounded-2xl border border-flandi-pink flex items-center gap-3">
+                    <img
+                      src="/images/payment-qr.png"
+                      alt="Thẻ QR Thanh Toán"
+                      className="w-16 h-22 object-contain rounded-lg border border-flandi-pink bg-[#1E112E] shrink-0"
+                    />
+                    <div className="text-xs space-y-0.5">
+                      <p className="font-black text-flandi-dark">Thẻ QR Thanh Toán Chuẩn ({settings.bankName})</p>
+                      <p className="text-flandi-muted font-bold">Chủ TK: {settings.bankAccountName || "BUI VAN LOI"} • STK: {settings.bankAccountNo}</p>
+                      <p className="text-[11px] text-emerald-700 font-extrabold">✓ Đã tối ưu tỉ lệ chuẩn nét trên cả điện thoại và máy tính</p>
                     </div>
                   </div>
 

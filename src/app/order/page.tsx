@@ -27,6 +27,7 @@ import {
   Receipt,
   Download,
   Lock,
+  Maximize2,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
 import { ROLE_META } from "@/lib/rbac";
@@ -112,6 +113,7 @@ export default function QuickSingleScreenOrderPage() {
   } | null>(null);
 
   const [isSavingBillImage, setIsSavingBillImage] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [billImageModal, setBillImageModal] = useState<
     (GeneratedBillImage & { autoCopied?: boolean }) | null
   >(null);
@@ -2507,25 +2509,64 @@ export default function QuickSingleScreenOrderPage() {
 
             {/* Optional VietQR for instant transfer */}
             {settings && (
-              <div className="p-3 rounded-2xl bg-flandi-cream/60 border border-flandi-pink flex items-center gap-3">
-                <img
-                  src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo}-compact2.png?amount=${sentResultModal.total}&addInfo=${encodeURIComponent(
-                    `FLANDI ${sentResultModal.orderCode}`
-                  )}`}
-                  alt="VietQR"
-                  className="w-20 h-20 rounded-xl bg-white border border-flandi-pink object-contain shrink-0"
-                />
-                <div className="text-[13px] space-y-0.5">
-                  <p className="font-extrabold text-flandi-dark flex items-center gap-1">
-                    <QrCode className="w-3.5 h-3.5 text-flandi-coral" />
-                    <span>Quét VietQR thanh toán</span>
-                  </p>
-                  <p className="text-xs text-flandi-muted font-semibold">
-                    {settings.bankName} • {settings.bankAccountNo}
-                  </p>
-                  <p className="text-base font-black text-flandi-coral tabular-nums">
-                    {formatVND(sentResultModal.total)}
-                  </p>
+              <div className="p-3 rounded-2xl bg-flandi-cream/60 border border-flandi-pink space-y-2">
+                <div
+                  onClick={() => setIsQrModalOpen(true)}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
+                  <div className="relative shrink-0">
+                    <img
+                      src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo.replace(/\s+/g, "")}-compact2.png?amount=${sentResultModal.total}&addInfo=${encodeURIComponent(
+                        `FLANDI ${sentResultModal.orderCode}`
+                      )}`}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = "/images/payment-qr.png";
+                      }}
+                      alt="VietQR TPBank"
+                      className="w-20 h-20 rounded-xl bg-white border border-flandi-pink object-contain shrink-0 group-hover:scale-105 transition shadow-2xs"
+                    />
+                    <span className="absolute -bottom-1 -right-1 bg-flandi-coral text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-xs">
+                      Phóng to
+                    </span>
+                  </div>
+                  <div className="text-[13px] space-y-0.5 flex-1 min-w-0">
+                    <p className="font-extrabold text-flandi-dark flex items-center gap-1">
+                      <QrCode className="w-3.5 h-3.5 text-flandi-coral" />
+                      <span>Quét VietQR thanh toán</span>
+                    </p>
+                    <p className="text-xs text-flandi-muted font-semibold truncate">
+                      {settings.bankName} • {settings.bankAccountNo}
+                    </p>
+                    <p className="text-[11px] text-flandi-dark/80 font-bold truncate">
+                      Chủ TK: {settings.bankAccountName || "BUI VAN LOI"}
+                    </p>
+                    <p className="text-base font-black text-flandi-coral tabular-nums">
+                      {formatVND(sentResultModal.total)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-dashed border-flandi-pink/80">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      copyToClipboardInstant(settings.bankAccountNo.replace(/\s+/g, ""));
+                      notify("📋 Đã sao chép số tài khoản!");
+                    }}
+                    className="py-1 px-2 rounded-lg bg-white border border-flandi-pink text-[11px] font-bold text-flandi-dark hover:bg-flandi-bg flex items-center justify-center gap-1 cursor-pointer transition active:scale-95"
+                  >
+                    <Copy className="w-3 h-3 text-flandi-coral" />
+                    <span>Copy STK</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsQrModalOpen(true)}
+                    className="py-1 px-2 rounded-lg bg-flandi-coral/10 hover:bg-flandi-coral/20 text-flandi-coral text-[11px] font-extrabold flex items-center justify-center gap-1 cursor-pointer transition active:scale-95"
+                  >
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Xem thẻ QR</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -2607,6 +2648,100 @@ export default function QuickSingleScreenOrderPage() {
               className="w-full py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-flandi-dark font-extrabold text-[13px] sm:text-sm"
             >
               Đặt đơn mới
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Phóng to Thẻ QR Ngân hàng TPBank */}
+      {isQrModalOpen && settings && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150"
+          onClick={() => setIsQrModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-4 sm:p-5 max-w-sm w-full border-2 border-flandi-salmon shadow-cute-lg space-y-3 text-center animate-in zoom-in-95 duration-150 max-h-[95vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-flandi-pink pb-2">
+              <div className="text-left">
+                <h3 className="font-display text-sm sm:text-base font-black text-flandi-coral leading-tight">
+                  Mã QR Thanh Toán {settings.bankName}
+                </h3>
+                <p className="text-[11px] font-bold text-flandi-muted">
+                  {settings.bankAccountName || "BUI VAN LOI"} • {settings.bankAccountNo}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQrModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark flex items-center justify-center cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* The high-res cropped QR card */}
+            <div className="relative mx-auto w-full max-w-[260px] sm:max-w-[280px] aspect-[74/102] rounded-2xl overflow-hidden bg-[#1E112E] shadow-cute border border-[#3E2356] flex items-center justify-center p-1">
+              <img
+                src="/images/payment-qr.png"
+                alt={`Mã QR ${settings.bankName} ${settings.bankAccountName}`}
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </div>
+
+            {sentResultModal && (
+              <div className="p-2.5 rounded-xl bg-flandi-cream/70 border border-flandi-pink text-xs space-y-1 text-left">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-flandi-muted">Số tiền cần chuyển:</span>
+                  <span className="font-black text-flandi-coral text-sm tabular-nums">
+                    {formatVND(sentResultModal.total)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-flandi-muted">Nội dung CK:</span>
+                  <span className="font-extrabold text-flandi-dark font-mono">
+                    FLANDI {sentResultModal.orderCode}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  copyToClipboardInstant(settings.bankAccountNo.replace(/\s+/g, ""));
+                  notify("📋 Đã sao chép STK!");
+                }}
+                className="py-2 px-3 rounded-xl bg-white border border-flandi-pink text-xs font-bold text-flandi-dark hover:bg-flandi-bg flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition"
+              >
+                <Copy className="w-3.5 h-3.5 text-flandi-coral" />
+                <span>Copy STK</span>
+              </button>
+              {sentResultModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    copyToClipboardInstant(`FLANDI ${sentResultModal.orderCode}`);
+                    notify("📋 Đã sao chép nội dung!");
+                  }}
+                  className="py-2 px-3 rounded-xl bg-white border border-flandi-pink text-xs font-bold text-flandi-dark hover:bg-flandi-bg flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition"
+                >
+                  <Copy className="w-3.5 h-3.5 text-flandi-coral" />
+                  <span>Copy Nội Dung</span>
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsQrModalOpen(false)}
+              className="w-full py-2.5 rounded-xl bg-flandi-coral text-white font-extrabold text-xs shadow-cute cursor-pointer hover:bg-flandi-salmon transition active:scale-95"
+            >
+              Đóng mã QR
             </button>
           </div>
         </div>

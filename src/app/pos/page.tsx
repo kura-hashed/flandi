@@ -33,6 +33,7 @@ import {
   FileText,
   AlertTriangle,
   Clipboard,
+  Maximize2,
   Smartphone,
 } from "lucide-react";
 import {
@@ -105,6 +106,7 @@ export default function FlandiPosPage() {
     url: string;
     title: string;
   } | null>(null);
+  const [isPosQrModalOpen, setIsPosQrModalOpen] = useState(false);
 
   // --- AI OCR & Order Import State ---
   const [isScanningOcr, setIsScanningOcr] = useState(false);
@@ -1608,25 +1610,51 @@ export default function FlandiPosPage() {
 
                 {/* Live VietQR Preview in POS */}
                 {posPaymentMethod === "VIETQR" && posTotal > 0 && settings && (
-                  <div className="p-3 rounded-2xl bg-flandi-bg border border-flandi-pink flex items-center gap-3">
-                    <img
-                      src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo}-compact2.png?amount=${posTotal}&addInfo=${encodeURIComponent(
-                        "FLANDI POS"
-                      )}`}
-                      alt="VietQR"
-                      className="w-20 h-20 rounded-lg border border-flandi-pink bg-white object-contain shrink-0"
-                    />
-                    <div className="text-xs space-y-1">
-                      <p className="font-extrabold text-flandi-dark">
-                        Quét mã VietQR ({settings.bankName})
-                      </p>
-                      <p className="text-flandi-muted font-semibold">
-                        STK: {settings.bankAccountNo}
-                      </p>
-                      <p className="text-flandi-coral font-extrabold">
-                        Số tiền: {formatVND(posTotal)}
-                      </p>
+                  <div className="p-3 rounded-2xl bg-flandi-bg border border-flandi-pink space-y-2">
+                    <div
+                      onClick={() => setIsPosQrModalOpen(true)}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <div className="relative shrink-0">
+                        <img
+                          src={`https://img.vietqr.io/image/${settings.bankBin}-${settings.bankAccountNo.replace(/\s+/g, "")}-compact2.png?amount=${posTotal}&addInfo=${encodeURIComponent(
+                            "FLANDI POS"
+                          )}`}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "/images/payment-qr.png";
+                          }}
+                          alt="VietQR TPBank"
+                          className="w-20 h-20 rounded-lg border border-flandi-pink bg-white object-contain shrink-0 group-hover:scale-105 transition shadow-2xs"
+                        />
+                        <span className="absolute -bottom-1 -right-1 bg-flandi-coral text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-xs">
+                          Mở to
+                        </span>
+                      </div>
+                      <div className="text-xs space-y-1 flex-1 min-w-0">
+                        <p className="font-extrabold text-flandi-dark flex items-center gap-1">
+                          <QrCode className="w-3.5 h-3.5 text-flandi-coral" />
+                          <span>Mã QR {settings.bankName}</span>
+                        </p>
+                        <p className="text-flandi-muted font-semibold truncate">
+                          STK: {settings.bankAccountNo}
+                        </p>
+                        <p className="text-[11px] text-flandi-dark/80 font-bold truncate">
+                          Chủ TK: {settings.bankAccountName || "BUI VAN LOI"}
+                        </p>
+                        <p className="text-flandi-coral font-extrabold tabular-nums">
+                          Số tiền: {formatVND(posTotal)}
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsPosQrModalOpen(true)}
+                      className="w-full py-1.5 rounded-lg bg-flandi-coral/10 hover:bg-flandi-coral/20 text-flandi-coral text-xs font-extrabold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>Chiếu thẻ QR cho khách quét</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -1952,6 +1980,76 @@ export default function FlandiPosPage() {
                 <span>In Hoá Đơn Ngay</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen Customer QR Modal for POS */}
+      {isPosQrModalOpen && settings && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in"
+          onClick={() => setIsPosQrModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl p-5 max-w-sm w-full border-2 border-flandi-salmon shadow-cute-lg space-y-3.5 text-center animate-in zoom-in-95 max-h-[95vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-flandi-pink pb-2">
+              <div className="text-left">
+                <h3 className="font-display text-base font-black text-flandi-coral">
+                  Quét Mã QR Thanh Toán {settings.bankName}
+                </h3>
+                <p className="text-xs font-bold text-flandi-muted">
+                  {settings.bankAccountName || "BUI VAN LOI"} • {settings.bankAccountNo}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPosQrModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative mx-auto w-full max-w-[270px] aspect-[74/102] rounded-2xl overflow-hidden bg-[#1E112E] shadow-cute border border-[#3E2356] flex items-center justify-center p-1">
+              <img
+                src="/images/payment-qr.png"
+                alt="Mã QR TPBank Bùi Văn Lợi"
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </div>
+
+            <div className="p-3 bg-flandi-cream/70 rounded-2xl border border-flandi-pink text-xs space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-flandi-muted">Tổng tiền đơn POS:</span>
+                <span className="text-lg font-black text-flandi-coral tabular-nums">
+                  {formatVND(posTotal)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-flandi-muted">Ngân hàng:</span>
+                <span className="font-extrabold text-flandi-dark">{settings.bankName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-flandi-muted">Chủ tài khoản:</span>
+                <span className="font-extrabold text-flandi-dark">{settings.bankAccountName || "BUI VAN LOI"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-flandi-muted">Số tài khoản:</span>
+                <span className="font-mono font-black text-flandi-coral">{settings.bankAccountNo}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsPosQrModalOpen(false)}
+              className="w-full py-2.5 rounded-xl bg-flandi-coral text-white font-extrabold text-xs shadow-cute cursor-pointer hover:bg-flandi-salmon transition"
+            >
+              Đóng mã QR
+            </button>
           </div>
         </div>
       )}

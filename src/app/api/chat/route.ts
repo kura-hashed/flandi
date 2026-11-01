@@ -38,7 +38,7 @@ function generateSmartAutoReply(
     return `🎉 FLANDI có nhận đặt bánh liên hoan, sinh nhật, trà chiều công ty với ưu đãi chiết khấu hấp dẫn! Bạn để lại SĐT hoặc số lượng dự kiến, chủ tiệm sẽ phản hồi ngay tại khung chat này nhé (Hotline/Zalo: ${shopPhone}).`;
   }
   if (lower.includes("chuyển khoản") || lower.includes("stk") || lower.includes("qr")) {
-    return `💳 Bạn có thể chọn món trực tiếp trên trang rồi bấm "Hoàn tất đặt bánh" để hệ thống tạo mã VietQR tự động theo đúng số tiền đơn hàng, hoặc nhắn món ngay tại đây để tiệm tạo đơn giúp bạn nha!`;
+    return `💳 Thông tin chuyển khoản tiệm FLANDI:\n• Ngân hàng: TPBank (Tiên Phong)\n• Số tài khoản: 8386 0008 386\n• Chủ tài khoản: BUI VAN LOI\nBạn cũng có thể chọn món trên web rồi bấm "Hoàn tất đặt bánh" để quét mã VietQR tự động thanh toán theo số tiền đơn nha!`;
   }
   return null;
 }

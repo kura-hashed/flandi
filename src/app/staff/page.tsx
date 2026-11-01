@@ -1124,17 +1124,27 @@ Tổng tiền: ${formatVND(order.total)} (${order.isPaid ? "Đã chuyển khoả
                           </button>
                         ))}
 
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openKeypad(product);
+                        {/* Ô nhập số lượng trực tiếp (mặc định 0) thay cho ô Khác */}
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={currentQty}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            const num = parseInt(val, 10) || 0;
+                            setExactQty(product, Math.min(num, 999));
                           }}
-                          title="Nhập số lượng khác"
-                          className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl border border-flandi-pink/90 hover:border-flandi-coral bg-white hover:bg-flandi-cream/60 text-flandi-dark/80 hover:text-flandi-coral text-xs font-extrabold shadow-2xs transition-all active:scale-95 flex items-center justify-center cursor-pointer"
-                        >
-                          Khác
-                        </button>
+                          onClick={(e) => e.stopPropagation()}
+                          className={`h-8 sm:h-9 w-12 sm:w-14 text-center font-black text-xs sm:text-sm rounded-xl border-2 transition-all tabular-nums focus:outline-none focus:ring-2 focus:ring-flandi-coral/30 cursor-text ${
+                            isSelected
+                              ? "bg-flandi-cream/90 border-flandi-coral text-flandi-coral shadow-2xs"
+                              : "bg-white border-flandi-pink/80 hover:border-flandi-salmon text-flandi-dark/70"
+                          }`}
+                          title="Nhập số lượng trực tiếp (mặc định 0)"
+                          aria-label={`Số lượng ${product.name}`}
+                        />
                       </div>
                     </div>
                   );

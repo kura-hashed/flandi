@@ -1179,22 +1179,44 @@ export default function FlandiAdminPage() {
                             +{presetQty}
                           </button>
                         ))}
-                        <button
-                          disabled={product.stock < 1}
-                          onClick={() => {
-                            const customVal = prompt(`Nhập số lượng cho ${product.name}:`, "1");
-                            const num = parseInt(customVal || "0", 10);
-                            if (num > 0) {
-                              const baseVariant = product.variants && product.variants.length > 0
-                                ? product.variants[0]
-                                : { id: "base", name: product.unit || "cái", price: product.price, unitLabel: product.unit || "cái", stockDeduction: 1 };
-                              addToPosCart(product, baseVariant, num);
-                            }
+                        {/* Ô nhập số lượng trực tiếp (mặc định 0) thay cho ô Khác */}
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={posCart.find((it) => it.product.id === product.id)?.quantity || 0}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            const num = parseInt(val, 10) || 0;
+                            const baseVariant = product.variants && product.variants.length > 0
+                              ? product.variants[0]
+                              : { id: "base", name: product.unit || "cái", price: product.price, unitLabel: product.unit || "cái", stockDeduction: 1 };
+                            setPosCart((prev) => {
+                              const idx = prev.findIndex((i) => i.product.id === product.id);
+                              if (num <= 0) {
+                                if (idx > -1) {
+                                  const next = [...prev];
+                                  next.splice(idx, 1);
+                                  return next;
+                                }
+                                return prev;
+                              }
+                              if (idx > -1) {
+                                const next = [...prev];
+                                next[idx] = { ...next[idx], quantity: num };
+                                return next;
+                              }
+                              return [...prev, { product, variant: baseVariant, quantity: num }];
+                            });
                           }}
-                          className="px-3 py-1.5 rounded-xl border border-flandi-pink hover:border-flandi-coral bg-white hover:bg-flandi-cream/60 text-flandi-dark text-xs font-extrabold shadow-2xs transition active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
-                        >
-                          Khác
-                        </button>
+                          className={`h-8 w-12 text-center font-black text-xs rounded-xl border-2 transition-all tabular-nums focus:outline-none focus:ring-2 focus:ring-flandi-coral/30 cursor-text ${
+                            (posCart.find((it) => it.product.id === product.id)?.quantity || 0) > 0
+                              ? "bg-flandi-cream border-flandi-coral text-flandi-coral shadow-2xs"
+                              : "bg-white border-flandi-pink text-flandi-dark/70"
+                          }`}
+                          title="Nhập số lượng trực tiếp (mặc định 0)"
+                        />
                       </div>
                     </div>
                   );

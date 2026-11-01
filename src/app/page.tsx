@@ -126,7 +126,7 @@ export default function FlandiLandingPage() {
             <Sparkles className="w-4 h-4 shrink-0" />
             <span>
               {settings?.announcement ||
-                "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 100k!"}
+                "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship tất cả các đơn!"}
             </span>
           </div>
         </div>

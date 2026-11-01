@@ -27,6 +27,9 @@ function generateSmartAutoReply(
     return `🍮 Menu nhà FLANDI hiện có:\n• Bánh Flan: 60k/chục (Lẻ 6.5k/cái)\n• Panna Cotta trái cây tươi: 10k/cái\n• Rau Câu Dừa Nhân Flan: 80k/chục (Truyền thống 60k/chục)\n• Rau Câu Lá Dứa Cà Phê: 40k/hộp\n• Tàu Hũ Singapore: 8k/cái\n• Yogurt nhà làm: 50k/chục\nBạn thích ăn vị nào để FLANDI lên đơn ngay cho bạn nha!`;
   }
   if (lower.includes("ship") || lower.includes("giao hàng") || lower.includes("phí")) {
+    if (freeShipMin === 0) {
+      return `🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30 và đang có chương trình MIỄN PHÍ GIAO HÀNG (FREESHIP 0đ) cho tất cả các đơn hàng nha!`;
+    }
     return `🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ ${Math.round(
       freeShipMin / 1000
     )}k trở lên nha!`;
@@ -173,7 +176,7 @@ export async function POST(request: Request) {
         const autoReply = generateSmartAutoReply(
           sanitizedText,
           db.settings.phone || "0703166903",
-          db.settings.freeShipMinimum || 100000
+          db.settings.freeShipMinimum ?? 0
         );
         if (autoReply) {
           session.messages.push({

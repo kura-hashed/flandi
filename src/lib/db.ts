@@ -41,7 +41,7 @@ export const DEFAULT_BRAND_KIT: BrandKit = {
   storageInstruction:
     "Bảo quản ngăn mát tủ lạnh (2°C – 6°C) ngay khi nhận bánh. Ngon nhất khi dùng trong vòng 2 – 3 ngày.",
   promoHeadline: "MẺ BÁNH MỚI RA LÒ MỖI SÁNG!",
-  promoSubheadline: "Freeship đơn từ 100k • Đặt nhanh qua Zalo 0703166903",
+  promoSubheadline: "Freeship tất cả các đơn • Đặt nhanh qua Zalo 0703166903",
   colors: [
     {
       id: "col-coral",
@@ -662,9 +662,9 @@ const INITIAL_DB: StoreDatabase = {
     bankBin: "970436",
     bankAccountNo: "1029384756",
     bankAccountName: "TIEM BANH FLANDI",
-    freeShipMinimum: 100000,
-    defaultShippingFee: 15000,
-    announcement: "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 100k!",
+    freeShipMinimum: 0,
+    defaultShippingFee: 0,
+    announcement: "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship tất cả các đơn!",
     brandKit: DEFAULT_BRAND_KIT,
     pageConfig: DEFAULT_PAGE_CONFIG,
   },

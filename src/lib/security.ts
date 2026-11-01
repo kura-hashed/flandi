@@ -331,15 +331,18 @@ export function verifyAndSanitizeOrder(
   }
 
   // 5. Tính toán phí ship chuẩn theo cấu hình tiệm
-  const freeShipMin = db.settings.freeShipMinimum ?? 100000;
-  const standardShippingFee = db.settings.defaultShippingFee ?? 15000;
+  const freeShipMin = db.settings.freeShipMinimum ?? 0;
+  const standardShippingFee = db.settings.defaultShippingFee ?? 0;
 
   let verifiedShippingFee = 0;
   if (body.source === "POS") {
     // POS có thể có phí ship riêng nếu chọn giao
     verifiedShippingFee = Number(body.shippingFee) || 0;
   } else {
-    verifiedShippingFee = calculatedSubtotal >= freeShipMin ? 0 : standardShippingFee;
+    verifiedShippingFee =
+      freeShipMin === 0 || calculatedSubtotal >= freeShipMin
+        ? 0
+        : standardShippingFee;
   }
 
   // Giảm giá (nếu có từ POS, online mặc định 0 trừ khi có mã khuyến mãi)

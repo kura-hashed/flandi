@@ -458,13 +458,14 @@ export default function QuickSingleScreenOrderPage() {
     [cartItems]
   );
 
-  const freeShipMin = settings?.freeShipMinimum || 100000;
+  const freeShipMin = settings?.freeShipMinimum ?? 0;
+  const defaultShipFee = settings?.defaultShippingFee ?? 0;
   const shippingFee =
     subtotal === 0
       ? 0
-      : subtotal >= freeShipMin
+      : freeShipMin === 0 || defaultShipFee === 0 || subtotal >= freeShipMin
       ? 0
-      : settings?.defaultShippingFee || 15000;
+      : defaultShipFee;
   const grandTotal = subtotal + shippingFee;
 
   // Build formatted text message for Messenger / Zalo (clean, without extra category/variant labels)
@@ -1527,7 +1528,9 @@ export default function QuickSingleScreenOrderPage() {
           <CustomerHeaderAuthButton />
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink/80 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5" />
-            Freeship từ {formatVND(freeShipMin)}
+            {freeShipMin === 0 || defaultShipFee === 0
+              ? "Freeship tất cả đơn"
+              : `Freeship từ ${formatVND(freeShipMin)}`}
           </span>
           <button
             type="button"
@@ -1965,16 +1968,17 @@ export default function QuickSingleScreenOrderPage() {
                     <span className="text-[13px] sm:text-sm font-black text-flandi-dark uppercase tracking-wider">
                       THÀNH TIỀN
                     </span>
-                    {cartItems.length === 0 && (
+                    {cartItems.length === 0 ? (
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] sm:text-xs font-extrabold shadow-2xs">
-                        +15k ship
+                        {freeShipMin === 0 || defaultShipFee === 0
+                          ? "FREESHIP"
+                          : `+${formatVND(defaultShipFee)} ship`}
                       </span>
-                    )}
-                    {subtotal > 0 && shippingFee === 0 && (
+                    ) : shippingFee === 0 ? (
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] sm:text-xs font-extrabold shadow-2xs">
                         FREESHIP
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   <div className="text-2xl sm:text-[26px] font-black text-flandi-coral tracking-tight leading-tight tabular-nums">
                     {formatVND(grandTotal)}

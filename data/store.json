@@ -271,6 +271,17 @@
   ],
   "stockLogs": [
     {
+      "id": "log-1793493852398-j8qc",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -1,
+      "previousStock": 65,
+      "newStock": 64,
+      "reason": "Đơn hàng ONLINE #FL-1013 (1x cái)",
+      "createdAt": "2026-11-01T00:44:12.398Z"
+    },
+    {
       "id": "log-1793457708064-zgh5",
       "targetId": "prod-panna-cotta",
       "targetName": "Panna Cotta",
@@ -948,9 +959,9 @@
     "bankBin": "970436",
     "bankAccountNo": "1029384756",
     "bankAccountName": "TIEM BANH FLANDI",
-    "freeShipMinimum": 100000,
-    "defaultShippingFee": 15000,
-    "announcement": "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship đơn từ 100k!",
+    "freeShipMinimum": 0,
+    "defaultShippingFee": 0,
+    "announcement": "Mẻ bánh Flan & Panna Cotta mới ra lò mỗi sáng — Freeship tất cả các đơn!",
     "brandKit": {
       "brandName": "FLANDI",
       "tagline": "Muốn ăn hãy Flăn vào tớ",
@@ -970,7 +981,7 @@
       "thankYouMessage": "Mỗi chiếc bánh đều được bếp nhà FLANDI chuẩn bị tỉ mỉ với nguyên liệu tươi mới trong ngày. Chúc bạn có một bữa tráng miệng ngọt ngào và mát lành nha!",
       "storageInstruction": "Bảo quản ngăn mát tủ lạnh (2°C – 6°C) ngay khi nhận bánh. Ngon nhất khi dùng trong vòng 2 – 3 ngày.",
       "promoHeadline": "MẺ BÁNH MỚI RA LÒ MỖI SÁNG!",
-      "promoSubheadline": "Freeship đơn từ 100k • Đặt nhanh qua Zalo 0703166903",
+      "promoSubheadline": "Freeship tất cả các đơn • Đặt nhanh qua Zalo 0703166903",
       "colors": [
         {
           "id": "col-coral",

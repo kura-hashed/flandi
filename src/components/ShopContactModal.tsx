@@ -93,10 +93,10 @@ export default function ShopContactModal({
             </div>
             <div>
               <h3 className="font-display text-base font-extrabold text-flandi-dark leading-tight">
-                Liên Hệ Tiệm FLANDI
+                Liên Hệ FLANDI
               </h3>
               <p className="text-[11px] font-bold text-flandi-muted">
-                Zalo, Messenger & Địa chỉ tiệm
+                Zalo • Messenger • Địa chỉ
               </p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function ShopContactModal({
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5 text-flandi-coral" />
-                <span>Số Điện Thoại / Zalo</span>
+                <span>Điện Thoại / Zalo</span>
               </span>
               <button
                 type="button"
@@ -127,12 +127,12 @@ export default function ShopContactModal({
                 {copiedField === "phone" ? (
                   <>
                     <Check className="w-3 h-3 text-emerald-600" />
-                    <span className="text-emerald-700">Đã sao chép</span>
+                    <span className="text-emerald-700">Đã copy</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-3 h-3" />
-                    <span>Sao chép</span>
+                    <span>Copy</span>
                   </>
                 )}
               </button>
@@ -143,7 +143,7 @@ export default function ShopContactModal({
                 {zaloPhone}
               </span>
               <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                Hỗ trợ 24/7
+                24/7
               </span>
             </div>
 
@@ -157,7 +157,7 @@ export default function ShopContactModal({
                   className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
                 >
                   <MessageCircle className="w-4 h-4 fill-white/20" />
-                  <span>Nhắn Zalo</span>
+                  <span>Zalo</span>
                 </a>
 
                 <a
@@ -178,7 +178,7 @@ export default function ShopContactModal({
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-flandi-coral" />
-                <span>Địa Chỉ Tiệm Bánh</span>
+                <span>Địa Chỉ</span>
               </span>
               <button
                 type="button"
@@ -188,12 +188,12 @@ export default function ShopContactModal({
                 {copiedField === "address" ? (
                   <>
                     <Check className="w-3 h-3 text-emerald-600" />
-                    <span className="text-emerald-700">Đã sao chép</span>
+                    <span className="text-emerald-700">Đã copy</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-3 h-3" />
-                    <span>Sao chép</span>
+                    <span>Copy</span>
                   </>
                 )}
               </button>
@@ -212,7 +212,7 @@ export default function ShopContactModal({
                 className="w-full py-2 px-3 rounded-xl bg-white hover:bg-flandi-cream/60 border border-flandi-pink text-flandi-dark font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition active:scale-95"
               >
                 <MapPin className="w-3.5 h-3.5 text-flandi-coral" />
-                <span>Mở trên Google Maps</span>
+                <span>Google Maps</span>
                 <ExternalLink className="w-3 h-3 text-flandi-muted ml-0.5" />
               </a>
             </div>
@@ -226,7 +226,7 @@ export default function ShopContactModal({
             <div className="text-xs min-w-0">
               <p className="font-extrabold text-flandi-dark">{openHours}</p>
               <p className="text-[11px] font-semibold text-flandi-muted">
-                Mẻ bánh mới ra lò mỗi sáng • Giao tận nơi & ghé lấy
+                Bánh mới mỗi sáng • Giao & ghé lấy
               </p>
             </div>
           </div>

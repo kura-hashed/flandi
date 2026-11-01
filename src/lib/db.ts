@@ -1,6 +1,20 @@
 import fs from "fs";
 import path from "path";
-import { StoreDatabase, Product, IngredientItem, Order, StockLog, BrandKit, PageConfig, LedgerEntry, CustomerUser } from "./types";
+import {
+  StoreDatabase,
+  Product,
+  IngredientItem,
+  Order,
+  StockLog,
+  BrandKit,
+  PageConfig,
+  LedgerEntry,
+  CustomerUser,
+  AccountRole,
+  AuditLogEntry,
+  UserRole,
+} from "./types";
+import { isAccountRole, normalizeRbacPolicy } from "./rbac";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "store.json");
@@ -717,14 +731,33 @@ const INITIAL_DB: StoreDatabase = {
   ],
 };
 
+function getEnvAdminEmails(): Set<string> {
+  const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "";
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.toLowerCase().trim())
+      .filter(Boolean)
+  );
+}
+
 export function readDb(): StoreDatabase {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     if (!fs.existsSync(DB_PATH)) {
-      fs.writeFileSync(DB_PATH, JSON.stringify(INITIAL_DB, null, 2), "utf-8");
-      return INITIAL_DB;
+      const seeded: StoreDatabase = {
+        ...INITIAL_DB,
+        settings: {
+          ...INITIAL_DB.settings,
+          rbacPolicy: normalizeRbacPolicy(INITIAL_DB.settings.rbacPolicy),
+        },
+        customers: [],
+        auditLogs: [],
+      };
+      fs.writeFileSync(DB_PATH, JSON.stringify(seeded, null, 2), "utf-8");
+      return seeded;
     }
     const raw = fs.readFileSync(DB_PATH, "utf-8");
     const parsed = JSON.parse(raw) as StoreDatabase;
@@ -734,6 +767,7 @@ export function readDb(): StoreDatabase {
     if (!parsed.settings.pageConfig) {
       parsed.settings.pageConfig = DEFAULT_PAGE_CONFIG;
     }
+    parsed.settings.rbacPolicy = normalizeRbacPolicy(parsed.settings.rbacPolicy);
     if (!parsed.chats) {
       parsed.chats = INITIAL_DB.chats;
     }
@@ -743,6 +777,21 @@ export function readDb(): StoreDatabase {
     if (!parsed.customers) {
       parsed.customers = [];
     }
+    if (!parsed.auditLogs) {
+      parsed.auditLogs = [];
+    }
+
+    const envAdmins = getEnvAdminEmails();
+    parsed.customers = parsed.customers.map((c) => {
+      const normEmail = (c.email || "").toLowerCase().trim();
+      const resolvedRole: AccountRole = envAdmins.has(normEmail)
+        ? "admin"
+        : isAccountRole(c.role)
+        ? c.role
+        : "user";
+      return { ...c, role: resolvedRole };
+    });
+
     return parsed;
   } catch (err) {
     console.error("Failed to read DB, returning initial DB:", err);
@@ -758,8 +807,35 @@ export function writeDb(data: StoreDatabase): void {
 }
 
 // ----------------------------------------------------
-// Customer & Order Tracking Helpers
+// Customer, Role & Audit Helpers
 // ----------------------------------------------------
+
+export function appendAuditLog(
+  db: StoreDatabase,
+  entry: {
+    actorEmail: string;
+    actorRole: UserRole;
+    action: string;
+    target: string;
+    detail: string;
+  }
+): AuditLogEntry {
+  if (!db.auditLogs) db.auditLogs = [];
+  const log: AuditLogEntry = {
+    id: `aud_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    actorEmail: entry.actorEmail,
+    actorRole: entry.actorRole,
+    action: entry.action,
+    target: entry.target,
+    detail: entry.detail,
+    createdAt: new Date().toISOString(),
+  };
+  db.auditLogs.unshift(log);
+  if (db.auditLogs.length > 200) {
+    db.auditLogs = db.auditLogs.slice(0, 200);
+  }
+  return log;
+}
 
 export function findCustomerById(id: string): CustomerUser | undefined {
   const db = readDb();
@@ -785,6 +861,7 @@ export function upsertCustomer(data: {
   if (!db.customers) db.customers = [];
 
   const normalizedEmail = data.email.toLowerCase().trim();
+  const envAdmins = getEnvAdminEmails();
   const existingIdx = db.customers.findIndex(
     (c) => c.email.toLowerCase().trim() === normalizedEmail
   );
@@ -793,9 +870,15 @@ export function upsertCustomer(data: {
 
   if (existingIdx > -1) {
     const existing = db.customers[existingIdx];
+    const preservedRole: AccountRole = envAdmins.has(normalizedEmail)
+      ? "admin"
+      : isAccountRole(existing.role)
+      ? existing.role
+      : "user";
     const updated: CustomerUser = {
       ...existing,
       name: data.name || existing.name,
+      role: preservedRole,
       picture: data.picture || existing.picture,
       googleId: data.googleId || existing.googleId,
       phone: data.phone || existing.phone,
@@ -808,13 +891,17 @@ export function upsertCustomer(data: {
     return updated;
   }
 
+  const defaultRole: AccountRole = envAdmins.has(normalizedEmail) ? "admin" : "user";
   const newId = `cust_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const newCustomer: CustomerUser = {
     id: newId,
     googleId: data.googleId,
     email: normalizedEmail,
     name: data.name,
-    picture: data.picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(normalizedEmail)}`,
+    role: defaultRole,
+    picture:
+      data.picture ||
+      `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(normalizedEmail)}`,
     phone: data.phone,
     address: data.address,
     deliveryNote: data.deliveryNote,
@@ -825,6 +912,54 @@ export function upsertCustomer(data: {
   db.customers.push(newCustomer);
   writeDb(db);
   return newCustomer;
+}
+
+export function upsertUserWithRole(
+  db: StoreDatabase,
+  data: {
+    email: string;
+    name?: string;
+    phone?: string;
+    role: AccountRole;
+  }
+): { user: CustomerUser; isNew: boolean; previousRole?: AccountRole } {
+  if (!db.customers) db.customers = [];
+  const normalizedEmail = data.email.toLowerCase().trim();
+  const now = new Date().toISOString();
+
+  const existingIdx = db.customers.findIndex(
+    (c) => c.email.toLowerCase().trim() === normalizedEmail
+  );
+
+  if (existingIdx > -1) {
+    const existing = db.customers[existingIdx];
+    const previousRole = existing.role || "user";
+    const updated: CustomerUser = {
+      ...existing,
+      name: data.name?.trim() || existing.name,
+      phone: data.phone?.trim() || existing.phone,
+      role: data.role,
+      roleUpdatedAt: now,
+      updatedAt: now,
+    };
+    db.customers[existingIdx] = updated;
+    return { user: updated, isNew: false, previousRole };
+  }
+
+  const fallbackName = data.name?.trim() || normalizedEmail.split("@")[0];
+  const created: CustomerUser = {
+    id: `cust_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    email: normalizedEmail,
+    name: fallbackName,
+    role: data.role,
+    roleUpdatedAt: now,
+    picture: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(normalizedEmail)}`,
+    phone: data.phone?.trim() || undefined,
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.customers.unshift(created);
+  return { user: created, isNew: true };
 }
 
 export function updateCustomerProfile(

@@ -11,7 +11,7 @@
       "unit": "cái",
       "badgeText": "6k / cái",
       "image": "/images/products/flan.png",
-      "stock": 90,
+      "stock": 65,
       "stockUnit": "cái",
       "lowStockThreshold": 30,
       "isActive": true,
@@ -32,12 +32,12 @@
       "subtitle": "Panna Cotta Kem Tươi Sốt Trái Cây Tươi",
       "category": "Panna Cotta",
       "description": "Cốt kem sữa Ý núng nính béo thanh, kết hợp cùng lớp sốt trái cây tươi nấu thủ công chua ngọt bắt vị: Chanh dây, Việt quất, Đào.",
-      "price": 8000,
+      "price": 10000,
       "costPrice": 4500,
       "unit": "cái",
-      "badgeText": "8k / cái",
+      "badgeText": "10k / cái",
       "image": "/images/products/panna-cotta.png",
-      "stock": 65,
+      "stock": 45,
       "stockUnit": "cái",
       "lowStockThreshold": 15,
       "isActive": true,
@@ -46,21 +46,21 @@
         {
           "id": "var-pc-passion",
           "name": "Vị Chanh Dây",
-          "price": 8000,
+          "price": 10000,
           "unitLabel": "cái",
           "stockDeduction": 1
         },
         {
           "id": "var-pc-blueberry",
           "name": "Vị Việt Quất",
-          "price": 8000,
+          "price": 10000,
           "unitLabel": "cái",
           "stockDeduction": 1
         },
         {
           "id": "var-pc-peach",
           "name": "Vị Đào",
-          "price": 8000,
+          "price": 10000,
           "unitLabel": "cái",
           "stockDeduction": 1
         }
@@ -155,7 +155,7 @@
       "unit": "cái",
       "badgeText": "8k / cái",
       "image": "/images/products/tau-hu-singapore.png",
-      "stock": 48,
+      "stock": 28,
       "stockUnit": "cái",
       "lowStockThreshold": 12,
       "isActive": true,
@@ -181,7 +181,7 @@
       "unit": "cái",
       "badgeText": "5k / cái",
       "image": "/images/products/yogurt.png",
-      "stock": 80,
+      "stock": 75,
       "stockUnit": "cái",
       "lowStockThreshold": 20,
       "isActive": true,
@@ -270,6 +270,94 @@
     }
   ],
   "stockLogs": [
+    {
+      "id": "log-1793457708064-zgh5",
+      "targetId": "prod-panna-cotta",
+      "targetName": "Panna Cotta",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 55,
+      "newStock": 45,
+      "reason": "Đơn hàng ONLINE #FL-7810 (10x Vị Chanh Dây)",
+      "createdAt": "2026-10-31T14:41:48.064Z"
+    },
+    {
+      "id": "log-1793457708063-amcr",
+      "targetId": "prod-tau-hu",
+      "targetName": "Tàu Hũ Singapore",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 38,
+      "newStock": 28,
+      "reason": "Đơn hàng ONLINE #FL-7810 (10x Vị Lá Dứa)",
+      "createdAt": "2026-10-31T14:41:48.063Z"
+    },
+    {
+      "id": "log-1793457708063-mbzk",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 75,
+      "newStock": 65,
+      "reason": "Đơn hàng ONLINE #FL-7810 (10x Bánh Flan Trứng Sữa)",
+      "createdAt": "2026-10-31T14:41:48.063Z"
+    },
+    {
+      "id": "log-1793457582724-ru0w",
+      "targetId": "prod-panna-cotta",
+      "targetName": "Panna Cotta",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 65,
+      "newStock": 55,
+      "reason": "Đơn hàng ONLINE #FL-3959 (10x Vị Chanh Dây)",
+      "createdAt": "2026-10-31T14:39:42.724Z"
+    },
+    {
+      "id": "log-1793457582724-5tso",
+      "targetId": "prod-tau-hu",
+      "targetName": "Tàu Hũ Singapore",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 48,
+      "newStock": 38,
+      "reason": "Đơn hàng ONLINE #FL-3959 (10x Vị Lá Dứa)",
+      "createdAt": "2026-10-31T14:39:42.724Z"
+    },
+    {
+      "id": "log-1793457582724-oyr1",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -10,
+      "previousStock": 85,
+      "newStock": 75,
+      "reason": "Đơn hàng ONLINE #FL-3959 (10x Bánh Flan Trứng Sữa)",
+      "createdAt": "2026-10-31T14:39:42.724Z"
+    },
+    {
+      "id": "log-1793448601947-bwzf",
+      "targetId": "prod-flan",
+      "targetName": "Flan",
+      "targetType": "product",
+      "change": -5,
+      "previousStock": 90,
+      "newStock": 85,
+      "reason": "Đơn hàng ONLINE #FL-4825 (5x Bánh Flan Trứng Sữa)",
+      "createdAt": "2026-10-31T12:10:01.947Z"
+    },
+    {
+      "id": "log-1793448601947-s9qp",
+      "targetId": "prod-yogurt",
+      "targetName": "Yogurt",
+      "targetType": "product",
+      "change": -5,
+      "previousStock": 80,
+      "newStock": 75,
+      "reason": "Đơn hàng ONLINE #FL-4825 (5x Sữa Chua Nhà Làm)",
+      "createdAt": "2026-10-31T12:10:01.947Z"
+    },
     {
       "id": "log-1793001650345-o5b5",
       "targetId": "prod-flan",
@@ -383,10 +471,147 @@
   ],
   "orders": [
     {
+      "id": "ord-1793457708063",
+      "code": "FL-7810",
+      "source": "ONLINE",
+      "status": "PREPARING",
+      "customerName": "yeye_0407",
+      "customerPhone": "0365563009",
+      "customerAddress": "32 Ngô Thị Lan",
+      "note": "[Đặt nhanh qua DIRECT]",
+      "items": [
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-1",
+          "variantName": "Bánh Flan Trứng Sữa",
+          "quantity": 10,
+          "unitPrice": 6000,
+          "subtotal": 60000,
+          "stockDeductionPerItem": 1
+        },
+        {
+          "productId": "prod-tau-hu",
+          "productName": "Tàu Hũ Singapore",
+          "variantId": "var-th-pandan",
+          "variantName": "Vị Lá Dứa",
+          "quantity": 10,
+          "unitPrice": 8000,
+          "subtotal": 80000,
+          "stockDeductionPerItem": 1
+        },
+        {
+          "productId": "prod-panna-cotta",
+          "productName": "Panna Cotta",
+          "variantId": "var-pc-passion",
+          "variantName": "Vị Chanh Dây",
+          "quantity": 10,
+          "unitPrice": 10000,
+          "subtotal": 100000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 240000,
+      "discount": 0,
+      "shippingFee": 0,
+      "total": 240000,
+      "paymentMethod": "COD",
+      "isPaid": false,
+      "createdAt": "2026-10-31T14:41:48.063Z"
+    },
+    {
+      "id": "ord-1793457582724",
+      "code": "FL-3959",
+      "source": "ONLINE",
+      "status": "COMPLETED",
+      "customerName": "Khách đặt nhanh",
+      "customerPhone": "0365563009",
+      "customerAddress": "32 Ngô Thị Lan",
+      "note": "[Đặt nhanh qua DIRECT]",
+      "items": [
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-1",
+          "variantName": "Bánh Flan Trứng Sữa",
+          "quantity": 10,
+          "unitPrice": 6000,
+          "subtotal": 60000,
+          "stockDeductionPerItem": 1
+        },
+        {
+          "productId": "prod-tau-hu",
+          "productName": "Tàu Hũ Singapore",
+          "variantId": "var-th-pandan",
+          "variantName": "Vị Lá Dứa",
+          "quantity": 10,
+          "unitPrice": 8000,
+          "subtotal": 80000,
+          "stockDeductionPerItem": 1
+        },
+        {
+          "productId": "prod-panna-cotta",
+          "productName": "Panna Cotta",
+          "variantId": "var-pc-passion",
+          "variantName": "Vị Chanh Dây",
+          "quantity": 10,
+          "unitPrice": 10000,
+          "subtotal": 100000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 240000,
+      "discount": 0,
+      "shippingFee": 0,
+      "total": 240000,
+      "paymentMethod": "COD",
+      "isPaid": true,
+      "createdAt": "2026-10-31T14:39:42.724Z"
+    },
+    {
+      "id": "ord-1793448601947",
+      "code": "FL-4825",
+      "source": "ONLINE",
+      "status": "COMPLETED",
+      "customerName": "Khách đặt nhanh",
+      "customerPhone": "0703880883",
+      "customerAddress": "Abcd",
+      "note": "[Đặt nhanh qua DIRECT]",
+      "items": [
+        {
+          "productId": "prod-yogurt",
+          "productName": "Yogurt",
+          "variantId": "var-yg-1",
+          "variantName": "Sữa Chua Nhà Làm",
+          "quantity": 5,
+          "unitPrice": 5000,
+          "subtotal": 25000,
+          "stockDeductionPerItem": 1
+        },
+        {
+          "productId": "prod-flan",
+          "productName": "Flan",
+          "variantId": "var-flan-1",
+          "variantName": "Bánh Flan Trứng Sữa",
+          "quantity": 5,
+          "unitPrice": 6000,
+          "subtotal": 30000,
+          "stockDeductionPerItem": 1
+        }
+      ],
+      "subtotal": 55000,
+      "discount": 0,
+      "shippingFee": 15000,
+      "total": 70000,
+      "paymentMethod": "COD",
+      "isPaid": true,
+      "createdAt": "2026-10-31T12:10:01.947Z"
+    },
+    {
       "id": "ord-1793001650344",
       "code": "FL-7502",
       "source": "ONLINE",
-      "status": "PREPARING",
+      "status": "COMPLETED",
       "customerId": "cust_1793001301928_ws23p",
       "customerEmail": "lazyloadsloth@gmail.com",
       "customerName": "Sloth",
@@ -420,14 +645,14 @@
       "shippingFee": 15000,
       "total": 70000,
       "paymentMethod": "COD",
-      "isPaid": false,
+      "isPaid": true,
       "createdAt": "2026-10-26T08:00:50.344Z"
     },
     {
       "id": "ord-1792982669672",
       "code": "FL-6303",
       "source": "ONLINE",
-      "status": "PENDING",
+      "status": "COMPLETED",
       "customerId": "cust_1792982450784_sr1pu",
       "customerEmail": "maianh.flandi@gmail.com",
       "customerName": "Nguyễn Mai Anh",
@@ -451,14 +676,14 @@
       "shippingFee": 15000,
       "total": 33000,
       "paymentMethod": "COD",
-      "isPaid": false,
+      "isPaid": true,
       "createdAt": "2026-10-26T02:44:29.672Z"
     },
     {
       "id": "ord-1792928289601",
       "code": "FL-1007",
       "source": "WEB",
-      "status": "PENDING",
+      "status": "COMPLETED",
       "customerName": "Nguyễn Văn A",
       "customerPhone": "0901234567",
       "customerAddress": "123 Lê Lợi, Q1",
@@ -480,14 +705,14 @@
       "shippingFee": 15000,
       "total": 27000,
       "paymentMethod": "COD",
-      "isPaid": false,
+      "isPaid": true,
       "createdAt": "2026-10-25T11:38:09.601Z"
     },
     {
       "id": "ord-1792865560946",
       "code": "FL-3302",
       "source": "ONLINE",
-      "status": "PENDING",
+      "status": "COMPLETED",
       "customerName": "Loi",
       "customerPhone": "0703880456",
       "customerAddress": "",
@@ -509,14 +734,14 @@
       "shippingFee": 15000,
       "total": 40000,
       "paymentMethod": "COD",
-      "isPaid": false,
+      "isPaid": true,
       "createdAt": "2026-10-24T18:12:40.946Z"
     },
     {
       "id": "ord-1792865373820",
       "code": "FL-2452",
       "source": "ONLINE",
-      "status": "PENDING",
+      "status": "COMPLETED",
       "customerName": "Khách đặt qua Messenger",
       "customerPhone": "",
       "customerAddress": "",
@@ -538,7 +763,7 @@
       "shippingFee": 0,
       "total": 200000,
       "paymentMethod": "COD",
-      "isPaid": false,
+      "isPaid": true,
       "createdAt": "2026-10-24T18:09:33.820Z"
     },
     {
@@ -673,7 +898,7 @@
       "id": "ord-1003",
       "code": "FL-1003",
       "source": "ONLINE",
-      "status": "PENDING",
+      "status": "COMPLETED",
       "customerName": "Anh Hoàng Nam",
       "customerPhone": "0977554433",
       "customerAddress": "45 Lê Văn Sỹ, Quận 3",
@@ -705,7 +930,7 @@
       "shippingFee": 15000,
       "total": 95000,
       "paymentMethod": "COD",
-      "isPaid": false,
+      "isPaid": true,
       "createdAt": "2026-10-23T14:53:40.922Z"
     }
   ],
@@ -887,9 +1112,98 @@
         }
       ],
       "googleClientId": "636192574810-tjk0vf5snhq8kjvvv4d13ikphp3kn8ol.apps.googleusercontent.com"
+    },
+    "rbacPolicy": {
+      "guest": [
+        "menu:view"
+      ],
+      "user": [
+        "menu:view",
+        "orders:self"
+      ],
+      "staff": [
+        "menu:view",
+        "orders:self",
+        "orders:create",
+        "orders:manage"
+      ],
+      "admin": [
+        "menu:view",
+        "orders:self",
+        "orders:create",
+        "orders:manage",
+        "store:manage",
+        "users:manage"
+      ]
     }
   },
   "chats": [
+    {
+      "id": "chat-1793457502074-st1x",
+      "customerName": "yeye_0407",
+      "customerPhone": "0365563009",
+      "unreadForAdmin": 2,
+      "updatedAt": "2026-10-31T14:41:48.207Z",
+      "messages": [
+        {
+          "id": "msg-welcome-1793457573004",
+          "sender": "BOT",
+          "text": "Xin chào Khách Web! 🍮 Chào mừng bạn đến với tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”). Bạn nhắn tin trực tiếp tại đây, tiệm sẽ trả lời ngay lập tức nha!",
+          "createdAt": "2026-10-31T14:39:33.004Z"
+        },
+        {
+          "id": "msg-1793457582755-1xet",
+          "sender": "CUSTOMER",
+          "text": "🍮 ĐƠN ĐẶT BÁNH FLANDI (#FL-3959)\n------------------------\n1. Flan: 10 cái x 6k = 60k\n2. Tàu Hũ Singapore: 10 cái x 8k = 80k\n3. Panna Cotta: 10 cái x 10k = 100k\n------------------------\n• Tạm tính: 240k\n• Phí ship: FREESHIP\n💰 THÀNH TIỀN: 240k\n👤 Khách: Khách đặt nhanh - SĐT: 0365563009\n📍 Địa chỉ nhận: 32 Ngô Thị Lan",
+          "createdAt": "2026-10-31T14:39:42.755Z"
+        },
+        {
+          "id": "msg-bot-1793457582755",
+          "sender": "BOT",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 100k trở lên nha!",
+          "createdAt": "2026-10-31T14:39:43.005Z"
+        },
+        {
+          "id": "msg-1793457708207-qakp",
+          "sender": "CUSTOMER",
+          "text": "🍮 ĐƠN ĐẶT BÁNH FLANDI (#FL-7810)\n------------------------\n1. Flan: 10 cái x 6k = 60k\n2. Tàu Hũ Singapore: 10 cái x 8k = 80k\n3. Panna Cotta: 10 cái x 10k = 100k\n------------------------\n• Tạm tính: 240k\n• Phí ship: FREESHIP\n💰 THÀNH TIỀN: 240k\n👤 Khách: yeye_0407 - SĐT: 0365563009\n📍 Địa chỉ nhận: 32 Ngô Thị Lan",
+          "createdAt": "2026-10-31T14:41:48.207Z"
+        },
+        {
+          "id": "msg-bot-1793457708208",
+          "sender": "BOT",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 100k trở lên nha!",
+          "createdAt": "2026-10-31T14:41:48.458Z"
+        }
+      ]
+    },
+    {
+      "id": "chat-1793448333919-7mww",
+      "customerName": "Khách Messenger Web",
+      "customerPhone": "0703880883",
+      "unreadForAdmin": 1,
+      "updatedAt": "2026-10-31T12:10:02.192Z",
+      "messages": [
+        {
+          "id": "msg-welcome-1793448602192",
+          "sender": "BOT",
+          "text": "Xin chào Khách Messenger Web! 🍮 Chào mừng bạn đến với tiệm bánh FLANDI (“Muốn ăn hãy Flăn vào tớ”). Bạn nhắn tin trực tiếp tại đây, tiệm sẽ trả lời ngay lập tức nha!",
+          "createdAt": "2026-10-31T12:10:02.192Z"
+        },
+        {
+          "id": "msg-1793448602192-g5ak",
+          "sender": "CUSTOMER",
+          "text": "🍮 ĐƠN ĐẶT BÁNH FLANDI (#FL-4825)\n------------------------\n1. Yogurt: 5 cái x 5k = 25k\n2. Flan: 5 cái x 6k = 30k\n------------------------\n• Tạm tính: 55k\n• Phí ship: 15k\n💰 TỔNG CỘNG: 70k\n👤 Khách: Khách đặt nhanh - SĐT: 0703880883\n📍 Địa chỉ nhận: Abcd",
+          "createdAt": "2026-10-31T12:10:02.192Z"
+        },
+        {
+          "id": "msg-bot-1793448602192",
+          "sender": "BOT",
+          "text": "🛵 FLANDI giao hàng giữ lạnh tận nơi mỗi ngày từ 08:00 – 21:30! Phí ship nội thành chỉ 15k và MIỄN PHÍ GIAO HÀNG cho đơn từ 100k trở lên nha!",
+          "createdAt": "2026-10-31T12:10:02.442Z"
+        }
+      ]
+    },
     {
       "id": "chat-1792863095606-tr5y",
       "customerName": "Sloth",
@@ -1060,15 +1374,15 @@
   ],
   "customers": [
     {
-      "id": "cust_1792982450784_sr1pu",
-      "email": "maianh.flandi@gmail.com",
-      "name": "Nguyễn Mai Anh",
-      "picture": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-      "createdAt": "2026-10-26T02:40:50.784Z",
-      "updatedAt": "2026-10-26T02:44:22.875Z",
-      "phone": "0909888999",
-      "address": "84 Lê Duẩn, Bến Nghé, Quận 1, TP.HCM",
-      "deliveryNote": "Bấm chuông lầu 2 giúp em"
+      "id": "cust_1793472270318_zv64x",
+      "email": "trangnhm1806@gmail.com",
+      "name": "Trang My",
+      "role": "staff",
+      "roleUpdatedAt": "2026-10-31T18:44:30.318Z",
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLUcjWPFjvxbGa4waELmevz-6fgTfn2BAA3iSdOlHJweLD2SXMWlw=s96-c",
+      "createdAt": "2026-10-31T18:44:30.318Z",
+      "updatedAt": "2026-10-31T18:45:41.869Z",
+      "googleId": "114356502466862923923"
     },
     {
       "id": "cust_1793001301928_ws23p",
@@ -1077,10 +1391,41 @@
       "name": "Sloth",
       "picture": "https://lh3.googleusercontent.com/a/ACg8ocJIPmDp84NzLMqpyvK2BP8b56S1Hh1NlEIEUOHhInMMnEUqeg0=s96-c",
       "createdAt": "2026-10-26T07:55:01.928Z",
-      "updatedAt": "2026-10-26T08:00:36.772Z",
+      "updatedAt": "2026-10-31T18:43:55.599Z",
       "phone": "0366053058",
       "address": "123 Nguyễn Hữu Cảnh",
-      "deliveryNote": ""
+      "deliveryNote": "",
+      "role": "staff",
+      "roleUpdatedAt": "2026-10-31T18:43:55.599Z"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "aud_1793472270318_vz8i",
+      "actorEmail": "Admin (Mã PIN)",
+      "actorRole": "admin",
+      "action": "Thêm & cấp quyền email",
+      "target": "trangnhm1806@gmail.com",
+      "detail": "Cấp quyền mới: STAFF",
+      "createdAt": "2026-10-31T18:44:30.318Z"
+    },
+    {
+      "id": "aud_1793472246506_iadq",
+      "actorEmail": "Admin (Mã PIN)",
+      "actorRole": "admin",
+      "action": "Xoá tài khoản",
+      "target": "maianh.flandi@gmail.com",
+      "detail": "Đã xoá tài khoản (USER)",
+      "createdAt": "2026-10-31T18:44:06.506Z"
+    },
+    {
+      "id": "aud_1793472235599_mfx4",
+      "actorEmail": "Admin (Mã PIN)",
+      "actorRole": "admin",
+      "action": "Đổi vai trò tài khoản",
+      "target": "lazyloadsloth@gmail.com",
+      "detail": "USER -> STAFF",
+      "createdAt": "2026-10-31T18:43:55.599Z"
     }
   ]
 }

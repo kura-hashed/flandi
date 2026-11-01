@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
-import {
-  readDb,
-  writeDb,
-  findCustomerById,
-  upsertCustomer,
-} from "@/lib/db";
+import { readDb, writeDb, upsertCustomer } from "@/lib/db";
 import {
   CUSTOMER_COOKIE_NAME,
   generateCustomerToken,
-  verifyCustomerToken,
   parseGoogleCredential,
-  getCustomerTokenFromRequest,
-  sanitizeString,
+  resolveRequestActor,
+  verifyAdminAuth,
+  verifyPinAdminSession,
+  verifySameOrigin,
 } from "@/lib/security";
+import { getPermissionsForRole, normalizeRbacPolicy } from "@/lib/rbac";
 import {
   customerAuthRateLimiter,
   createRateLimitErrorResponse,
@@ -29,30 +26,30 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
       db.settings?.pageConfig?.googleClientId ||
       "";
-
-    const token = getCustomerTokenFromRequest(request);
-    if (!token) {
-      return NextResponse.json({ authenticated: false, user: null, googleClientId });
-    }
-
-    const customerId = verifyCustomerToken(token);
-    if (!customerId) {
-      return NextResponse.json({ authenticated: false, user: null, googleClientId });
-    }
-
-    const customer = findCustomerById(customerId);
-    if (!customer) {
-      return NextResponse.json({ authenticated: false, user: null, googleClientId });
-    }
+    const rbacPolicy = normalizeRbacPolicy(db.settings?.rbacPolicy);
+    const actor = resolveRequestActor(request, db);
 
     return NextResponse.json({
-      authenticated: true,
-      user: customer,
+      authenticated: Boolean(actor.user),
+      user: actor.user,
+      role: actor.role,
+      authMethod: actor.authMethod,
+      isPinAdmin: actor.isPinAdmin,
+      permissions: actor.permissions,
+      rbacPolicy,
       googleClientId,
     });
   } catch (error) {
     console.error("Customer auth check error:", error);
-    return NextResponse.json({ authenticated: false, user: null, googleClientId: "" });
+    return NextResponse.json({
+      authenticated: false,
+      user: null,
+      role: "guest",
+      authMethod: "none",
+      isPinAdmin: false,
+      permissions: getPermissionsForRole("guest"),
+      googleClientId: "",
+    });
   }
 }
 
@@ -88,7 +85,6 @@ export async function POST(request: Request) {
         console.warn("Google tokeninfo remote check warning, falling back to local JWT:", err);
       }
 
-      // Fallback local decode nếu verifyRes gặp lỗi mạng
       if (!email) {
         const parsed = parseGoogleCredential(body.credential);
         if (parsed) {
@@ -130,7 +126,7 @@ export async function POST(request: Request) {
       name = email.split("@")[0];
     }
 
-    // 3. Upsert khách hàng vào database với thông tin Google thực tế
+    // 3. Upsert tài khoản (giữ nguyên role nếu đã được Admin cấp quyền trước theo email)
     const customer = upsertCustomer({
       email,
       name,
@@ -138,19 +134,30 @@ export async function POST(request: Request) {
       googleId,
     });
 
+    const db = readDb();
+    const isPinAdmin = verifyPinAdminSession(request);
+    const effectiveRole = isPinAdmin ? "admin" : customer.role || "user";
+    const permissions = getPermissionsForRole(
+      effectiveRole,
+      db.settings?.rbacPolicy
+    );
+
     const token = generateCustomerToken(customer.id);
     const response = NextResponse.json({
       success: true,
       user: customer,
+      role: effectiveRole,
+      isPinAdmin,
+      permissions,
       token,
       message: "Đăng nhập tài khoản Google thành công!",
     });
 
-    // 4. Lưu session cookie (30 ngày)
+    // 4. Lưu session cookie an toàn (30 ngày)
     response.cookies.set({
       name: CUSTOMER_COOKIE_NAME,
       value: token,
-      httpOnly: false,
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
@@ -170,6 +177,16 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    if (!verifySameOrigin(request)) {
+      return NextResponse.json({ error: "Nguồn gốc không hợp lệ" }, { status: 403 });
+    }
+    if (!verifyAdminAuth(request)) {
+      return NextResponse.json(
+        { error: "Yêu cầu quyền Admin để cập nhật Google Client ID" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const clientId = String(body.googleClientId || "").trim();
     if (!clientId) {
@@ -190,7 +207,7 @@ export async function PUT(request: Request) {
       googleClientId: clientId,
       message: "Đã lưu Google Client ID thành công!",
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Lỗi lưu cấu hình Google Client ID" },
       { status: 500 }
@@ -198,7 +215,7 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE() {
   const response = NextResponse.json({
     success: true,
     message: "Đã đăng xuất tài khoản",
@@ -207,6 +224,7 @@ export async function DELETE(request: Request) {
   response.cookies.set({
     name: CUSTOMER_COOKIE_NAME,
     value: "",
+    httpOnly: true,
     path: "/",
     maxAge: 0,
   });

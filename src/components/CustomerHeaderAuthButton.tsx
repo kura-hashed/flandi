@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
+import { ROLE_META } from "@/lib/rbac";
 
 interface CustomerHeaderAuthButtonProps {
   className?: string;
@@ -10,7 +13,7 @@ interface CustomerHeaderAuthButtonProps {
 export default function CustomerHeaderAuthButton({
   className = "",
 }: CustomerHeaderAuthButtonProps) {
-  const { user, loading, triggerGoogleSignIn, openAccountDrawer } =
+  const { user, role, isPinAdmin, loading, triggerGoogleSignIn, openAccountDrawer } =
     useCustomerAuth();
 
   if (loading) {
@@ -19,17 +22,38 @@ export default function CustomerHeaderAuthButton({
     );
   }
 
-  // Khi đã đăng nhập: CHỈ HIỂN THỊ LOGO / AVATAR TÀI KHOẢN (Gọn gàng chuẩn Big Tech, không bị lỗi tràn chữ trên mobile)
+  // Trường hợp đã mở khoá PIN Admin nhưng chưa đăng nhập Google
+  if (!user && isPinAdmin) {
+    return (
+      <div className={`flex items-center gap-1.5 shrink-0 ${className}`}>
+        <Link
+          href="/admin"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-flandi-coral text-white text-xs font-extrabold shadow-2xs hover:bg-flandi-salmon transition active:scale-95"
+          title="Đang mở quyền Admin bằng PIN — Bấm vào trang Quản trị"
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Admin</span>
+        </Link>
+      </div>
+    );
+  }
+
+  // Khi đã đăng nhập Google: Hiển thị Avatar kèm nhãn Role nhỏ gọn (nếu là Staff / Admin)
   if (user) {
+    const showStaffBadge = role === "admin" || role === "staff";
+    const meta = ROLE_META[role];
+
     return (
       <button
         type="button"
         onClick={() => openAccountDrawer("orders")}
-        className={`group relative p-0.5 rounded-full bg-white hover:bg-flandi-cream border-2 border-flandi-salmon/90 hover:border-flandi-coral shadow-2xs hover:shadow-cute transition active:scale-95 shrink-0 cursor-pointer ${className}`}
-        title={`Tài khoản: ${user.name} (Bấm để tra cứu đơn hàng & địa chỉ)`}
+        className={`group relative flex items-center gap-1.5 p-0.5 ${
+          showStaffBadge ? "pr-2.5" : ""
+        } rounded-full bg-white hover:bg-flandi-cream border-2 border-flandi-salmon/90 hover:border-flandi-coral shadow-2xs hover:shadow-cute transition active:scale-95 shrink-0 cursor-pointer ${className}`}
+        title={`Tài khoản: ${user.name} (${meta.shortLabel})`}
         aria-label={`Tài khoản ${user.name}`}
       >
-        <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden bg-flandi-cream">
+        <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden bg-flandi-cream shrink-0">
           <img
             src={
               user.picture ||
@@ -39,20 +63,27 @@ export default function CustomerHeaderAuthButton({
             className="w-full h-full object-cover"
           />
         </div>
-        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full shadow-xs" />
+        {showStaffBadge ? (
+          <span
+            className={`text-[11px] font-black tracking-tight px-1.5 py-0.5 rounded-full border ${meta.badgeClass}`}
+          >
+            {meta.shortLabel}
+          </span>
+        ) : (
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full shadow-xs" />
+        )}
       </button>
     );
   }
 
-  // Khi chưa đăng nhập: Nút Đăng nhập Google
+  // Khi chưa đăng nhập (Guest): Nút Đăng nhập Google
   return (
     <button
       type="button"
       onClick={triggerGoogleSignIn}
-      className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-dark font-extrabold text-xs border border-flandi-pink/90 hover:border-flandi-coral shadow-2xs transition active:scale-95 cursor-pointer shrink-0 ${className}`}
-      title="Đăng nhập Google để lưu địa chỉ & tra cứu đơn hàng"
+      className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-flandi-cream/60 text-flandi-dark font-extrabold text-xs sm:text-[13px] border border-flandi-pink/90 hover:border-flandi-coral shadow-2xs transition active:scale-95 cursor-pointer shrink-0 ${className}`}
+      title="Đăng nhập Google (Staff / Admin / Khách hàng)"
     >
-      {/* Google Icon 4 colors */}
       <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
         <path
           fill="#4285F4"
@@ -71,7 +102,7 @@ export default function CustomerHeaderAuthButton({
           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
         />
       </svg>
-      <span className="text-xs font-extrabold">Đăng nhập</span>
+      <span className="font-extrabold">Đăng nhập</span>
     </button>
   );
 }

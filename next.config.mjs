@@ -3,7 +3,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  allowedDevOrigins: ["192.168.1.248", "localhost", "127.0.0.1"],
+  allowedDevOrigins: [
+    "192.168.1.248",
+    "192.168.1.249",
+    "localhost",
+    "127.0.0.1",
+  ],
+  serverExternalPackages: ["tesseract.js", "tesseract.js-core", "sharp"],
   poweredByHeader: false, // Security: Ẩn header X-Powered-By: Next.js
   async headers() {
     return [
@@ -28,7 +34,7 @@ const nextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(self), microphone=(), geolocation=()",
           },
         ],
       },

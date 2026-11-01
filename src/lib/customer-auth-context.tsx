@@ -6,12 +6,18 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   ReactNode,
 } from "react";
-import { CustomerUser } from "@/lib/types";
+import { CustomerUser, PermissionKey, UserRole } from "@/lib/types";
+import { DEFAULT_RBAC_POLICY } from "@/lib/rbac";
 
 interface CustomerAuthContextType {
   user: CustomerUser | null;
+  role: UserRole;
+  permissions: PermissionKey[];
+  isPinAdmin: boolean;
+  can: (permission: PermissionKey) => boolean;
   loading: boolean;
   googleClientId: string;
   setGoogleClientId: (id: string) => void;
@@ -45,6 +51,11 @@ const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(
 
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CustomerUser | null>(null);
+  const [role, setRole] = useState<UserRole>("guest");
+  const [permissions, setPermissions] = useState<PermissionKey[]>(
+    DEFAULT_RBAC_POLICY.guest
+  );
+  const [isPinAdmin, setIsPinAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [googleClientId, setGoogleClientId] = useState<string>("");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -53,7 +64,13 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     "orders"
   );
 
-  // 1. Kiểm tra session khách hàng & lấy Google Client ID từ hệ thống
+  const permissionSet = useMemo(() => new Set(permissions), [permissions]);
+  const can = useCallback(
+    (permission: PermissionKey) => permissionSet.has(permission),
+    [permissionSet]
+  );
+
+  // 1. Kiểm tra session người dùng, quyền RBAC thực tế & Google Client ID
   const refreshCustomer = useCallback(async () => {
     try {
       const res = await fetch("/api/customer/auth", { cache: "no-store" });
@@ -61,14 +78,20 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       if (data.googleClientId) {
         setGoogleClientId(data.googleClientId);
       }
-      if (data.authenticated && data.user) {
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
+      setUser(data.authenticated && data.user ? data.user : null);
+      setRole((data.role as UserRole) || "guest");
+      setIsPinAdmin(Boolean(data.isPinAdmin));
+      setPermissions(
+        Array.isArray(data.permissions)
+          ? data.permissions
+          : DEFAULT_RBAC_POLICY.guest
+      );
     } catch (err) {
       console.error("Failed to check customer session:", err);
       setUser(null);
+      setRole("guest");
+      setIsPinAdmin(false);
+      setPermissions(DEFAULT_RBAC_POLICY.guest);
     } finally {
       setLoading(false);
     }
@@ -110,6 +133,11 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
         }
 
         setUser(resData.user);
+        setRole((resData.role as UserRole) || resData.user?.role || "user");
+        setIsPinAdmin(Boolean(resData.isPinAdmin));
+        if (Array.isArray(resData.permissions)) {
+          setPermissions(resData.permissions);
+        }
         setIsAuthModalOpen(false);
         return { success: true };
       } catch (err) {
@@ -135,7 +163,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
         }
         setGoogleClientId(id);
         return { success: true };
-      } catch (err) {
+      } catch {
         return { success: false, error: "Không thể kết nối máy chủ" };
       }
     },
@@ -155,7 +183,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // 6. Tự động kích hoạt Google One Tap (Quick Authentication) khi khách chưa đăng nhập
+  // 6. Tự động kích hoạt Google One Tap khi chưa đăng nhập
   useEffect(() => {
     if (typeof window === "undefined" || !googleClientId || user) return;
 
@@ -176,11 +204,10 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
               await loginWithGoogle({ credential: response.credential });
             }
           },
-          auto_select: true, // Quick authentication: tự động gợi ý tài khoản Google
+          auto_select: true,
           cancel_on_tap_outside: false,
         });
 
-        // Hiển thị Google One Tap
         google.accounts.id.prompt((notification: any) => {
           if (notification.isNotDisplayed()) {
             console.log(
@@ -201,7 +228,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [googleClientId, user, loginWithGoogle]);
 
-  // 7. Kích hoạt trực tiếp Google Quick Authentication khi người dùng bấm nút (Giống các Big Tech: bấm là mở trực tiếp Google)
+  // 7. Kích hoạt trực tiếp Google Sign-In
   const triggerGoogleSignIn = useCallback(() => {
     if (!googleClientId) {
       console.warn("Chưa cấu hình Google Client ID");
@@ -210,7 +237,6 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
     const google = (window as any).google;
 
-    // 7.1 Mở popup OAuth chuẩn Google Identity Services (native popup, không qua modal trung gian)
     if (google?.accounts?.oauth2) {
       try {
         const client = google.accounts.oauth2.initTokenClient({
@@ -229,7 +255,6 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 7.2 Fallback: Redirect trực tiếp đến Google OAuth (cho mobile hoặc khi popup bị chặn)
     if (typeof window !== "undefined") {
       const redirectUri = window.location.origin + "/auth/callback";
       const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(
@@ -248,9 +273,12 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await fetch("/api/customer/auth", { method: "DELETE" });
+      await fetch("/api/auth", { method: "DELETE" });
       setUser(null);
+      setRole("guest");
+      setIsPinAdmin(false);
+      setPermissions(DEFAULT_RBAC_POLICY.guest);
       setIsAccountDrawerOpen(false);
-      // Thu hồi One Tap auto_select
       const google = (window as any).google;
       if (google?.accounts?.id?.disableAutoSelect) {
         google.accounts.id.disableAutoSelect();
@@ -294,6 +322,10 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     <CustomerAuthContext.Provider
       value={{
         user,
+        role,
+        permissions,
+        isPinAdmin,
+        can,
         loading,
         googleClientId,
         setGoogleClientId,

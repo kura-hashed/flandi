@@ -202,7 +202,10 @@ export async function POST(request: Request) {
     }
 
     writeDb(db);
-    const response = NextResponse.json({ session, chats: db.chats });
+    const isAdmin = verifyAdminAuth(request, db);
+    const response = NextResponse.json(
+      isAdmin ? { session, chats: db.chats } : { session }
+    );
     attachRateLimitHeaders(response.headers, rateLimit);
     return response;
   } catch (error) {

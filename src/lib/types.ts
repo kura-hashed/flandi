@@ -60,6 +60,29 @@ export interface OrderItem {
   stockDeductionPerItem: number;
 }
 
+export type UserRole = "admin" | "staff" | "user" | "guest";
+export type AccountRole = "admin" | "staff" | "user";
+
+export type PermissionKey =
+  | "menu:view"
+  | "orders:self"
+  | "orders:create"
+  | "orders:manage"
+  | "store:manage"
+  | "users:manage";
+
+export type RbacPolicy = Record<UserRole, PermissionKey[]>;
+
+export interface AuditLogEntry {
+  id: string;
+  actorEmail: string;
+  actorRole: UserRole;
+  action: string;
+  target: string;
+  detail: string;
+  createdAt: string;
+}
+
 export type OrderSource = "POS" | "ONLINE" | "ZALO" | "GRAB_SHOPEE";
 export type OrderStatus = "PENDING" | "PREPARING" | "COMPLETED" | "CANCELLED";
 export type PaymentMethod = "CASH" | "VIETQR" | "COD" | "MOMO";
@@ -71,6 +94,9 @@ export interface Order {
   status: OrderStatus;
   customerId?: string;
   customerEmail?: string;
+  createdById?: string;
+  createdByEmail?: string;
+  createdByRole?: UserRole;
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
@@ -221,6 +247,7 @@ export interface ShopSettings {
   announcement: string;
   brandKit?: BrandKit;
   pageConfig?: PageConfig;
+  rbacPolicy?: RbacPolicy;
 }
 
 export interface ChatMessage {
@@ -244,6 +271,8 @@ export interface CustomerUser {
   googleId?: string;
   email: string;
   name: string;
+  role?: AccountRole;
+  roleUpdatedAt?: string;
   picture?: string;
   phone?: string;
   address?: string;
@@ -266,4 +295,5 @@ export interface StoreDatabase {
   chats?: ChatSession[];
   ledger?: LedgerEntry[];
   customers?: CustomerUser[];
+  auditLogs?: AuditLogEntry[];
 }

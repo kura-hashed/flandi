@@ -25,8 +25,17 @@ import {
   MapPin,
   AlertCircle,
   Receipt,
+  Download,
+  Lock,
 } from "lucide-react";
 import { Product, ProductVariant, ShopSettings } from "@/lib/types";
+import { ROLE_META } from "@/lib/rbac";
+import {
+  generateBillImage,
+  preloadBillAssets,
+  GeneratedBillImage,
+  BillImageItem,
+} from "@/lib/bill-image";
 import LiveChatWidget, {
   copyToClipboardInstant,
 } from "@/components/LiveChatWidget";
@@ -42,7 +51,9 @@ interface QuickLineItem {
 }
 
 export default function QuickSingleScreenOrderPage() {
-  const { user, triggerGoogleSignIn, openAccountDrawer } = useCustomerAuth();
+  const { user, role, can, triggerGoogleSignIn, openAccountDrawer } =
+    useCustomerAuth();
+  const canCreateOrder = can("orders:create");
   const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,9 +73,9 @@ export default function QuickSingleScreenOrderPage() {
   const [addressError, setAddressError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
 
-  // Tự động điền thông tin từ tài khoản Google nếu có
+  // Tự động điền thông tin từ tài khoản Google khi là khách lẻ (không ghi đè form khi Staff/Admin lên đơn giúp khách)
   useEffect(() => {
-    if (user) {
+    if (user && role === "user") {
       if (!customerName && user.name) {
         setCustomerName(user.name);
       }
@@ -75,7 +86,7 @@ export default function QuickSingleScreenOrderPage() {
         setCustomerAddress(user.address);
       }
     }
-  }, [user]);
+  }, [user, role]);
 
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -91,10 +102,27 @@ export default function QuickSingleScreenOrderPage() {
     channel: "MESSENGER" | "ZALO" | "DIRECT";
     orderCode: string;
     orderText: string;
+    items: BillImageItem[];
+    subtotal: number;
+    shippingFee: number;
     total: number;
     zaloWebUrl: string;
     messengerWebUrl: string;
     zaloPhone: string;
+  } | null>(null);
+
+  const [isSavingBillImage, setIsSavingBillImage] = useState(false);
+  const [billImageModal, setBillImageModal] = useState<
+    (GeneratedBillImage & { autoCopied?: boolean }) | null
+  >(null);
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const preparedBillRef = useRef<{
+    key: string;
+    data: GeneratedBillImage;
+  } | null>(null);
+  const preparedSentBillRef = useRef<{
+    orderCode: string;
+    data: GeneratedBillImage;
   } | null>(null);
 
   const billTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -121,7 +149,7 @@ export default function QuickSingleScreenOrderPage() {
       }
       return copy;
     });
-    notify("🍮 Đã nạp lại các món từ đơn cũ vào giỏ bánh!");
+      notify("🍮 Đã thêm lại đơn cũ!");
   };
 
   const formatVND = (n: number) => {
@@ -304,54 +332,70 @@ export default function QuickSingleScreenOrderPage() {
     });
   };
 
+  const removeFromBill = (productId: string) => {
+    setCartMap((prev) => {
+      const copy = { ...prev };
+      delete copy[productId];
+      return copy;
+    });
+  };
+
   // Custom numeric keypad state & methods (chỉ có số kèm nút xóa và clear)
   const [keypadProduct, setKeypadProduct] = useState<Product | null>(null);
+  const [keypadDraftQty, setKeypadDraftQty] = useState<number>(0);
   const [isFreshKeypadInput, setIsFreshKeypadInput] = useState<boolean>(true);
 
   const openKeypad = (product: Product) => {
     setKeypadProduct(product);
+    setKeypadDraftQty(getQtyForProduct(product.id));
     setIsFreshKeypadInput(true);
   };
 
-  const closeKeypad = () => {
+  const cancelKeypad = () => {
+    setKeypadProduct(null);
+    setIsFreshKeypadInput(true);
+  };
+
+  const confirmKeypad = () => {
+    if (keypadProduct) {
+      setExactQty(keypadProduct, keypadDraftQty);
+    }
     setKeypadProduct(null);
     setIsFreshKeypadInput(true);
   };
 
   const handleKeypadDigit = (digit: number) => {
     if (!keypadProduct) return;
-    const current = getQtyForProduct(keypadProduct.id);
     let nextVal: number;
     if (isFreshKeypadInput) {
       nextVal = digit;
       setIsFreshKeypadInput(false);
     } else {
-      if (current === 0) {
+      if (keypadDraftQty === 0) {
         nextVal = digit;
       } else {
-        nextVal = Math.min(parseInt(`${current}${digit}`, 10) || 0, 999);
+        nextVal = Math.min(parseInt(`${keypadDraftQty}${digit}`, 10) || 0, 999);
       }
     }
-    setExactQty(keypadProduct, nextVal);
+    setKeypadDraftQty(nextVal);
   };
 
   const handleKeypadBackspace = () => {
     if (!keypadProduct) return;
     setIsFreshKeypadInput(false);
-    const current = getQtyForProduct(keypadProduct.id);
-    const str = current.toString();
+    const str = keypadDraftQty.toString();
     if (str.length <= 1) {
-      setExactQty(keypadProduct, 0);
+      setKeypadDraftQty(0);
     } else {
       const nextStr = str.slice(0, -1);
-      setExactQty(keypadProduct, parseInt(nextStr, 10) || 0);
+      setKeypadDraftQty(parseInt(nextStr, 10) || 0);
     }
   };
 
   const handleKeypadClear = () => {
     if (!keypadProduct) return;
     setIsFreshKeypadInput(false);
-    setExactQty(keypadProduct, 0);
+    setKeypadDraftQty(0);
   };
 
   // Physical keyboard support for custom keypad
@@ -365,9 +409,12 @@ export default function QuickSingleScreenOrderPage() {
       } else if (e.key === "Backspace") {
         e.preventDefault();
         handleKeypadBackspace();
-      } else if (e.key === "Escape" || e.key === "Enter") {
+      } else if (e.key === "Enter") {
         e.preventDefault();
-        closeKeypad();
+        confirmKeypad();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelKeypad();
       } else if (e.key === "c" || e.key === "C") {
         e.preventDefault();
         handleKeypadClear();
@@ -376,7 +423,7 @@ export default function QuickSingleScreenOrderPage() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [keypadProduct, isFreshKeypadInput, cartMap]);
+  }, [keypadProduct, isFreshKeypadInput, keypadDraftQty]);
 
   const sortedProducts = useMemo(() => {
     return [...products].sort((a, b) => {
@@ -429,9 +476,9 @@ export default function QuickSingleScreenOrderPage() {
     lines.push("------------------------");
     cartItems.forEach((item, idx) => {
       lines.push(
-        `${idx + 1}. ${item.product.name}: ${item.quantity} ${
-          item.product.unit || "cái"
-        } x ${formatVND(item.product.price)} = ${formatVND(
+        `${idx + 1}. ${item.product.name}: ${formatVND(
+          item.product.price
+        )} x ${item.quantity} = ${formatVND(
           item.product.price * item.quantity
         )}`
       );
@@ -440,10 +487,10 @@ export default function QuickSingleScreenOrderPage() {
     lines.push(`• Tạm tính: ${formatVND(subtotal)}`);
     lines.push(
       `• Phí ship: ${
-        shippingFee === 0 ? "FREESHIP (0k)" : formatVND(shippingFee)
+        shippingFee === 0 ? "FREESHIP" : formatVND(shippingFee)
       }`
     );
-    lines.push(`💰 TỔNG CỘNG: ${formatVND(grandTotal)}`);
+    lines.push(`💰 THÀNH TIỀN: ${formatVND(grandTotal)}`);
     if (customerName.trim() || customerPhone.trim()) {
       lines.push(
         `👤 Khách: ${customerName.trim() || "Khách đặt nhanh"}${
@@ -470,24 +517,538 @@ export default function QuickSingleScreenOrderPage() {
     ]
   );
 
-  const handleCopyBillText = () => {
-    if (cartItems.length === 0) {
-      notify("Bạn hãy chọn số lượng ít nhất 1 món bánh nhé!");
+  const closeBillImageModal = () => {
+    setBillImageModal((prev) => {
+      if (prev?.objectUrl) {
+        URL.revokeObjectURL(prev.objectUrl);
+      }
+      return null;
+    });
+  };
+
+  const triggerBillDownload = (imgData: GeneratedBillImage) => {
+    const a = document.createElement("a");
+    a.href = imgData.objectUrl;
+    a.download = imgData.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleCopyBillImage = async (imgData: GeneratedBillImage) => {
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard?.write &&
+        typeof ClipboardItem !== "undefined"
+      ) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ [imgData.blob.type]: imgData.blob }),
+        ]);
+        setBillImageModal((prev) =>
+          prev ? { ...prev, autoCopied: true } : prev
+        );
+        notify("📋 Đã copy ảnh bill!");
+        return;
+      }
+    } catch {
+      // Fallback below if clipboard image write is blocked
+    }
+    triggerBillDownload(imgData);
+    notify("📥 Đã lưu ảnh bill!");
+  };
+
+  const handleShareBillImage = async (imgData: GeneratedBillImage) => {
+    try {
+      const file = new File([imgData.blob], imgData.fileName, {
+        type: "image/png",
+        lastModified: Date.now(),
+      });
+      if (
+        typeof navigator !== "undefined" &&
+        typeof navigator.share === "function" &&
+        (!navigator.canShare || navigator.canShare({ files: [file] }))
+      ) {
+        // Pass ONLY { files: [file] } (no title/text) so iOS UIActivityViewController & Android show Messenger, Threads, Zalo, Instagram
+        await navigator.share({ files: [file] });
+        return;
+      }
+    } catch (err) {
+      if ((err as Error)?.name === "AbortError") {
+        return;
+      }
+    }
+    notify("ℹ️ Trình duyệt chưa hỗ trợ Share.");
+  };
+
+  const handleShareBillViaPlatform = async (
+    platform: "ZALO" | "MESSENGER",
+    imgData: GeneratedBillImage
+  ) => {
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.clipboard?.write &&
+      typeof ClipboardItem !== "undefined"
+    ) {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ [imgData.blob.type]: imgData.blob }),
+        ]);
+        setBillImageModal((prev) =>
+          prev ? { ...prev, autoCopied: true } : prev
+        );
+      } catch {
+        // Keep previously copied clipboard item if any
+      }
+    }
+
+    const zaloPhone = settings?.zaloPhone || settings?.phone || "0703166903";
+    const targetUrl =
+      platform === "ZALO"
+        ? `https://zalo.me/${zaloPhone}`
+        : settings?.messengerUrl ||
+          settings?.facebookUrl ||
+          "https://www.facebook.com/tiem.flandi";
+
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
+    notify(
+      platform === "ZALO"
+        ? "📋 Đã copy ảnh! Dán (Ctrl+V) vào Zalo."
+        : "📋 Đã copy ảnh! Dán (Ctrl+V) vào Messenger."
+    );
+  };
+
+  const currentCartBillKey = useMemo(() => {
+    if (cartItems.length === 0) return "";
+    const itemsPart = cartItems
+      .map((i) => `${i.product.id}:${i.quantity}:${i.product.price}`)
+      .join("|");
+    return `${itemsPart}__${subtotal}__${shippingFee}__${grandTotal}__${customerName.trim()}__${customerPhone.trim()}__${customerAddress.trim()}`;
+  }, [
+    cartItems,
+    subtotal,
+    shippingFee,
+    grandTotal,
+    customerName,
+    customerPhone,
+    customerAddress,
+  ]);
+
+  // Preload fonts + mascot + product images on mount so Canvas draws in ~15ms
+  useEffect(() => {
+    if (products.length === 0) return;
+    const mascotUrl =
+      settings?.pageConfig?.headerLogoUrl ||
+      settings?.brandKit?.mascotImage ||
+      "/images/branding/flandi-mascot.png";
+    preloadBillAssets([mascotUrl, ...products.map((p) => p.image)]);
+  }, [products, settings]);
+
+  // Pre-warm bill PNG immediately so Phone Share Bill has File ready in RAM at t = 0ms
+  useEffect(() => {
+    if (!currentCartBillKey || cartItems.length === 0) {
+      if (preparedBillRef.current?.data.objectUrl) {
+        URL.revokeObjectURL(preparedBillRef.current.data.objectUrl);
+      }
+      preparedBillRef.current = null;
       return;
     }
-    const text = buildOrderMessageText();
-    copyToClipboardInstant(text);
-    setCopied(true);
-    notify(
-      "📋 Đã tự động Copy đơn hàng! Bạn chỉ cần bấm Ctrl+V (hoặc Dán) vào khung chat Zalo/Messenger."
-    );
-    setTimeout(() => setCopied(false), 2500);
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const generated = await generateBillImage({
+          items: cartItems.map((i) => ({
+            name: i.product.name,
+            badgeText: i.product.badgeText,
+            image: i.product.image,
+            unit: i.product.unit || "cái",
+            price: i.product.price,
+            quantity: i.quantity,
+          })),
+          subtotal,
+          shippingFee,
+          grandTotal,
+          customerName,
+          customerPhone,
+          customerAddress,
+          shopName: settings?.shopName || "Tiệm bánh Flandi",
+          tagline: settings?.tagline || "Muốn ăn hãy Flăn vào tớ",
+          mascotUrl:
+            settings?.pageConfig?.headerLogoUrl ||
+            settings?.brandKit?.mascotImage ||
+            "/images/branding/flandi-mascot.png",
+          shopPhone: settings?.zaloPhone || settings?.phone || "0703166903",
+          shopAddress:
+            settings?.address ||
+            "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh",
+        });
+
+        if (cancelled) {
+          URL.revokeObjectURL(generated.objectUrl);
+          return;
+        }
+        if (preparedBillRef.current?.data.objectUrl) {
+          URL.revokeObjectURL(preparedBillRef.current.data.objectUrl);
+        }
+        preparedBillRef.current = {
+          key: currentCartBillKey,
+          data: generated,
+        };
+      } catch {
+        // Silent warm-up failure; click handler generates on-demand
+      }
+    }, 30);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    currentCartBillKey,
+    cartItems,
+    subtotal,
+    shippingFee,
+    grandTotal,
+    customerName,
+    customerPhone,
+    customerAddress,
+    settings,
+  ]);
+
+  // Pre-warm post-checkout sentResultModal bill PNG immediately when modal opens
+  useEffect(() => {
+    if (!sentResultModal) {
+      if (preparedSentBillRef.current?.data.objectUrl) {
+        URL.revokeObjectURL(preparedSentBillRef.current.data.objectUrl);
+      }
+      preparedSentBillRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const generated = await generateBillImage({
+          orderCode: sentResultModal.orderCode,
+          items: sentResultModal.items,
+          subtotal: sentResultModal.subtotal,
+          shippingFee: sentResultModal.shippingFee,
+          grandTotal: sentResultModal.total,
+          customerName,
+          customerPhone,
+          customerAddress,
+          shopName: settings?.shopName || "Tiệm bánh Flandi",
+          tagline: settings?.tagline || "Muốn ăn hãy Flăn vào tớ",
+          mascotUrl:
+            settings?.pageConfig?.headerLogoUrl ||
+            settings?.brandKit?.mascotImage ||
+            "/images/branding/flandi-mascot.png",
+          shopPhone: settings?.zaloPhone || settings?.phone || "0703166903",
+          shopAddress:
+            settings?.address ||
+            "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh",
+        });
+        if (cancelled) {
+          URL.revokeObjectURL(generated.objectUrl);
+          return;
+        }
+        if (preparedSentBillRef.current?.data.objectUrl) {
+          URL.revokeObjectURL(preparedSentBillRef.current.data.objectUrl);
+        }
+        preparedSentBillRef.current = {
+          orderCode: sentResultModal.orderCode,
+          data: generated,
+        };
+      } catch {
+        // Handled on-demand if needed
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    sentResultModal,
+    customerName,
+    customerPhone,
+    customerAddress,
+    settings,
+  ]);
+
+  // Close product description or share bill modal on Escape key
+  useEffect(() => {
+    if (!previewProduct && !billImageModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (previewProduct) setPreviewProduct(null);
+        else if (billImageModal) closeBillImageModal();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewProduct, billImageModal]);
+
+  const handleOpenShareBill = async (overrideSnapshot?: {
+    orderCode?: string;
+    items: BillImageItem[];
+    subtotal: number;
+    shippingFee: number;
+    total: number;
+  }) => {
+    const itemsToExport: BillImageItem[] = overrideSnapshot
+      ? overrideSnapshot.items
+      : cartItems.map((i) => ({
+          name: i.product.name,
+          badgeText: i.product.badgeText,
+          image: i.product.image,
+          unit: i.product.unit || "cái",
+          price: i.product.price,
+          quantity: i.quantity,
+        }));
+
+    if (itemsToExport.length === 0) {
+      notify("🍮 Chọn ít nhất 1 món trước nha!");
+      return;
+    }
+
+    const isPhoneUI =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 1024 ||
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+
+    // PHONE FLOW: Copy ảnh vào clipboard + Mở cửa sổ Share của hệ điều hành (Messenger, Threads, Zalo...)
+    if (isPhoneUI) {
+      const fallbackText = overrideSnapshot
+        ? sentResultModal?.orderText || buildOrderMessageText(overrideSnapshot.orderCode)
+        : liveOrderPreviewText;
+
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        copyToClipboardInstant(fallbackText);
+        notify("🔒 Cần HTTPS để Share & copy ảnh!");
+        return;
+      }
+
+      const warmMatch = overrideSnapshot?.orderCode
+        ? preparedSentBillRef.current?.orderCode === overrideSnapshot.orderCode
+          ? preparedSentBillRef.current.data
+          : null
+        : preparedBillRef.current?.key === currentCartBillKey
+        ? preparedBillRef.current.data
+        : null;
+
+      if (warmMatch) {
+        // 1. Copy PNG image into clipboard synchronously inside the user gesture
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.clipboard?.write &&
+          typeof ClipboardItem !== "undefined"
+        ) {
+          try {
+            navigator.clipboard
+              .write([new ClipboardItem({ "image/png": warmMatch.blob })])
+              .catch(() => {
+                copyToClipboardInstant(fallbackText);
+              });
+          } catch {
+            copyToClipboardInstant(fallbackText);
+          }
+        } else {
+          copyToClipboardInstant(fallbackText);
+        }
+
+        // 2. Open OS Share Sheet synchronously with ONLY { files: [file] } so Messenger, Threads, Zalo all appear
+        const file = new File([warmMatch.blob], warmMatch.fileName, {
+          type: "image/png",
+          lastModified: Date.now(),
+        });
+
+        if (
+          typeof navigator !== "undefined" &&
+          typeof navigator.share === "function"
+        ) {
+          try {
+            if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file] });
+            } else {
+              await navigator.share({ text: fallbackText });
+            }
+            return;
+          } catch (err) {
+            if ((err as Error)?.name === "AbortError") {
+              notify("📋 Đã copy ảnh bill!");
+              return;
+            }
+          }
+        }
+
+        notify("📋 Đã copy ảnh bill!");
+        return;
+      }
+
+      // On-demand path if tapped within <30ms before warm cache finished
+      setIsSavingBillImage(true);
+      try {
+        const genPromise = generateBillImage({
+          orderCode: overrideSnapshot?.orderCode,
+          items: itemsToExport,
+          subtotal: overrideSnapshot ? overrideSnapshot.subtotal : subtotal,
+          shippingFee: overrideSnapshot
+            ? overrideSnapshot.shippingFee
+            : shippingFee,
+          grandTotal: overrideSnapshot ? overrideSnapshot.total : grandTotal,
+          customerName,
+          customerPhone,
+          customerAddress,
+          shopName: settings?.shopName || "Tiệm bánh Flandi",
+          tagline: settings?.tagline || "Muốn ăn hãy Flăn vào tớ",
+          mascotUrl:
+            settings?.pageConfig?.headerLogoUrl ||
+            settings?.brandKit?.mascotImage ||
+            "/images/branding/flandi-mascot.png",
+          shopPhone: settings?.zaloPhone || settings?.phone || "0703166903",
+          shopAddress:
+            settings?.address ||
+            "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh",
+        });
+
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.clipboard?.write &&
+          typeof ClipboardItem !== "undefined"
+        ) {
+          try {
+            navigator.clipboard
+              .write([
+                new ClipboardItem({
+                  "image/png": genPromise.then((g) => g.blob),
+                }),
+              ])
+              .catch(() => {});
+          } catch {
+            // Handled below
+          }
+        }
+
+        const generated = await genPromise;
+        try {
+          const file = new File([generated.blob], generated.fileName, {
+            type: "image/png",
+            lastModified: Date.now(),
+          });
+          if (
+            typeof navigator !== "undefined" &&
+            typeof navigator.share === "function"
+          ) {
+            if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file] });
+            } else {
+              await navigator.share({ text: fallbackText });
+            }
+            return;
+          }
+          notify("📋 Đã copy ảnh bill!");
+        } catch (err) {
+          if ((err as Error)?.name === "AbortError") {
+            notify("📋 Đã copy ảnh bill!");
+          } else {
+            notify("📋 Đã copy ảnh bill!");
+          }
+        } finally {
+          setTimeout(() => URL.revokeObjectURL(generated.objectUrl), 5000);
+        }
+      } catch (err) {
+        console.error("Failed to share bill on phone:", err);
+        notify("⚠️ Lỗi tạo ảnh bill, thử lại nhé!");
+      } finally {
+        setIsSavingBillImage(false);
+      }
+      return;
+    }
+
+    // WEB FLOW: Tự động copy ảnh & mở popup Share Bill clean
+    setIsSavingBillImage(true);
+    try {
+      const genPromise = generateBillImage({
+        orderCode: overrideSnapshot?.orderCode,
+        items: itemsToExport,
+        subtotal: overrideSnapshot ? overrideSnapshot.subtotal : subtotal,
+        shippingFee: overrideSnapshot
+          ? overrideSnapshot.shippingFee
+          : shippingFee,
+        grandTotal: overrideSnapshot ? overrideSnapshot.total : grandTotal,
+        customerName,
+        customerPhone,
+        customerAddress,
+        shopName: settings?.shopName || "Tiệm bánh Flandi",
+        tagline: settings?.tagline || "Muốn ăn hãy Flăn vào tớ",
+        mascotUrl:
+          settings?.pageConfig?.headerLogoUrl ||
+          settings?.brandKit?.mascotImage ||
+          "/images/branding/flandi-mascot.png",
+        shopPhone: settings?.zaloPhone || settings?.phone || "0703166903",
+        shopAddress:
+          settings?.address ||
+          "123/3 Nguyễn Hữu Cảnh, Thủ Dầu Một, TP Hồ Chí Minh",
+      });
+
+      // Synchronously register ClipboardItem(Promise<Blob>) inside the user click gesture
+      let syncCopyPromise: Promise<boolean> = Promise.resolve(false);
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard?.write &&
+        typeof ClipboardItem !== "undefined"
+      ) {
+        try {
+          const item = new ClipboardItem({
+            "image/png": genPromise.then((g) => g.blob),
+          });
+          syncCopyPromise = navigator.clipboard
+            .write([item])
+            .then(() => true)
+            .catch(() => false);
+        } catch {
+          syncCopyPromise = Promise.resolve(false);
+        }
+      }
+
+      const generated = await genPromise;
+      let autoCopied = await syncCopyPromise;
+
+      if (
+        !autoCopied &&
+        typeof navigator !== "undefined" &&
+        navigator.clipboard?.write &&
+        typeof ClipboardItem !== "undefined"
+      ) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ [generated.blob.type]: generated.blob }),
+          ]);
+          autoCopied = true;
+        } catch {
+          autoCopied = false;
+        }
+      }
+
+      setBillImageModal((prev) => {
+        if (prev?.objectUrl) {
+          URL.revokeObjectURL(prev.objectUrl);
+        }
+        return { ...generated, autoCopied };
+      });
+    } catch (err) {
+      console.error("Failed to generate bill image:", err);
+      notify("⚠️ Lỗi tạo ảnh bill, thử lại nhé!");
+    } finally {
+      setIsSavingBillImage(false);
+    }
   };
 
   const validateOrder = (): boolean => {
     // 1. Kiểm tra giỏ hàng
     if (cartItems.length === 0) {
-      notify("🍮 Bạn hãy chọn ít nhất 1 món bánh trước khi gửi đơn nha!");
+      notify("🍮 Chọn ít nhất 1 món trước nha!");
       return false;
     }
 
@@ -499,12 +1060,12 @@ export default function QuickSingleScreenOrderPage() {
     const phoneRegex = /^(0|\+84|84)(3|5|7|8|9)[0-9]{8}$/;
 
     if (!rawPhone) {
-      setPhoneError("Vui lòng nhập số điện thoại");
-      notify("📞 Vui lòng nhập số điện thoại để tiệm liên hệ giao hàng nha!");
+      setPhoneError("Nhập số điện thoại");
+      notify("📞 Nhập số điện thoại nhận bánh nhé!");
       valid = false;
     } else if (!phoneRegex.test(cleanPhone)) {
-      setPhoneError("Số điện thoại không hợp lệ (cần 10 số)");
-      notify("⚠️ Số điện thoại không đúng (cần 10 số), bạn kiểm tra lại nha!");
+      setPhoneError("SĐT cần đủ 10 số");
+      notify("⚠️ Số điện thoại cần đủ 10 số!");
       valid = false;
     } else {
       setPhoneError(null);
@@ -513,15 +1074,15 @@ export default function QuickSingleScreenOrderPage() {
     // 3. Kiểm tra địa chỉ nhận bánh / giờ ghé lấy
     const rawAddress = customerAddress.trim();
     if (!rawAddress) {
-      setAddressError("Vui lòng nhập địa chỉ hoặc giờ lấy bánh");
+      setAddressError("Nhập địa chỉ / giờ lấy");
       if (valid) {
-        notify("📍 Vui lòng nhập địa chỉ giao hàng hoặc giờ ghé lấy bánh nha!");
+        notify("📍 Nhập địa chỉ hoặc giờ ghé lấy nhé!");
       }
       valid = false;
     } else if (rawAddress.length < 3) {
-      setAddressError("Địa chỉ quá ngắn, bạn ghi rõ hơn nha");
+      setAddressError("Địa chỉ quá ngắn");
       if (valid) {
-        notify("📍 Địa chỉ nhận bánh quá ngắn, bạn ghi rõ số nhà/đường hoặc giờ lấy nha!");
+        notify("📍 Ghi rõ địa chỉ hoặc giờ lấy nhé!");
       }
       valid = false;
     } else {
@@ -543,6 +1104,11 @@ export default function QuickSingleScreenOrderPage() {
   const handleSendOrderVia = async (
     channel: "MESSENGER" | "ZALO" | "DIRECT"
   ) => {
+    if (!canCreateOrder) {
+      notify("🔒 Chỉ nhân viên (Staff) hoặc Admin được quyền lên đơn!");
+      return;
+    }
+
     if (!validateOrder()) {
       return;
     }
@@ -613,10 +1179,10 @@ export default function QuickSingleScreenOrderPage() {
       if (!orderRes.ok) {
         const errData = await orderRes.json().catch(() => ({}));
         if (orderRes.status === 429) {
-          notify(`⏱️ ${errData.error || "Bạn đang gửi đơn quá nhanh, vui lòng thử lại sau ít phút!"}`);
+          notify(`⏱️ ${errData.error || "Thao tác quá nhanh, thử lại sau ít phút!"}`);
           return;
         }
-        notify(`⚠️ ${errData.error || "Không thể tạo đơn hàng. Vui lòng kiểm tra lại thông tin!"}`);
+        notify(`⚠️ ${errData.error || "Lỗi tạo đơn, kiểm tra lại thông tin!"}`);
         return;
       }
 
@@ -644,8 +1210,21 @@ export default function QuickSingleScreenOrderPage() {
         }),
       });
 
+      // Giữ bản chụp món trong đơn trước khi xoá giỏ hàng để khách lưu ảnh Hóa Đơn sau chốt đơn
+      const snapshotItems: BillImageItem[] = cartItems.map((i) => ({
+        name: i.product.name,
+        badgeText: i.product.badgeText,
+        image: i.product.image,
+        unit: i.product.unit || "cái",
+        price: i.product.price,
+        quantity: i.quantity,
+      }));
+      const snapshotSubtotal = subtotal;
+      const snapshotShippingFee = shippingFee;
+
       // Xoá giỏ hàng sau khi chốt đơn thành công
       setCartMap({});
+      setIsExpanded(false);
       try {
         localStorage.removeItem("flandi_order_cart");
       } catch {}
@@ -656,14 +1235,17 @@ export default function QuickSingleScreenOrderPage() {
         setOpenChatTrigger((n) => n + 1);
         notify(
           channel === "ZALO"
-            ? `✅ Đã tự động dán & gửi đơn #${generatedCode} vào khung Chat Zalo trực tiếp trên trang!`
-            : `✅ Đã tự động dán & gửi đơn #${generatedCode} vào khung Chat Messenger trực tiếp trên trang!`
+            ? `✅ Đã gửi đơn #${generatedCode} qua Chat Zalo!`
+            : `✅ Đã gửi đơn #${generatedCode} qua Chat Messenger!`
         );
       } else {
         setSentResultModal({
           channel,
           orderCode: generatedCode,
           orderText: billText,
+          items: snapshotItems,
+          subtotal: snapshotSubtotal,
+          shippingFee: snapshotShippingFee,
           total: grandTotal,
           zaloWebUrl,
           messengerWebUrl,
@@ -672,7 +1254,7 @@ export default function QuickSingleScreenOrderPage() {
       }
     } catch (err) {
       console.error(err);
-      notify("Đã copy đơn vào bộ nhớ tạm!");
+      notify("📋 Đã copy đơn!");
     } finally {
       setSendingChannel(null);
     }
@@ -691,7 +1273,7 @@ export default function QuickSingleScreenOrderPage() {
         className={`rounded-2xl border transition-all duration-200 overflow-hidden flex items-center justify-between px-3 sm:px-4 lg:px-4.5 xl:px-5 py-1.5 sm:py-2.5 lg:py-2.5 xl:py-3 cursor-pointer select-none gap-2.5 sm:gap-4 shrink-0 ${
           isDesktopMenu
             ? "lg:h-[76px] xl:h-[82px] lg:min-h-[76px] xl:min-h-[82px]"
-            : "flex-1 min-h-[46px] max-h-[66px]"
+            : "min-h-[48px] sm:min-h-[58px]"
         } ${
           isKeypadTarget
             ? "bg-white border-flandi-coral shadow-cute ring-2 ring-flandi-coral/60"
@@ -700,26 +1282,35 @@ export default function QuickSingleScreenOrderPage() {
             : "bg-white/95 border-flandi-pink/70 hover:border-flandi-salmon/70 shadow-2xs hover:bg-white"
         }`}
       >
-        {/* Left: Product image + Product Name + Price badge */}
+        {/* Left: Product image (click opens description popup) + Product Name + Price badge */}
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
-          <div className="relative w-10 h-10 sm:w-13 sm:h-13 lg:w-15 lg:h-15 xl:w-16 xl:h-16 rounded-xl lg:rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewProduct(product);
+            }}
+            title={`Xem mô tả ${product.name}`}
+            aria-label={`Xem mô tả ${product.name}`}
+            className="relative w-10 h-10 sm:w-13 sm:h-13 lg:w-15 lg:h-15 xl:w-16 xl:h-16 rounded-xl lg:rounded-2xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs cursor-pointer hover:scale-105 active:scale-95 transition-transform focus:outline-none focus:ring-2 focus:ring-flandi-coral/50"
+          >
             <img
               src={product.image}
               alt={product.name}
               className="w-full h-full object-cover rounded-[10px] lg:rounded-xl border border-white"
             />
-          </div>
+          </button>
 
           <div className="min-w-0 flex flex-col justify-center">
-            <h2 className="font-display text-xs sm:text-base lg:text-lg xl:text-xl font-black text-flandi-dark leading-tight truncate">
+            <h2 className="font-display text-[15px] sm:text-base lg:text-[17px] text-flandi-dark leading-snug truncate">
               {product.name}
             </h2>
-            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 flex-wrap">
-              <span className="text-xs sm:text-sm lg:text-base xl:text-lg font-black text-flandi-coral leading-tight tracking-tight">
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 flex-wrap">
+              <span className="text-[13px] sm:text-sm lg:text-[15px] font-extrabold text-flandi-coral leading-tight tracking-tight tabular-nums">
                 {product.badgeText}
               </span>
               {isSelected && (
-                <span className="text-[10px] sm:text-xs lg:text-sm font-extrabold text-flandi-coral bg-flandi-cream px-2 py-0.5 rounded-md sm:rounded-lg border border-flandi-pink/80 shadow-2xs">
+                <span className="text-xs sm:text-[13px] font-extrabold text-flandi-coral bg-flandi-cream px-2 py-0.5 rounded-md sm:rounded-lg border border-flandi-pink/80 shadow-2xs tabular-nums">
                   = {formatVND(product.price * currentQty)}
                 </span>
               )}
@@ -727,28 +1318,169 @@ export default function QuickSingleScreenOrderPage() {
           </div>
         </div>
 
-        {/* Right: Ô chọn số (Bỏ chữ số lượng, để chữ cái/hộp ở sau) */}
+        {/* Right: Chọn nhanh +5, +10 ngay ngoài Menu (1 chạm) + nút Khác mở bàn phím số */}
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            openKeypad(product);
-          }}
-          className={`h-8 sm:h-10 lg:h-11 xl:h-12 px-2.5 sm:px-4 lg:px-4.5 xl:px-5 rounded-xl lg:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-center gap-1 sm:gap-1.5 shadow-2xs hover:shadow-cute active:scale-95 shrink-0 ${
-            isSelected
-              ? "bg-flandi-coral border-flandi-coral text-white shadow-cute ring-1.5 ring-flandi-salmon/40"
-              : "bg-white/95 border-flandi-pink/80 hover:border-flandi-coral text-flandi-dark/70 hover:text-flandi-coral"
-          }`}
-          title="Nhấn để nhập số lượng"
+          className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 shrink-0"
+          onClick={(e) => e.stopPropagation()}
         >
-          <span className="font-display text-sm sm:text-lg lg:text-xl xl:text-2xl font-black leading-none">
-            {currentQty}
-          </span>
-          <span
-            className={`text-[11px] sm:text-xs lg:text-sm font-bold leading-none ${
-              isSelected ? "text-white/90" : "text-flandi-muted"
+          {[5, 10].map((presetQty) => (
+            <button
+              key={presetQty}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExactQty(product, presetQty);
+              }}
+              title={`Chọn nhanh ${presetQty} ${unitLabel}`}
+              className="h-8 sm:h-9 lg:h-10 px-2 sm:px-3 lg:px-3.5 min-w-[36px] sm:min-w-[44px] lg:min-w-[50px] rounded-xl lg:rounded-2xl border border-flandi-salmon/85 bg-flandi-cream/90 hover:bg-flandi-coral hover:border-flandi-coral text-flandi-coral hover:text-white text-[13px] sm:text-sm lg:text-[15px] font-black tabular-nums shadow-2xs hover:shadow-cute transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+            >
+              +{presetQty}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openKeypad(product);
+            }}
+            title="Nhập số lượng khác"
+            className="h-8 sm:h-9 lg:h-10 px-2.5 sm:px-3 lg:px-3.5 rounded-xl lg:rounded-2xl border border-flandi-pink/90 hover:border-flandi-coral bg-white hover:bg-flandi-cream/60 text-flandi-dark/80 hover:text-flandi-coral text-xs sm:text-[13px] lg:text-sm font-extrabold shadow-2xs transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+          >
+            Khác
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderBillItemRow = (
+    item: QuickLineItem,
+    variant: "desktop" | "mobile" = "mobile"
+  ) => {
+    const isDesktop = variant === "desktop";
+    const isSingleQty = item.quantity <= 1;
+
+    return (
+      <div
+        key={item.product.id}
+        className={`${
+          isDesktop ? "py-2" : "py-1.5"
+        } flex items-center justify-between gap-2.5 sm:gap-3`}
+      >
+        {/* Left: Thumbnail + Tên món · Đơn giá */}
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={() => setPreviewProduct(item.product)}
+            title={`Xem mô tả ${item.product.name}`}
+            aria-label={`Xem mô tả ${item.product.name}`}
+            className={`relative ${
+              isDesktop
+                ? "w-10 h-10 xl:w-11 xl:h-11"
+                : "w-9 h-9 sm:w-10 sm:h-10"
+            } rounded-xl p-0.5 bg-gradient-to-tr from-flandi-coral to-flandi-salmon shrink-0 shadow-2xs hover:scale-105 active:scale-95 transition-transform cursor-pointer`}
+          >
+            <img
+              src={item.product.image}
+              alt={item.product.name}
+              className="w-full h-full object-cover rounded-[10px] border border-white"
+            />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openKeypad(item.product)}
+            title="Chạm để nhập nhanh số lượng"
+            className="min-w-0 flex-1 text-left group cursor-pointer"
+          >
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="font-display text-sm sm:text-[15px] text-flandi-dark group-hover:text-flandi-coral leading-snug truncate transition">
+                {item.product.name}
+              </span>
+              <span className="text-[13.5px] sm:text-sm font-extrabold text-flandi-coral tabular-nums whitespace-nowrap shrink-0">
+                {formatVND(item.product.price)}
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* Right: Cụm [- số lượng +] giữ đúng tông màu cũ + Thành tiền thẳng cột phải */}
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          <div
+            className={`flex items-center ${
+              isDesktop
+                ? "bg-white border border-flandi-pink rounded-xl p-0.5 shadow-2xs"
+                : "bg-flandi-bg rounded-xl border border-flandi-pink/70 p-0.5"
             }`}
           >
-            {unitLabel}
+            <button
+              type="button"
+              onClick={() => {
+                const next = item.quantity - 1;
+                if (next <= 0) {
+                  removeFromBill(item.product.id);
+                } else {
+                  setCartMap((prev) => ({
+                    ...prev,
+                    [item.product.id]: { ...item, quantity: next },
+                  }));
+                }
+              }}
+              className={`${
+                isDesktop ? "w-6.5 h-6.5 rounded-lg" : "w-6 h-6 rounded-lg"
+              } ${
+                isSingleQty
+                  ? "text-rose-400 hover:text-rose-600 hover:bg-rose-50"
+                  : isDesktop
+                  ? "text-slate-500 hover:bg-flandi-cream hover:text-flandi-coral"
+                  : "text-slate-500 hover:text-flandi-coral"
+              } flex items-center justify-center font-black transition active:scale-95 cursor-pointer`}
+              title={isSingleQty ? "Bỏ món khỏi hóa đơn" : "Giảm 1"}
+              aria-label={
+                isSingleQty
+                  ? `Bỏ ${item.product.name} khỏi hóa đơn`
+                  : "Giảm 1"
+              }
+            >
+              {isSingleQty ? (
+                <Trash2 className={isDesktop ? "w-3.5 h-3.5" : "w-3 h-3"} />
+              ) : (
+                <Minus className={isDesktop ? "w-3.5 h-3.5" : "w-3 h-3"} />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openKeypad(item.product)}
+              className="px-1.5 min-w-[28px] sm:min-w-[32px] text-center text-sm sm:text-[15px] font-black text-flandi-coral hover:bg-flandi-cream/80 rounded-md py-0.5 leading-none tabular-nums transition cursor-pointer"
+              title="Chạm để nhập số lượng"
+            >
+              {item.quantity}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCartMap((prev) => ({
+                  ...prev,
+                  [item.product.id]: {
+                    ...item,
+                    quantity: item.quantity + 1,
+                  },
+                }));
+              }}
+              className={`${
+                isDesktop ? "w-6.5 h-6.5 rounded-lg" : "w-6 h-6 rounded-lg"
+              } hover:bg-flandi-cream flex items-center justify-center text-flandi-coral font-black transition active:scale-95 cursor-pointer`}
+              title="Tăng 1"
+            >
+              <Plus className={isDesktop ? "w-3.5 h-3.5" : "w-3 h-3"} />
+            </button>
+          </div>
+
+          <span className="text-sm sm:text-[15px] font-black text-flandi-dark min-w-[46px] sm:min-w-[52px] text-right leading-none tabular-nums">
+            {formatVND(item.product.price * item.quantity)}
           </span>
         </div>
       </div>
@@ -761,15 +1493,15 @@ export default function QuickSingleScreenOrderPage() {
       {toast && (
         <div className="fixed top-4 right-4 z-50 bg-flandi-dark text-white px-4 py-3 rounded-2xl shadow-cute-lg flex items-center gap-2.5 max-w-md animate-bounce">
           <Sparkles className="w-4 h-4 text-flandi-salmon shrink-0" />
-          <span className="text-xs font-extrabold leading-snug">{toast}</span>
+          <span className="text-[13px] sm:text-sm font-extrabold leading-snug">{toast}</span>
         </div>
       )}
 
       {/* Header with comfortable breathing room */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink/80 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between shrink-0 z-20 shadow-xs">
+      <header className="bg-white/95 backdrop-blur-md border-b border-flandi-pink/80 px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 shrink-0 z-20 shadow-xs">
         <Link
           href="/"
-          className="flex items-center gap-3 group transition"
+          className="flex items-center gap-2.5 sm:gap-3 group transition min-w-0"
           title="Về trang chủ FLANDI"
         >
           <img
@@ -781,27 +1513,27 @@ export default function QuickSingleScreenOrderPage() {
             alt="FLANDI"
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-flandi-salmon shadow-xs shrink-0 group-hover:scale-105 transition-transform"
           />
-          <div>
-            <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-snug group-hover:text-flandi-coral transition-colors">
+          <div className="min-w-0">
+            <h1 className="font-display text-[15px] sm:text-lg lg:text-xl text-sticker-sm leading-snug whitespace-nowrap group-hover:text-flandi-coral transition-colors">
               ĐẶT BÁNH NHANH
             </h1>
-            <p className="text-[10px] sm:text-[11px] font-bold text-flandi-muted leading-tight">
+            <p className="text-[11px] sm:text-xs font-bold text-flandi-muted leading-tight truncate">
               {settings?.tagline || "Muốn ăn hãy Flăn vào tớ"}
             </p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-xs sm:text-[13px] shrink-0">
           <CustomerHeaderAuthButton />
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-flandi-cream text-flandi-coral font-extrabold border border-flandi-pink/80 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5" />
-            Freeship đơn từ {formatVND(freeShipMin)}
+            Freeship từ {formatVND(freeShipMin)}
           </span>
           <button
             type="button"
             onClick={() => setIsContactModalOpen(true)}
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-flandi-pink/40 text-flandi-coral border border-flandi-pink flex items-center justify-center shadow-2xs transition active:scale-95 cursor-pointer shrink-0"
-            title="Liên hệ tiệm: Zalo, Messenger & Địa chỉ"
+            title="Liên hệ tiệm"
             aria-label="Liên hệ tiệm"
           >
             <Phone className="w-4 h-4 text-flandi-coral" />
@@ -822,133 +1554,103 @@ export default function QuickSingleScreenOrderPage() {
           </div>
         ) : (
           <>
-            {/* DESKTOP 2-COLUMN LAYOUT (lg: screens) */}
+            {/* DESKTOP 2-COLUMN LAYOUT (lg: screens) — 2 Sections: Thực Đơn (Menu) & Hóa Đơn (Bill) */}
             <div className="hidden lg:grid lg:grid-cols-12 gap-6 h-full min-h-0 overflow-hidden">
-              {/* CỘT TRÁI: THỰC ĐƠN (7 cột) */}
+              {/* CỘT TRÁI: THỰC ĐƠN (MENU - chỉ hiển thị món chưa chọn) */}
               <div className="lg:col-span-7 flex flex-col min-h-0">
                 <div className="flex items-center justify-between px-1 pb-2 shrink-0">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-flandi-salmon" />
-                    <h2 className="font-display text-base font-black text-flandi-muted uppercase tracking-wider">
-                      Thực Đơn ({sortedProducts.length} món)
+                    <h2 className="font-display text-base text-flandi-muted uppercase tracking-wider">
+                      Thực Đơn ({unselectedProducts.length})
                     </h2>
                   </div>
-                  <span className="text-xs font-bold text-flandi-muted/80">
-                    Chạm món để chọn số lượng
-                  </span>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-2 xl:gap-2.5 min-h-0 overflow-y-auto no-scrollbar pr-1 py-0.5">
-                  {sortedProducts.map((p) => renderProductCard(p, true))}
-                </div>
+                {unselectedProducts.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 rounded-3xl border-2 border-dashed border-emerald-300 bg-emerald-50/60 space-y-2">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-2xs">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <p className="text-base font-extrabold text-emerald-900">
+                      🎉 Đã chọn hết món!
+                    </p>
+                    <p className="text-[13px] font-bold text-emerald-700/80">
+                      Chỉnh số lượng ở Hóa Đơn bên phải.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col gap-2 xl:gap-2.5 min-h-0 overflow-y-auto no-scrollbar pr-1 py-0.5">
+                    {unselectedProducts.map((p) => renderProductCard(p, true))}
+                  </div>
+                )}
               </div>
 
-              {/* CỘT PHẢI: LÊN ĐƠN & THÔNG TIN CHỐT ĐƠN (5 cột) */}
+              {/* CỘT PHẢI: HÓA ĐƠN (BILL) & THÔNG TIN CHỐT ĐƠN (5 cột) */}
               <div className="lg:col-span-5 flex flex-col min-h-0 bg-white/95 backdrop-blur-md rounded-3xl border-2 border-flandi-salmon shadow-cute-lg p-5 overflow-hidden">
-                {/* Header Cột Phải */}
+                {/* Header Hóa Đơn */}
                 <div className="flex items-center justify-between border-b border-flandi-pink pb-2.5 shrink-0">
                   <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
-                      <ShoppingBag className="w-5 h-5" />
+                      <Receipt className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-display text-base lg:text-lg font-black text-flandi-dark leading-tight">
-                        Lên Đơn
+                      <h3 className="font-display text-[17px] lg:text-lg text-flandi-dark leading-tight">
+                        Hóa Đơn
                       </h3>
                       <p className="text-xs font-bold text-flandi-muted">
                         {cartItems.length > 0
-                          ? `${cartItems.length} món đã chọn`
-                          : "Chưa chọn món nào"}
+                          ? `${cartItems.length} món`
+                          : "Trống"}
                       </p>
                     </div>
                   </div>
 
                   {cartItems.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setCartMap({})}
-                      className="text-xs font-extrabold text-red-500 hover:text-red-600 hover:underline flex items-center gap-1 transition"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Xoá hết</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isSavingBillImage}
+                        onClick={() => handleOpenShareBill()}
+                        className="px-2.5 py-1.5 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-pink text-xs font-extrabold flex items-center gap-1 shadow-2xs transition active:scale-95 disabled:opacity-50 cursor-pointer"
+                        title="Share ảnh Hóa Đơn"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>
+                          {isSavingBillImage ? "..." : "Share"}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCartMap({})}
+                        className="text-xs font-extrabold text-red-500 hover:text-red-600 hover:underline flex items-center gap-1 transition cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Xoá hết</span>
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                {/* Danh Sách Món Đã Chọn */}
+                {/* Danh Sách Món Trong Hóa Đơn */}
                 <div className="flex-1 overflow-y-auto py-2 space-y-2 min-h-0">
                   {cartItems.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-4 rounded-2xl border-2 border-dashed border-flandi-pink/70 bg-flandi-bg/50 space-y-2">
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4 rounded-2xl border-2 border-dashed border-flandi-pink/70 bg-flandi-bg/50 space-y-1.5">
                       <div className="w-12 h-12 rounded-full bg-flandi-salmon/20 text-flandi-coral flex items-center justify-center">
-                        <ShoppingBag className="w-6 h-6" />
+                        <Receipt className="w-6 h-6" />
                       </div>
-                      <p className="text-sm font-extrabold text-flandi-dark">
-                        Chưa chọn món nào
+                      <p className="text-[15px] font-extrabold text-flandi-dark">
+                        Chưa chọn món
                       </p>
-                      <p className="text-xs font-bold text-flandi-muted max-w-[200px]">
-                        Bấm vào món bất kỳ bên thực đơn để chọn số lượng nha 🍮
+                      <p className="text-[13px] font-bold text-flandi-muted">
+                        Chạm món bên trái để thêm 🍮
                       </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-flandi-pink/30 px-1">
-                      {cartItems.map((item) => (
-                        <div
-                          key={item.product.id}
-                          className="py-2 flex items-center justify-between gap-2"
-                        >
-                          <span className="text-xs font-bold text-flandi-dark truncate flex-1 min-w-0">
-                            {item.product.name}
-                          </span>
-
-                          {/* Stepper +/- */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center bg-white border border-flandi-pink rounded-xl p-0.5 shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const next = item.quantity - 1;
-                                  if (next <= 0) {
-                                    setCartMap((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[item.product.id];
-                                      return copy;
-                                    });
-                                  } else {
-                                    setCartMap((prev) => ({
-                                      ...prev,
-                                      [item.product.id]: { ...item, quantity: next },
-                                    }));
-                                  }
-                                }}
-                                className="w-6 h-6 rounded-lg hover:bg-flandi-cream flex items-center justify-center text-flandi-dark font-black transition active:scale-95"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="w-6 text-center text-xs font-black text-flandi-coral">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCartMap((prev) => ({
-                                    ...prev,
-                                    [item.product.id]: {
-                                      ...item,
-                                      quantity: item.quantity + 1,
-                                    },
-                                  }));
-                                }}
-                                className="w-6 h-6 rounded-lg hover:bg-flandi-cream flex items-center justify-center text-flandi-coral font-black transition active:scale-95"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <span className="text-xs font-black text-flandi-dark min-w-[55px] text-right">
-                              {formatVND(item.product.price * item.quantity)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="divide-y divide-flandi-pink/30">
+                      {cartItems.map((item) =>
+                        renderBillItemRow(item, "desktop")
+                      )}
                     </div>
                   )}
                 </div>
@@ -956,259 +1658,365 @@ export default function QuickSingleScreenOrderPage() {
                 {/* Phần Tổng Tiền & Form Chốt Đơn */}
                 <div className="border-t-2 border-dashed border-flandi-pink/80 pt-2.5 space-y-2.5 shrink-0">
                   {/* Chi tiết tiền */}
-                  <div className="space-y-1 text-xs font-bold text-flandi-muted">
+                  <div className="space-y-1 text-[13px] sm:text-sm font-bold text-flandi-muted tabular-nums">
                     <div className="flex items-center justify-between">
-                      <span>Tạm tính bánh:</span>
+                      <span>Tạm tính</span>
                       <span className="font-extrabold text-flandi-dark">{formatVND(subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Phí giao hàng:</span>
+                      <span>Phí ship</span>
                       <span className={shippingFee === 0 ? "font-black text-emerald-700" : "font-extrabold text-flandi-dark"}>
-                        {shippingFee === 0 ? "0k (Freeship)" : formatVND(shippingFee)}
+                        {shippingFee === 0 ? "FREESHIP" : formatVND(shippingFee)}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-baseline justify-between pt-1.5 border-t border-dashed border-flandi-pink">
-                    <span className="text-xs font-black text-flandi-dark uppercase tracking-wider">
-                      Tổng thanh toán:
+                    <span className="text-[13px] sm:text-sm font-black text-flandi-dark uppercase tracking-wider">
+                      THÀNH TIỀN
                     </span>
-                    <span className="text-2xl font-black text-flandi-coral tracking-tight leading-none">
+                    <span className="text-2xl sm:text-[26px] font-black text-flandi-coral tracking-tight leading-none tabular-nums">
                       {formatVND(grandTotal)}
                     </span>
                   </div>
 
-                  {/* Form Nhập Thông Tin Khách */}
-                  <div className="space-y-1.5">
-                    {/* Bot Honeypot hidden input */}
-                    <input
-                      type="text"
-                      name="_hp_company"
-                      value={honeypot}
-                      onChange={(e) => setHoneypot(e.target.value)}
-                      tabIndex={-1}
-                      autoComplete="off"
-                      className="hidden"
-                      aria-hidden="true"
-                    />
+                  {canCreateOrder ? (
+                    <>
+                      {/* Form Nhập Thông Tin Khách (Chỉ dành cho tài khoản có quyền lên đơn) */}
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          name="_hp_company"
+                          value={honeypot}
+                          onChange={(e) => setHoneypot(e.target.value)}
+                          tabIndex={-1}
+                          autoComplete="off"
+                          className="hidden"
+                          aria-hidden="true"
+                        />
 
-                    {/* Google Sync Status / Non-intrusive Hint */}
-                    {user ? (
-                      <div className="flex items-center justify-between px-2.5 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-[11px] text-emerald-800">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                          <span className="truncate">
-                            Đã điền từ Google: <strong>{user.name}</strong>
-                          </span>
+                        {user && (
+                          <div className="flex items-center justify-between px-3 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                              <strong className="truncate">{user.name}</strong>
+                              <span
+                                className={`text-[10px] font-black px-1.5 py-0.5 rounded-full border shrink-0 ${ROLE_META[role].badgeClass}`}
+                              >
+                                {ROLE_META[role].shortLabel}
+                              </span>
+                            </div>
+                            <Link
+                              href="/pos"
+                              className="text-emerald-700 underline hover:text-emerald-900 font-bold shrink-0 ml-1.5 text-xs"
+                            >
+                              Mở POS
+                            </Link>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <input
+                              type="text"
+                              value={customerName}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              placeholder="Tên khách"
+                              autoComplete="name"
+                              spellCheck={false}
+                              suppressHydrationWarning
+                              className="w-full px-3 py-2 rounded-xl border border-flandi-pink text-[13px] sm:text-sm font-bold placeholder:text-[13px] sm:placeholder:text-sm focus:border-flandi-coral focus:outline-none bg-white transition shadow-2xs"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="tel"
+                              value={customerPhone}
+                              onChange={(e) => {
+                                setCustomerPhone(e.target.value);
+                                if (phoneError) setPhoneError(null);
+                              }}
+                              placeholder="Số điện thoại *"
+                              autoComplete="tel"
+                              spellCheck={false}
+                              suppressHydrationWarning
+                              data-invalid={phoneError ? "true" : undefined}
+                              className={`w-full px-3 py-2 rounded-xl border text-[13px] sm:text-sm font-bold placeholder:text-[13px] sm:placeholder:text-sm focus:outline-none bg-white transition shadow-2xs ${
+                                phoneError
+                                  ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                                  : "border-flandi-pink focus:border-flandi-coral"
+                              }`}
+                            />
+                            {phoneError && (
+                              <span className="text-[11px] font-bold text-red-500 flex items-center gap-1 mt-0.5 animate-in fade-in">
+                                <AlertCircle className="w-3 h-3 shrink-0" />
+                                <span>{phoneError}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <input
+                            type="text"
+                            value={customerAddress}
+                            onChange={(e) => {
+                              setCustomerAddress(e.target.value);
+                              if (addressError) setAddressError(null);
+                            }}
+                            placeholder="Địa chỉ / giờ ghé lấy *"
+                            autoComplete="street-address"
+                            spellCheck={false}
+                            suppressHydrationWarning
+                            data-invalid={addressError ? "true" : undefined}
+                            className={`w-full px-3 py-2 rounded-xl border text-[13px] sm:text-sm font-bold placeholder:text-[13px] sm:placeholder:text-sm focus:outline-none bg-white transition shadow-2xs ${
+                              addressError
+                                ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                                : "border-flandi-pink focus:border-flandi-coral"
+                            }`}
+                          />
+                          {addressError && (
+                            <span className="text-[11px] font-bold text-red-500 flex items-center gap-1 mt-0.5 animate-in fade-in">
+                              <AlertCircle className="w-3 h-3 shrink-0" />
+                              <span>{addressError}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Các Nút Gửi Đơn */}
+                      <div className="space-y-2 pt-0.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            disabled={cartItems.length === 0 || sendingChannel !== null}
+                            onClick={() => handleSendOrderVia("MESSENGER")}
+                            className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#006AFF] to-[#0084FF] hover:opacity-95 text-white font-extrabold text-[13px] sm:text-sm shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            <span>{sendingChannel === "MESSENGER" ? "Đang gửi..." : "Gửi Messenger"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={cartItems.length === 0 || sendingChannel !== null}
+                            onClick={() => handleSendOrderVia("ZALO")}
+                            className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0052CC] text-white font-extrabold text-[13px] sm:text-sm shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
+                          >
+                            <Phone className="w-4 h-4" />
+                            <span>{sendingChannel === "ZALO" ? "Đang gửi..." : "Gửi Zalo"}</span>
+                          </button>
                         </div>
                         <button
                           type="button"
-                          onClick={() => openAccountDrawer("profile")}
-                          className="text-emerald-700 underline hover:text-emerald-900 font-bold shrink-0 ml-1.5 cursor-pointer text-[10px]"
+                          disabled={cartItems.length === 0 || sendingChannel !== null}
+                          onClick={() => handleSendOrderVia("DIRECT")}
+                          className="w-full py-2.5 px-3 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-sm shadow-cute flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
                         >
-                          Đổi địa chỉ
+                          <Zap className="w-4 h-4" />
+                          <span>Chốt Đơn & Mã QR</span>
                         </button>
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={triggerGoogleSignIn}
-                        className="w-full flex items-center justify-between px-2.5 py-1.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-flandi-coral/50 rounded-xl text-[11px] text-slate-600 font-medium transition cursor-pointer group"
-                      >
-                        <span className="flex items-center gap-1.5 min-w-0">
-                          <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                          </svg>
-                          <span className="truncate">Đăng nhập Google để tự điền & tra cứu đơn</span>
-                        </span>
-                        <span className="text-flandi-coral font-bold group-hover:underline text-[10px] shrink-0 ml-1">
-                          Đăng nhập
-                        </span>
-                      </button>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <input
-                          type="text"
-                          value={customerName}
-                          onChange={(e) => setCustomerName(e.target.value)}
-                          placeholder="Tên của bạn (tuỳ chọn)"
-                          autoComplete="off"
-                          spellCheck={false}
-                          suppressHydrationWarning
-                          className="w-full px-3 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs focus:border-flandi-coral focus:outline-none bg-white transition shadow-2xs"
-                        />
+                    </>
+                  ) : (
+                    <div className="rounded-2xl border border-flandi-pink bg-flandi-cream/65 px-3.5 py-3 text-center space-y-2">
+                      <div className="inline-flex items-center gap-1.5 text-flandi-coral font-extrabold text-[13px]">
+                        <Lock className="w-3.5 h-3.5 shrink-0" />
+                        <span>Chỉ Staff được quyền lên đơn</span>
                       </div>
-                      <div>
-                        <input
-                          type="tel"
-                          value={customerPhone}
-                          onChange={(e) => {
-                            setCustomerPhone(e.target.value);
-                            if (phoneError) setPhoneError(null);
-                          }}
-                          placeholder="Số điện thoại nhận bánh *"
-                          autoComplete="off"
-                          spellCheck={false}
-                          suppressHydrationWarning
-                          data-invalid={phoneError ? "true" : undefined}
-                          className={`w-full px-3 py-2 rounded-xl border text-xs font-bold placeholder:text-xs focus:outline-none bg-white transition shadow-2xs ${
-                            phoneError
-                              ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
-                              : "border-flandi-pink focus:border-flandi-coral"
-                          }`}
-                        />
-                        {phoneError && (
-                          <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 animate-in fade-in">
-                            <AlertCircle className="w-2.5 h-2.5 shrink-0" />
-                            <span>{phoneError}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        value={customerAddress}
-                        onChange={(e) => {
-                          setCustomerAddress(e.target.value);
-                          if (addressError) setAddressError(null);
-                        }}
-                        placeholder="Địa chỉ giao nhận bánh (hoặc giờ lấy) *"
-                        autoComplete="off"
-                        spellCheck={false}
-                        suppressHydrationWarning
-                        data-invalid={addressError ? "true" : undefined}
-                        className={`w-full px-3 py-2 rounded-xl border text-xs font-bold placeholder:text-xs focus:outline-none bg-white transition shadow-2xs ${
-                          addressError
-                            ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
-                            : "border-flandi-pink focus:border-flandi-coral"
-                        }`}
-                      />
-                      {addressError && (
-                        <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 animate-in fade-in">
-                          <AlertCircle className="w-2.5 h-2.5 shrink-0" />
-                          <span>{addressError}</span>
-                        </span>
+                      <p className="text-xs font-semibold text-flandi-dark/75 leading-relaxed">
+                        {role === "guest"
+                          ? "Bạn vẫn chọn món, xem tiền & bấm Share gửi bill. Nhân viên đăng nhập để chốt đơn."
+                          : `Tài khoản ${user?.email || ""} hiện là User. Bấm Share để gửi ảnh bill hoặc liên hệ Admin cấp quyền Staff.`}
+                      </p>
+                      {role === "guest" && (
+                        <button
+                          type="button"
+                          onClick={triggerGoogleSignIn}
+                          className="w-full py-2 px-3 rounded-xl bg-white hover:bg-flandi-cream border border-flandi-salmon text-flandi-coral font-extrabold text-xs shadow-2xs transition active:scale-95 cursor-pointer"
+                        >
+                          Đăng nhập Staff / Admin
+                        </button>
                       )}
                     </div>
-                  </div>
-
-                  {/* Các Nút Gửi Đơn */}
-                  <div className="space-y-1.5 pt-0.5">
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        disabled={cartItems.length === 0 || sendingChannel !== null}
-                        onClick={() => handleSendOrderVia("MESSENGER")}
-                        className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#006AFF] to-[#0084FF] hover:opacity-95 text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        <span>{sendingChannel === "MESSENGER" ? "Đang gửi..." : "Gửi Messenger"}</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={cartItems.length === 0 || sendingChannel !== null}
-                        onClick={() => handleSendOrderVia("ZALO")}
-                        className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0052CC] text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
-                      >
-                        <Phone className="w-4 h-4" />
-                        <span>{sendingChannel === "ZALO" ? "Đang gửi..." : "Gửi qua Zalo"}</span>
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={cartItems.length === 0 || sendingChannel !== null}
-                      onClick={() => handleSendOrderVia("DIRECT")}
-                      className="w-full py-2.5 px-3 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-black text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
-                    >
-                      <Zap className="w-4 h-4" />
-                      <span>Chốt Đơn Trực Tiếp & Mã QR</span>
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* MOBILE LAYOUT (< lg screens): 100% fits within 1 mobile screen without scrolling */}
-            <div className="lg:hidden flex-1 flex flex-col justify-between min-h-0 py-0.5">
-              <div className="flex items-center justify-between px-1 pb-1 shrink-0">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-flandi-salmon" />
-                  <h2 className="font-display text-xs sm:text-sm font-black text-flandi-muted uppercase tracking-wider">
-                    Thực Đơn ({sortedProducts.length} món)
-                  </h2>
+            {/* MOBILE LAYOUT (< lg screens): Thực Đơn ở trên, toàn bộ Hóa Đơn gộp gọn vào ô THÀNH TIỀN ở dưới */}
+            <div className="lg:hidden flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar py-0.5">
+              {/* THỰC ĐƠN (MENU - các món chưa chọn) */}
+              <section className="flex flex-col shrink-0">
+                <div className="flex items-center justify-between px-1 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-flandi-salmon" />
+                    <h2 className="font-display text-[13px] sm:text-sm text-flandi-muted uppercase tracking-wider">
+                      Thực Đơn ({unselectedProducts.length})
+                    </h2>
+                  </div>
                 </div>
-                <span className="text-[11px] sm:text-xs font-bold text-flandi-muted/80">
-                  Chạm món để chọn số lượng
-                </span>
-              </div>
 
-              <div className="flex-1 flex flex-col justify-between gap-1.5 min-h-0">
-                {sortedProducts.map((p) => renderProductCard(p))}
-              </div>
+                {unselectedProducts.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/70 px-3 py-3 text-center">
+                    <p className="text-[13px] sm:text-sm font-extrabold text-emerald-800">
+                      🎉 Đã chọn hết món!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {unselectedProducts.map((p) => renderProductCard(p, false))}
+                  </div>
+                )}
+              </section>
             </div>
           </>
         )}
       </main>
 
-      {/* Footer bar chỉ hiện trên Mobile (< lg) vì Desktop đã có cột phải trực tiếp */}
+      {/* Ô THÀNH TIỀN trên Mobile (< lg): Gộp toàn bộ nội dung Hóa Đơn vào chung 1 ô duy nhất */}
       <div className="lg:hidden">
-        {/* COLLAPSED BOTTOM BAR (Luôn nằm ở chân trang, gọn gàng, 1 màn hình) */}
-        <footer className="shrink-0 z-20 px-3 sm:px-4 pb-2 sm:pb-3 pt-1 pointer-events-auto">
-          <div
-            onClick={() => setIsExpanded(true)}
-            className="max-w-4xl mx-auto w-full bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-flandi-salmon shadow-cute-lg px-4 py-3 sm:px-6 sm:py-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
-                <ShoppingBag className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm font-extrabold text-flandi-muted">
-                    Thành tiền
-                  </span>
-                  {subtotal > 0 && subtotal >= freeShipMin ? (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
-                      Freeship
+        <footer className="shrink-0 z-20 px-3 sm:px-6 pb-2 sm:pb-3 pt-1 pointer-events-auto">
+          <div className="max-w-2xl mx-auto w-full bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-flandi-salmon shadow-cute-lg overflow-hidden">
+            {cartItems.length > 0 && (
+              <>
+                {/* Thanh tiêu đề món đã chọn + Share + Xoá hết */}
+                <div className="bg-flandi-bg/80 px-3.5 sm:px-5 py-2 border-b border-flandi-pink/60 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Receipt className="w-4 h-4 text-flandi-coral shrink-0" />
+                    <span className="font-display text-[13px] sm:text-sm text-flandi-dark truncate">
+                      Đã chọn ({cartItems.length})
                     </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] sm:text-xs font-black shadow-2xs">
-                      +15k ship
-                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      disabled={isSavingBillImage}
+                      onClick={() => handleOpenShareBill()}
+                      className="px-2.5 py-1 rounded-lg bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-pink text-xs font-extrabold flex items-center gap-1 shadow-2xs transition active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>
+                        {isSavingBillImage ? "..." : "Share"}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCartMap({})}
+                      className="text-xs font-extrabold text-red-500 hover:text-red-600 flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Xoá hết</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Danh sách món đã chọn */}
+                <div className="divide-y divide-flandi-pink/25 px-3.5 sm:px-5 max-h-[24vh] sm:max-h-[28vh] overflow-y-auto no-scrollbar">
+                  {cartItems.map((item) =>
+                    renderBillItemRow(item, "mobile")
                   )}
                 </div>
-                <div className="text-lg sm:text-xl md:text-2xl font-black text-flandi-coral tracking-tight leading-tight">
-                  {formatVND(grandTotal)}
-                </div>
-              </div>
-            </div>
 
-            {/* Nút expand ở cuối */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsExpanded(true);
-              }}
-              className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 ${
+                {/* Đường rãnh xé hóa đơn */}
+                <div className="px-3.5 sm:px-5">
+                  <div className="border-t border-dashed border-flandi-pink/70" />
+                </div>
+
+                {/* Chi tiết Tạm tính & Phí giao hàng */}
+                <div className="px-3.5 sm:px-5 pt-2 pb-1 space-y-0.5 bg-flandi-bg/35 tabular-nums">
+                  <div className="flex items-center justify-between text-[13px] sm:text-sm font-bold text-flandi-muted">
+                    <span>Tạm tính</span>
+                    <span className="font-extrabold text-flandi-dark">
+                      {formatVND(subtotal)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[13px] sm:text-sm font-bold text-flandi-muted">
+                    <span>Phí ship</span>
+                    <span
+                      className={
+                        shippingFee === 0
+                          ? "font-black text-emerald-700"
+                          : "font-extrabold text-flandi-dark"
+                      }
+                    >
+                      {shippingFee === 0 ? "FREESHIP" : formatVND(shippingFee)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Dòng THÀNH TIỀN & Nút Gửi đơn */}
+            <div
+              onClick={() => setIsExpanded(true)}
+              className={`px-3.5 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-flandi-cream/30 transition select-none ${
                 cartItems.length > 0
-                  ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
-                  : "bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink"
+                  ? "bg-flandi-bg/35 border-t border-flandi-pink/50"
+                  : ""
               }`}
             >
-              <span>{cartItems.length > 0 ? "Gửi đơn" : "Xem thêm"}</span>
-              <ChevronUp className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-            </button>
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                {cartItems.length === 0 && (
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-flandi-coral text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[13px] sm:text-sm font-black text-flandi-dark uppercase tracking-wider">
+                      THÀNH TIỀN
+                    </span>
+                    {cartItems.length === 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] sm:text-xs font-extrabold shadow-2xs">
+                        +15k ship
+                      </span>
+                    )}
+                    {subtotal > 0 && shippingFee === 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] sm:text-xs font-extrabold shadow-2xs">
+                        FREESHIP
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-2xl sm:text-[26px] font-black text-flandi-coral tracking-tight leading-tight tabular-nums">
+                    {formatVND(grandTotal)}
+                  </div>
+                </div>
+              </div>
+
+              {canCreateOrder ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(true);
+                  }}
+                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-extrabold text-[13px] sm:text-sm flex items-center gap-1.5 shadow-cute transition active:scale-95 shrink-0 cursor-pointer ${
+                    cartItems.length > 0
+                      ? "bg-flandi-coral hover:bg-flandi-salmon text-white"
+                      : "bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-dark border border-flandi-pink"
+                  }`}
+                >
+                  <span>Gửi đơn</span>
+                  <ChevronUp className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(true);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl font-extrabold text-xs sm:text-[13px] flex items-center gap-1.5 bg-flandi-cream/80 hover:bg-flandi-cream text-flandi-coral border border-flandi-salmon/80 shadow-2xs transition active:scale-95 shrink-0 cursor-pointer"
+                  title="Chỉ nhân viên (Staff) được quyền lên đơn"
+                >
+                  <Lock className="w-3.5 h-3.5 shrink-0" />
+                  <span>Chỉ Staff</span>
+                </button>
+              )}
+            </div>
           </div>
         </footer>
 
-        {/* EXPANDED BOTTOM SHEET (NATIVE MOBILE SHEET) */}
+        {/* EXPANDED BOTTOM SHEET (NHẬP THÔNG TIN GIAO BÁNH & CHỐT ĐƠN) */}
         {isExpanded && (
           <div className="fixed inset-0 z-50 flex flex-col justify-end">
             {/* Backdrop overlay */}
@@ -1230,319 +2038,258 @@ export default function QuickSingleScreenOrderPage() {
                 <div className="w-10 h-1 rounded-full bg-slate-300 hover:bg-flandi-coral/50 transition" />
               </div>
 
-              {/* Sheet Header: Chi tiết đơn hàng + nút Đóng (X) */}
-              <div className="px-4 py-2 flex items-center justify-between border-b border-flandi-pink/60 shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-flandi-coral/15 text-flandi-coral flex items-center justify-center shadow-2xs">
+              {/* Sheet Header */}
+              <div className="px-4 py-2.5 flex items-center justify-between border-b border-flandi-pink/60 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-flandi-coral/15 text-flandi-coral flex items-center justify-center shadow-2xs">
                     <ShoppingBag className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="font-display text-sm font-black text-flandi-dark leading-tight">
-                      Chi Tiết Đơn Hàng
+                    <h3 className="font-display text-base text-flandi-dark leading-tight">
+                      Thông Tin Nhận Bánh
                     </h3>
-                    <p className="text-[10px] font-bold text-flandi-muted">
+                    <p className="text-xs font-bold text-flandi-muted">
                       {cartItems.length > 0
-                        ? `${cartItems.length} món đã chọn`
-                        : "Chưa chọn món nào"}
+                        ? `${cartItems.length} món • ${
+                            shippingFee === 0
+                              ? "FREESHIP"
+                              : `Ship ${formatVND(shippingFee)}`
+                          }`
+                        : "Chưa chọn món"}
                     </p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(false)}
-                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition active:scale-95"
-                  title="Đóng"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Sheet Scrollable Body */}
-              <div className="p-3 sm:p-4 space-y-2.5 overflow-y-auto no-scrollbar">
-                {/* 1. Hóa Đơn Chi Tiết (Clean Bill Receipt) */}
-                {cartItems.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-flandi-pink/80 shadow-2xs overflow-hidden">
-                    {/* Bill Header */}
-                    <div className="bg-flandi-bg/80 px-3 py-2 border-b border-flandi-pink/50 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Receipt className="w-3.5 h-3.5 text-flandi-coral" />
-                        <span className="text-[11px] font-black uppercase tracking-wider text-flandi-dark">
-                          Hóa đơn ({cartItems.length} món)
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setCartMap({})}
-                        className="text-[10px] sm:text-[11px] font-extrabold text-red-500 hover:text-red-600 flex items-center gap-1 transition"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Xoá hết</span>
-                      </button>
-                    </div>
-
-                    {/* Danh sách món dạng dòng hóa đơn clean & dễ nhìn */}
-                    <div className="divide-y divide-flandi-pink/25 px-3 max-h-[140px] overflow-y-auto no-scrollbar">
-                      {cartItems.map((item) => (
-                        <div
-                          key={item.product.id}
-                          className="py-2 flex items-center justify-between gap-2"
-                        >
-                          <span className="text-xs font-bold text-flandi-dark truncate flex-1 min-w-0">
-                            {item.product.name}
-                          </span>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            {/* Stepper +/- */}
-                            <div className="flex items-center bg-flandi-bg rounded-lg border border-flandi-pink/70 p-0.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const next = item.quantity - 1;
-                                  if (next <= 0) {
-                                    setCartMap((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[item.product.id];
-                                      return copy;
-                                    });
-                                  } else {
-                                    setCartMap((prev) => ({
-                                      ...prev,
-                                      [item.product.id]: { ...item, quantity: next },
-                                    }));
-                                  }
-                                }}
-                                className="w-5 h-5 flex items-center justify-center text-slate-500 hover:text-flandi-coral transition active:scale-95"
-                              >
-                                <Minus className="w-2.5 h-2.5" />
-                              </button>
-                              <span className="w-5 text-center text-xs font-black text-flandi-coral">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCartMap((prev) => ({
-                                    ...prev,
-                                    [item.product.id]: {
-                                      ...item,
-                                      quantity: item.quantity + 1,
-                                    },
-                                  }));
-                                }}
-                                className="w-5 h-5 flex items-center justify-center text-flandi-coral transition active:scale-95"
-                              >
-                                <Plus className="w-2.5 h-2.5" />
-                              </button>
-                            </div>
-
-                            <span className="text-xs font-black text-flandi-dark min-w-[50px] text-right">
-                              {formatVND(item.product.price * item.quantity)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Đường rãnh xé hóa đơn (Receipt Dashed Tear Line) */}
-                    <div className="px-3">
-                      <div className="border-t border-dashed border-flandi-pink/70"></div>
-                    </div>
-
-                    {/* Phần tính tiền trong bill */}
-                    <div className="p-3 space-y-1 bg-flandi-bg/30">
-                      <div className="flex items-center justify-between text-xs font-bold text-flandi-muted">
-                        <span>Tạm tính bánh:</span>
-                        <span className="font-extrabold text-flandi-dark">{formatVND(subtotal)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-bold text-flandi-muted">
-                        <span>Phí giao hàng:</span>
-                        <span className={shippingFee === 0 ? "font-black text-emerald-700" : "font-extrabold text-flandi-dark"}>
-                          {shippingFee === 0 ? "0k (Freeship)" : formatVND(shippingFee)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-baseline justify-between pt-1.5 border-t border-flandi-pink/50">
-                        <span className="text-xs font-black text-flandi-dark uppercase tracking-wider">
-                          Tổng thanh toán:
-                        </span>
-                        <span className="font-display text-lg sm:text-xl font-black text-flandi-coral leading-none">
-                          {formatVND(grandTotal)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Form Thông Tin Nhận Bánh (Không bị cắt chữ, có icon chỉ dẫn trực quan) */}
-                <div className="space-y-1.5">
-                  {/* Bot Honeypot hidden input */}
-                  <input
-                    type="text"
-                    name="_hp_company"
-                    value={honeypot}
-                    onChange={(e) => setHoneypot(e.target.value)}
-                    tabIndex={-1}
-                    autoComplete="off"
-                    className="hidden"
-                    aria-hidden="true"
-                  />
-
-                  {/* Google Sync Status / Non-intrusive Hint */}
-                  {user ? (
-                    <div className="flex items-center justify-between px-2.5 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-[11px] text-emerald-800">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                        <span className="truncate">
-                          Đã điền từ Google: <strong>{user.name}</strong>
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => openAccountDrawer("profile")}
-                        className="text-emerald-700 underline hover:text-emerald-900 font-bold shrink-0 ml-1.5 cursor-pointer text-[10px]"
-                      >
-                        Đổi địa chỉ
-                      </button>
-                    </div>
-                  ) : (
+                <div className="flex items-center gap-2">
+                  {cartItems.length > 0 && (
                     <button
                       type="button"
-                      onClick={triggerGoogleSignIn}
-                      className="w-full flex items-center justify-between px-2.5 py-1.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-flandi-coral/50 rounded-xl text-[11px] text-slate-600 font-medium transition cursor-pointer group"
+                      disabled={isSavingBillImage}
+                      onClick={() => handleOpenShareBill()}
+                      className="px-2.5 py-1.5 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral border border-flandi-pink text-xs font-extrabold flex items-center gap-1 shadow-2xs transition active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
-                      <span className="flex items-center gap-1.5 min-w-0">
-                        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                        </svg>
-                        <span className="truncate">Đăng nhập Google để tự điền</span>
-                      </span>
-                      <span className="text-flandi-coral font-bold group-hover:underline text-[10px] shrink-0 ml-1">
-                        Đăng nhập
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>
+                        {isSavingBillImage ? "..." : "Share"}
                       </span>
                     </button>
                   )}
-
-                  <div className="grid grid-cols-12 gap-2">
-                    {/* Số điện thoại (Bắt buộc) - 7 cột để không bị cắt chữ */}
-                    <div className="col-span-7">
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
-                          <Phone className="w-3.5 h-3.5" />
-                        </div>
-                        <input
-                          type="tel"
-                          value={customerPhone}
-                          onChange={(e) => {
-                            setCustomerPhone(e.target.value);
-                            if (phoneError) setPhoneError(null);
-                          }}
-                          placeholder="Số điện thoại *"
-                          autoComplete="tel"
-                          suppressHydrationWarning
-                          data-invalid={phoneError ? "true" : undefined}
-                          className={`w-full pl-8 pr-2.5 py-2 rounded-xl border text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:outline-none bg-white shadow-2xs transition ${
-                            phoneError
-                              ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
-                              : "border-flandi-pink focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30"
-                          }`}
-                        />
-                      </div>
-                      {phoneError && (
-                        <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 px-1 animate-in fade-in">
-                          <AlertCircle className="w-2.5 h-2.5 shrink-0" />
-                          <span>{phoneError}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Tên khách (Tuỳ chọn) - 5 cột */}
-                    <div className="col-span-5 relative">
-                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-muted">
-                        <User className="w-3.5 h-3.5" />
-                      </div>
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Tên bạn (tuỳ chọn)"
-                        autoComplete="name"
-                        suppressHydrationWarning
-                        className="w-full pl-8 pr-2.5 py-2 rounded-xl border border-flandi-pink text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Địa chỉ giao hàng - Full width */}
-                  <div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-flandi-coral">
-                        <MapPin className="w-3.5 h-3.5" />
-                      </div>
-                      <input
-                        type="text"
-                        value={customerAddress}
-                        onChange={(e) => {
-                          setCustomerAddress(e.target.value);
-                          if (addressError) setAddressError(null);
-                        }}
-                        placeholder="Địa chỉ giao hàng (hoặc giờ ghé lấy) *"
-                        autoComplete="street-address"
-                        suppressHydrationWarning
-                        data-invalid={addressError ? "true" : undefined}
-                        className={`w-full pl-8 pr-2.5 py-2 rounded-xl border text-xs font-bold placeholder:text-xs placeholder:text-slate-400 focus:outline-none bg-white shadow-2xs transition ${
-                          addressError
-                            ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
-                            : "border-flandi-pink focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30"
-                        }`}
-                      />
-                    </div>
-                    {addressError && (
-                      <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-0.5 px-1 animate-in fade-in">
-                        <AlertCircle className="w-2.5 h-2.5 shrink-0" />
-                        <span>{addressError}</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* 4. Các Nút Gửi Đơn (Zalo, Messenger, QR) */}
-                <div className="space-y-1.5 pt-0.5 pb-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      disabled={cartItems.length === 0 || sendingChannel !== null}
-                      onClick={() => handleSendOrderVia("ZALO")}
-                      className="py-2.5 sm:py-3 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
-                    >
-                      <Send className="w-4 h-4 shrink-0" />
-                      <span>Gửi qua Zalo</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={cartItems.length === 0 || sendingChannel !== null}
-                      onClick={() => handleSendOrderVia("MESSENGER")}
-                      className="py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
-                    >
-                      <MessageCircle className="w-4 h-4 shrink-0" />
-                      <span>Gửi Messenger</span>
-                    </button>
-                  </div>
-
                   <button
                     type="button"
-                    disabled={cartItems.length === 0 || sendingChannel !== null}
-                    onClick={() => handleSendOrderVia("DIRECT")}
-                    className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white font-black text-xs shadow-cute flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
+                    onClick={() => setIsExpanded(false)}
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition active:scale-95"
+                    title="Đóng"
                   >
-                    <QrCode className="w-4 h-4 shrink-0" />
-                    <span>Chốt Đơn Trực Tiếp & Mã QR</span>
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
+              </div>
+
+              {/* Sheet Scrollable Body */}
+              <div className="p-3.5 sm:p-4 space-y-3 overflow-y-auto no-scrollbar">
+                {/* Tóm tắt gọn Thành Tiền */}
+                {cartItems.length > 0 && (
+                  <div className="bg-flandi-bg/70 rounded-2xl border border-flandi-pink/80 px-4 py-2.5 flex items-center justify-between gap-2">
+                    <span className="text-[13px] sm:text-sm font-black text-flandi-dark uppercase tracking-wider">
+                      THÀNH TIỀN
+                    </span>
+                    <span className="text-2xl font-black text-flandi-coral leading-none tabular-nums">
+                      {formatVND(grandTotal)}
+                    </span>
+                  </div>
+                )}
+
+                {canCreateOrder ? (
+                  <>
+                    {/* 3. Form Thông Tin Nhận Bánh */}
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        name="_hp_company"
+                        value={honeypot}
+                        onChange={(e) => setHoneypot(e.target.value)}
+                        tabIndex={-1}
+                        autoComplete="off"
+                        className="hidden"
+                        aria-hidden="true"
+                      />
+
+                      {user && (
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs text-emerald-800">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <strong className="truncate">{user.name}</strong>
+                            <span
+                              className={`text-[10px] font-black px-1.5 py-0.5 rounded-full border shrink-0 ${ROLE_META[role].badgeClass}`}
+                            >
+                              {ROLE_META[role].shortLabel}
+                            </span>
+                          </div>
+                          <Link
+                            href="/pos"
+                            className="text-emerald-700 underline hover:text-emerald-900 font-bold shrink-0 ml-1.5 text-xs"
+                          >
+                            Mở POS
+                          </Link>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-12 gap-2">
+                        {/* Số điện thoại (Bắt buộc) - 7 cột */}
+                        <div className="col-span-7">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-flandi-coral">
+                              <Phone className="w-4 h-4" />
+                            </div>
+                            <input
+                              type="tel"
+                              value={customerPhone}
+                              onChange={(e) => {
+                                setCustomerPhone(e.target.value);
+                                if (phoneError) setPhoneError(null);
+                              }}
+                              placeholder="Số điện thoại *"
+                              autoComplete="tel"
+                              suppressHydrationWarning
+                              data-invalid={phoneError ? "true" : undefined}
+                              className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-[13px] sm:text-sm font-bold placeholder:text-[13px] sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none bg-white shadow-2xs transition ${
+                                phoneError
+                                  ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                                  : "border-flandi-pink focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30"
+                              }`}
+                            />
+                          </div>
+                          {phoneError && (
+                            <span className="text-[11px] font-bold text-red-500 flex items-center gap-1 mt-0.5 px-1 animate-in fade-in">
+                              <AlertCircle className="w-3 h-3 shrink-0" />
+                              <span>{phoneError}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Tên khách (Tuỳ chọn) - 5 cột */}
+                        <div className="col-span-5 relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-flandi-muted">
+                            <User className="w-4 h-4" />
+                          </div>
+                          <input
+                            type="text"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            placeholder="Tên khách"
+                            autoComplete="name"
+                            suppressHydrationWarning
+                            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-flandi-pink text-[13px] sm:text-sm font-bold placeholder:text-[13px] sm:placeholder:text-sm placeholder:text-slate-400 focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30 focus:outline-none bg-white shadow-2xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Địa chỉ giao hàng - Full width */}
+                      <div>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-flandi-coral">
+                            <MapPin className="w-4 h-4" />
+                          </div>
+                          <input
+                            type="text"
+                            value={customerAddress}
+                            onChange={(e) => {
+                              setCustomerAddress(e.target.value);
+                              if (addressError) setAddressError(null);
+                            }}
+                            placeholder="Địa chỉ / giờ ghé lấy *"
+                            autoComplete="street-address"
+                            suppressHydrationWarning
+                            data-invalid={addressError ? "true" : undefined}
+                            className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-[13px] sm:text-sm font-bold placeholder:text-[13px] sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none bg-white shadow-2xs transition ${
+                              addressError
+                                ? "border-red-500 ring-2 ring-red-200 bg-red-50/20 text-red-900"
+                                : "border-flandi-pink focus:border-flandi-coral focus:ring-1 focus:ring-flandi-coral/30"
+                            }`}
+                          />
+                        </div>
+                        {addressError && (
+                          <span className="text-[11px] font-bold text-red-500 flex items-center gap-1 mt-0.5 px-1 animate-in fade-in">
+                            <AlertCircle className="w-3 h-3 shrink-0" />
+                            <span>{addressError}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 4. Các Nút Gửi Đơn (Zalo, Messenger, QR) */}
+                    <div className="space-y-2 pt-0.5 pb-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          disabled={cartItems.length === 0 || sendingChannel !== null}
+                          onClick={() => handleSendOrderVia("ZALO")}
+                          className="py-2.5 sm:py-3 px-3 rounded-2xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-[13px] sm:text-sm shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
+                        >
+                          <Send className="w-4 h-4 shrink-0" />
+                          <span>{sendingChannel === "ZALO" ? "Đang gửi..." : "Gửi Zalo"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={cartItems.length === 0 || sendingChannel !== null}
+                          onClick={() => handleSendOrderVia("MESSENGER")}
+                          className="py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-[#00B2FF] to-[#006AFF] hover:opacity-95 text-white font-extrabold text-[13px] sm:text-sm shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
+                        >
+                          <MessageCircle className="w-4 h-4 shrink-0" />
+                          <span>{sendingChannel === "MESSENGER" ? "Đang gửi..." : "Gửi Messenger"}</span>
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={cartItems.length === 0 || sendingChannel !== null}
+                        onClick={() => handleSendOrderVia("DIRECT")}
+                        className="w-full py-3 px-3 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white font-extrabold text-sm shadow-cute flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-40"
+                      >
+                        <QrCode className="w-4 h-4 shrink-0" />
+                        <span>Chốt Đơn & Mã QR</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-flandi-pink bg-flandi-cream/65 p-4 text-center space-y-2.5 mb-2">
+                    <div className="inline-flex items-center gap-1.5 text-flandi-coral font-extrabold text-sm">
+                      <Lock className="w-4 h-4 shrink-0" />
+                      <span>Chỉ nhân viên (Staff) được quyền lên đơn</span>
+                    </div>
+                    <p className="text-xs font-semibold text-flandi-dark/75 leading-relaxed">
+                      {role === "guest"
+                        ? "Khách vẫn xem menu, tính tiền & bấm Share để gửi ảnh bill. Nhân viên vui lòng đăng nhập để chốt đơn."
+                        : `Tài khoản ${user?.email || ""} hiện đang ở nhóm User. Nhờ Admin cấp quyền Staff để lên đơn trực tiếp.`}
+                    </p>
+                    <div className="flex items-center gap-2 pt-0.5">
+                      {cartItems.length > 0 && (
+                        <button
+                          type="button"
+                          disabled={isSavingBillImage}
+                          onClick={() => handleOpenShareBill()}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-white hover:bg-flandi-cream border border-flandi-salmon text-flandi-coral font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>Share ảnh bill</span>
+                        </button>
+                      )}
+                      {role === "guest" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsExpanded(false);
+                            triggerGoogleSignIn();
+                          }}
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs shadow-cute cursor-pointer"
+                        >
+                          Đăng nhập Staff
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1558,13 +2305,14 @@ export default function QuickSingleScreenOrderPage() {
         refreshTrigger={chatRefreshTrigger}
         cartSummaryText={liveOrderPreviewText || undefined}
         hideFloatingButton={isExpanded}
+        hideFloatingOnMobile
       />
 
       {/* Custom Virtual Numeric Keypad Modal (Bàn phím ảo nhập số lượng) */}
       {keypadProduct && (
         <div
           className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
-          onClick={closeKeypad}
+          onClick={cancelKeypad}
         >
           <div
             className="w-full max-w-sm sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-cute-lg border-2 border-flandi-salmon overflow-hidden animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-200"
@@ -1581,18 +2329,18 @@ export default function QuickSingleScreenOrderPage() {
                   />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-display text-base font-extrabold text-flandi-dark truncate">
+                  <h3 className="font-display text-base sm:text-lg text-flandi-dark truncate">
                     {keypadProduct.name}
                   </h3>
-                  <p className="text-xs font-bold text-flandi-coral">
+                  <p className="text-[13px] sm:text-sm font-extrabold text-flandi-coral tabular-nums">
                     {keypadProduct.badgeText}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={closeKeypad}
-                className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-flandi-muted hover:text-flandi-dark flex items-center justify-center border border-flandi-pink shadow-2xs transition active:scale-90"
+                onClick={cancelKeypad}
+                className="w-8 h-8 rounded-full bg-white/80 hover:bg-white text-flandi-muted hover:text-flandi-dark flex items-center justify-center border border-flandi-pink shadow-2xs transition active:scale-90 cursor-pointer"
                 title="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -1600,14 +2348,14 @@ export default function QuickSingleScreenOrderPage() {
             </div>
 
             {/* Live Quantity Display & Subtotal */}
-            <div className="px-5 py-3.5 bg-white border-b border-flandi-pink/40 flex items-center justify-between">
+            <div className="px-5 py-2.5 sm:py-3 bg-white border-b border-flandi-pink/40 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-extrabold text-flandi-muted uppercase tracking-wider block">
-                  Số lượng đang chọn:
+                <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider block">
+                  Số lượng
                 </span>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="font-display text-3xl sm:text-4xl font-black text-flandi-coral tracking-tight">
-                    {getQtyForProduct(keypadProduct.id)}
+                  <span className="text-3xl sm:text-4xl font-black text-flandi-coral tracking-tight tabular-nums leading-none">
+                    {keypadDraftQty}
                   </span>
                   <span className="text-sm font-bold text-flandi-dark/70">
                     {keypadProduct.unit || "cái"}
@@ -1616,70 +2364,73 @@ export default function QuickSingleScreenOrderPage() {
               </div>
 
               <div className="text-right">
-                <span className="text-[10px] font-extrabold text-flandi-muted uppercase tracking-wider block">
-                  Thành tiền món này:
+                <span className="text-[11px] font-extrabold text-flandi-muted uppercase tracking-wider block">
+                  Thành tiền
                 </span>
-                <span className="font-display text-lg sm:text-xl font-black text-flandi-dark mt-0.5 block">
-                  {formatVND(keypadProduct.price * getQtyForProduct(keypadProduct.id))}
+                <span className="text-xl sm:text-2xl font-black text-flandi-dark mt-0.5 block tabular-nums leading-none">
+                  {formatVND(keypadProduct.price * keypadDraftQty)}
                 </span>
               </div>
             </div>
 
-            {/* Numeric Keypad Grid (Chỉ có số kèm nút xóa và clear) */}
-            <div className="p-4 sm:p-5 bg-flandi-bg/40">
+            {/* Numeric Keypad Grid */}
+            <div className="p-3.5 sm:p-5 bg-flandi-bg/40 space-y-3">
               <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                   <button
                     key={num}
                     type="button"
                     onClick={() => handleKeypadDigit(num)}
-                    className="h-12 sm:h-14 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark font-display text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none"
+                    className="h-12 sm:h-13 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark text-xl sm:text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none cursor-pointer tabular-nums"
                   >
                     {num}
                   </button>
                 ))}
 
-                {/* Nút Clear (Xóa hết về 0) */}
+                {/* Nút Xoá hết */}
                 <button
                   type="button"
                   onClick={handleKeypadClear}
-                  className="h-12 sm:h-14 rounded-2xl bg-amber-50 hover:bg-amber-100 active:bg-amber-200 border-2 border-amber-200/80 text-amber-700 font-extrabold text-sm sm:text-base shadow-2xs transition active:scale-95 flex flex-col items-center justify-center leading-tight select-none"
-                  title="Xóa hết về 0"
+                  className="h-12 sm:h-13 rounded-2xl bg-amber-50 hover:bg-amber-100 active:bg-amber-200 border-2 border-amber-200/80 text-amber-700 font-extrabold text-[13px] sm:text-sm shadow-2xs transition active:scale-95 flex items-center justify-center select-none cursor-pointer"
+                  title="Xoá hết về 0"
                 >
-                  <span className="font-black text-xs sm:text-sm">Clear</span>
-                  <span className="text-[10px] font-bold text-amber-600/80">Xóa hết</span>
+                  Xoá hết
                 </button>
 
                 {/* Phím số 0 */}
                 <button
                   type="button"
                   onClick={() => handleKeypadDigit(0)}
-                  className="h-12 sm:h-14 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark font-display text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none"
+                  className="h-12 sm:h-13 rounded-2xl bg-white hover:bg-flandi-cream active:bg-flandi-coral active:text-white border-2 border-flandi-pink/70 text-flandi-dark text-xl sm:text-2xl font-black shadow-2xs transition active:scale-95 flex items-center justify-center select-none cursor-pointer tabular-nums"
                 >
                   0
                 </button>
 
-                {/* Nút Xóa (Backspace - xóa lùi 1 ký tự) */}
+                {/* Nút Xóa lùi 1 số */}
                 <button
                   type="button"
                   onClick={handleKeypadBackspace}
-                  className="h-12 sm:h-14 rounded-2xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 border-2 border-rose-200/80 text-rose-600 font-extrabold text-sm sm:text-base shadow-2xs transition active:scale-95 flex items-center justify-center gap-1.5 select-none"
+                  className="h-12 sm:h-13 rounded-2xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 border-2 border-rose-200/80 text-rose-600 font-extrabold text-[13px] sm:text-sm shadow-2xs transition active:scale-95 flex items-center justify-center gap-1 select-none cursor-pointer"
                   title="Xóa lùi 1 số"
                 >
-                  <Delete className="w-5 h-5" />
-                  <span className="font-black text-xs sm:text-sm">Xóa</span>
+                  <Delete className="w-4.5 h-4.5" />
+                  <span>Xóa</span>
                 </button>
               </div>
 
               {/* Confirm / Done Button */}
               <button
                 type="button"
-                onClick={closeKeypad}
-                className="w-full mt-3 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white font-display text-base sm:text-lg font-black shadow-cute transition active:scale-98 flex items-center justify-center gap-2 select-none"
+                onClick={confirmKeypad}
+                className="w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-flandi-coral to-flandi-salmon hover:opacity-95 text-white text-[15px] sm:text-base font-extrabold shadow-cute transition active:scale-98 flex items-center justify-center gap-2 select-none cursor-pointer"
               >
                 <Check className="w-5 h-5" />
                 <span>
-                  Xác nhận ({getQtyForProduct(keypadProduct.id)} {keypadProduct.unit || "cái"})
+                  {keypadDraftQty > 0
+                    ? "Xác nhận"
+                    : getQtyForProduct(keypadProduct.id) > 0
+                    ? "Bỏ món"
+                    : "Đóng"}
                 </span>
               </button>
             </div>
@@ -1694,7 +2445,7 @@ export default function QuickSingleScreenOrderPage() {
           onClick={() => setSentResultModal(null)}
         >
           <div
-            className="bg-white rounded-3xl max-w-md w-full p-5 border-2 border-flandi-salmon shadow-2xl space-y-3.5"
+            className="bg-white rounded-3xl max-w-md w-full p-5 border-2 border-flandi-salmon shadow-2xl space-y-3"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-2 border-b border-flandi-pink pb-3">
@@ -1703,11 +2454,11 @@ export default function QuickSingleScreenOrderPage() {
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-flandi-dark">
-                    Đã Tạo Đơn #{sentResultModal.orderCode}!
+                  <h3 className="font-display text-base sm:text-lg text-flandi-dark">
+                    Đơn #{sentResultModal.orderCode}
                   </h3>
-                  <p className="text-xs text-emerald-700 font-extrabold">
-                    ✓ Đã đồng bộ vào tiệm & Copy sẵn đơn hàng!
+                  <p className="text-xs sm:text-[13px] text-emerald-700 font-extrabold">
+                    ✓ Đã gửi tiệm & copy đơn
                   </p>
                 </div>
               </div>
@@ -1722,19 +2473,19 @@ export default function QuickSingleScreenOrderPage() {
 
             <div className="p-3 rounded-2xl bg-flandi-bg border border-flandi-pink space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-flandi-dark">
-                  Nội dung đơn hàng đã Copy:
+                <span className="text-[13px] font-extrabold text-flandi-dark">
+                  Nội dung đơn
                 </span>
                 <button
                   type="button"
                   onClick={() => {
                     copyToClipboardInstant(sentResultModal.orderText);
-                    notify("📋 Đã Copy lại nội dung đơn hàng!");
+                    notify("📋 Đã copy đơn!");
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-flandi-coral text-white text-[11px] font-extrabold flex items-center gap-1 shadow-2xs"
+                  className="px-2.5 py-1 rounded-lg bg-flandi-coral text-white text-xs font-extrabold flex items-center gap-1 shadow-2xs"
                 >
                   <Copy className="w-3 h-3" />
-                  <span>Bấm Copy Lại</span>
+                  <span>Copy</span>
                 </button>
               </div>
               <textarea
@@ -1744,9 +2495,9 @@ export default function QuickSingleScreenOrderPage() {
                 onClick={(e) => {
                   e.currentTarget.select();
                   copyToClipboardInstant(sentResultModal.orderText);
-                  notify("📋 Đã Copy nội dung đơn hàng!");
+                  notify("📋 Đã copy đơn!");
                 }}
-                className="w-full text-[11px] font-semibold text-flandi-dark bg-white p-2.5 rounded-xl border border-flandi-pink resize-none focus:outline-none"
+                className="w-full text-xs font-semibold text-flandi-dark bg-white p-2.5 rounded-xl border border-flandi-pink resize-none focus:outline-none"
               />
             </div>
 
@@ -1760,22 +2511,42 @@ export default function QuickSingleScreenOrderPage() {
                   alt="VietQR"
                   className="w-20 h-20 rounded-xl bg-white border border-flandi-pink object-contain shrink-0"
                 />
-                <div className="text-xs space-y-0.5">
+                <div className="text-[13px] space-y-0.5">
                   <p className="font-extrabold text-flandi-dark flex items-center gap-1">
                     <QrCode className="w-3.5 h-3.5 text-flandi-coral" />
-                    <span>Quét VietQR thanh toán (tuỳ chọn)</span>
+                    <span>Quét VietQR thanh toán</span>
                   </p>
-                  <p className="text-[11px] text-flandi-muted font-semibold">
+                  <p className="text-xs text-flandi-muted font-semibold">
                     {settings.bankName} • {settings.bankAccountNo}
                   </p>
-                  <p className="text-xs font-extrabold text-flandi-coral">
-                    Số tiền: {formatVND(sentResultModal.total)}
+                  <p className="text-base font-black text-flandi-coral tabular-nums">
+                    {formatVND(sentResultModal.total)}
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={isSavingBillImage}
+              onClick={() =>
+                handleOpenShareBill({
+                  orderCode: sentResultModal.orderCode,
+                  items: sentResultModal.items,
+                  subtotal: sentResultModal.subtotal,
+                  shippingFee: sentResultModal.shippingFee,
+                  total: sentResultModal.total,
+                })
+              }
+              className="w-full py-2.5 px-3 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-[13px] sm:text-sm flex items-center justify-center gap-1.5 shadow-cute transition active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>
+                {isSavingBillImage ? "..." : "Share"}
+              </span>
+            </button>
+
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1783,10 +2554,10 @@ export default function QuickSingleScreenOrderPage() {
                   setPreferredChatChannel("ZALO");
                   setOpenChatTrigger((n) => n + 1);
                 }}
-                className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md"
+                className="py-2.5 px-3 rounded-xl bg-[#0068FF] hover:bg-[#0056D6] text-white font-extrabold text-[13px] sm:text-sm flex items-center justify-center gap-1.5 shadow-md"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Mở Chat Zalo Trực Tiếp</span>
+                <span>Chat Zalo</span>
               </button>
 
               <button
@@ -1796,10 +2567,10 @@ export default function QuickSingleScreenOrderPage() {
                   setPreferredChatChannel("MESSENGER");
                   setOpenChatTrigger((n) => n + 1);
                 }}
-                className="py-2.5 px-3 rounded-xl bg-[#006AFF] hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md"
+                className="py-2.5 px-3 rounded-xl bg-[#006AFF] hover:opacity-95 text-white font-extrabold text-[13px] sm:text-sm flex items-center justify-center gap-1.5 shadow-md"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
-                <span>Mở Chat Messenger Trực Tiếp</span>
+                <span>Chat Messenger</span>
               </button>
             </div>
 
@@ -1816,10 +2587,10 @@ export default function QuickSingleScreenOrderPage() {
                     // User cancelled share sheet
                   }
                 }}
-                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[13px] sm:text-sm flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                <span>Chia sẻ vào App Zalo / Messenger trên máy</span>
+                <span>Chia sẻ qua App khác</span>
               </button>
             )}
 
@@ -1829,10 +2600,241 @@ export default function QuickSingleScreenOrderPage() {
                 setCartMap({});
                 setSentResultModal(null);
               }}
-              className="w-full py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-flandi-dark font-extrabold text-xs"
+              className="w-full py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-flandi-dark font-extrabold text-[13px] sm:text-sm"
             >
-              Hoàn tất & Đặt đơn mới
+              Đặt đơn mới
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Product Description Popup (when clicking product image on Menu/Bill) */}
+      {previewProduct && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Mô tả ${previewProduct.name}`}
+          className="fixed inset-0 z-[75] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3.5 sm:p-4 animate-in fade-in duration-150"
+          onClick={() => setPreviewProduct(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm sm:max-w-md w-full overflow-hidden border border-flandi-pink shadow-2xl animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Product Hero Photo */}
+            <div className="relative h-52 sm:h-60 w-full bg-flandi-cream">
+              <img
+                src={previewProduct.image}
+                alt={previewProduct.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-x-0 top-0 p-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/35 to-transparent">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-flandi-dark text-xs font-extrabold shadow-xs">
+                    {previewProduct.category}
+                  </span>
+                  {previewProduct.isBestSeller && (
+                    <span className="px-2.5 py-1 rounded-full bg-flandi-coral text-white text-xs font-extrabold shadow-xs">
+                      ★ Best Seller
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewProduct(null)}
+                  className="w-8 h-8 rounded-full bg-white/95 hover:bg-white text-flandi-dark flex items-center justify-center shadow-sm transition active:scale-95 cursor-pointer"
+                  title="Đóng"
+                  aria-label="Đóng"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="p-4 sm:p-5 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-display text-lg sm:text-xl text-flandi-dark leading-tight">
+                    {previewProduct.name}
+                  </h3>
+                  {previewProduct.subtitle && (
+                    <p className="text-[13px] sm:text-sm font-extrabold text-flandi-muted mt-0.5">
+                      {previewProduct.subtitle}
+                    </p>
+                  )}
+                </div>
+                <span className="px-3 py-1 rounded-xl bg-flandi-cream border border-flandi-pink text-flandi-coral text-sm sm:text-[15px] font-black shrink-0 shadow-2xs tabular-nums">
+                  {previewProduct.badgeText}
+                </span>
+              </div>
+
+              <p className="text-[13px] sm:text-sm font-semibold text-flandi-dark/90 leading-relaxed">
+                {previewProduct.description ||
+                  "Bánh thủ công làm mới mỗi sáng, ngọt thanh, không chất bảo quản."}
+              </p>
+
+              {previewProduct.variants && previewProduct.variants.length > 1 && (
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {previewProduct.variants.map((v) => (
+                    <span
+                      key={v.id}
+                      className="px-2.5 py-1 rounded-lg bg-flandi-bg border border-flandi-pink/70 text-xs font-bold text-flandi-dark"
+                    >
+                      {v.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="px-3 py-2 rounded-xl bg-flandi-bg/80 border border-flandi-pink/60 flex items-start gap-2 text-xs font-bold text-flandi-muted">
+                <Sparkles className="w-3.5 h-3.5 text-flandi-coral shrink-0 mt-0.5" />
+                <span>
+                  {settings?.brandKit?.storageInstruction ||
+                    "Làm mới mỗi sáng • Bảo quản lạnh 2–6°C (2–3 ngày)."}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = previewProduct;
+                  setPreviewProduct(null);
+                  openKeypad(target);
+                }}
+                className="w-full py-2.5 px-4 rounded-2xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-sm shadow-cute transition active:scale-95 cursor-pointer"
+              >
+                {getQtyForProduct(previewProduct.id) > 0
+                  ? `Đổi số lượng (${getQtyForProduct(previewProduct.id)} ${
+                      previewProduct.unit || "cái"
+                    })`
+                  : "Chọn số lượng"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Web-Only Clean Share Popup (Phone skips popup and shares directly) */}
+      {billImageModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Share FLANDI"
+          className="hidden lg:flex fixed inset-0 z-[70] bg-black/55 backdrop-blur-xs items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={closeBillImageModal}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-[400px] w-full max-h-[90vh] flex flex-col border border-flandi-pink shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Clean Minimal Header */}
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="font-display text-base sm:text-lg text-flandi-dark">
+                  Share
+                </h3>
+                {billImageModal.autoCopied && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold flex items-center gap-1 shrink-0">
+                    <Check className="w-3 h-3 stroke-[3]" />
+                    <span>Đã copy ảnh</span>
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={closeBillImageModal}
+                className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-400 hover:text-flandi-dark flex items-center justify-center transition cursor-pointer"
+                title="Đóng"
+                aria-label="Đóng"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Clean Centered Receipt Preview */}
+            <div className="flex-1 overflow-y-auto p-3.5 bg-flandi-bg/50 flex items-center justify-center min-h-0">
+              <img
+                src={billImageModal.objectUrl}
+                alt="Tiệm bánh FLANDI - Hóa đơn"
+                className="max-h-[54vh] w-auto max-w-full object-contain rounded-2xl border border-flandi-pink/70 shadow-sm select-auto"
+              />
+            </div>
+
+            {/* Clean, Harmonious Action Footer */}
+            <div className="p-3.5 border-t border-slate-100 bg-white space-y-2.5 shrink-0">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerBillDownload(billImageModal);
+                    notify("📥 Đã lưu ảnh bill!");
+                  }}
+                  className="py-2.5 px-3 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-[13px] sm:text-sm flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Lưu ảnh</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyBillImage(billImageModal)}
+                  className="py-2.5 px-3 rounded-xl bg-flandi-bg hover:bg-flandi-pink/40 text-flandi-dark border border-flandi-pink font-extrabold text-[13px] sm:text-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-flandi-coral" />
+                  <span>Copy ảnh</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="h-px flex-1 bg-slate-100" />
+                <span className="text-[11px] font-bold text-flandi-muted">
+                  Mở nhanh & dán (Ctrl+V)
+                </span>
+                <div className="h-px flex-1 bg-slate-100" />
+              </div>
+
+              <div
+                className={`grid ${
+                  typeof navigator !== "undefined" && "share" in navigator
+                    ? "grid-cols-3"
+                    : "grid-cols-2"
+                } gap-2`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleShareBillViaPlatform("ZALO", billImageModal)
+                  }
+                  className="py-2 px-2.5 rounded-xl bg-white hover:bg-blue-50/60 border border-slate-200 hover:border-[#0068FF]/40 text-flandi-dark font-extrabold text-xs sm:text-[13px] flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#0068FF]" />
+                  <span>Zalo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleShareBillViaPlatform("MESSENGER", billImageModal)
+                  }
+                  className="py-2 px-2.5 rounded-xl bg-white hover:bg-blue-50/60 border border-slate-200 hover:border-[#006AFF]/40 text-flandi-dark font-extrabold text-xs sm:text-[13px] flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-[#006AFF]" />
+                  <span>Messenger</span>
+                </button>
+
+                {typeof navigator !== "undefined" && "share" in navigator && (
+                  <button
+                    type="button"
+                    onClick={() => handleShareBillImage(billImageModal)}
+                    className="py-2 px-2.5 rounded-xl bg-white hover:bg-flandi-cream/70 border border-slate-200 hover:border-flandi-salmon text-flandi-dark font-extrabold text-xs sm:text-[13px] flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  >
+                    <Share2 className="w-3.5 h-3.5 text-flandi-coral" />
+                    <span>Khác</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -25,6 +25,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
+import { ROLE_META } from "@/lib/rbac";
 import { Order, OrderStatus } from "@/lib/types";
 
 interface CustomerAccountDrawerProps {
@@ -44,6 +45,8 @@ export default function CustomerAccountDrawer({
 }: CustomerAccountDrawerProps) {
   const {
     user,
+    role,
+    can,
     isAccountDrawerOpen,
     setIsAccountDrawerOpen,
     accountDrawerTab,
@@ -260,9 +263,16 @@ export default function CustomerAccountDrawer({
                   </div>
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-display text-base font-black text-flandi-dark truncate">
-                    {user.name}
-                  </h3>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="font-display text-base font-black text-flandi-dark truncate">
+                      {user.name}
+                    </h3>
+                    <span
+                      className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${ROLE_META[role].badgeClass}`}
+                    >
+                      {ROLE_META[role].shortLabel}
+                    </span>
+                  </div>
                   <p className="text-xs font-semibold text-flandi-muted truncate">
                     {user.email}
                   </p>
@@ -293,6 +303,35 @@ export default function CustomerAccountDrawer({
               <X className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Lối tắt nội bộ cho Staff & Admin */}
+          {(can("orders:create") || can("orders:manage")) && (
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              <Link
+                href="/order"
+                onClick={() => setIsAccountDrawerOpen(false)}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-flandi-cream text-flandi-coral border border-flandi-salmon/80 text-xs font-extrabold shadow-2xs transition"
+              >
+                + Lên đơn (/order)
+              </Link>
+              <Link
+                href="/pos"
+                onClick={() => setIsAccountDrawerOpen(false)}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-flandi-cream text-flandi-coral border border-flandi-salmon/80 text-xs font-extrabold shadow-2xs transition"
+              >
+                Máy POS (/pos)
+              </Link>
+              {can("orders:manage") && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsAccountDrawerOpen(false)}
+                  className="px-3 py-1.5 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white text-xs font-extrabold shadow-2xs transition"
+                >
+                  {can("users:manage") ? "Quản trị & Phân quyền" : "Đơn hàng trong ca"}
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* Prompt to log in if not logged in */}
           {!user && (

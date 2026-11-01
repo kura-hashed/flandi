@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readDb, writeDb, findCustomerById } from "@/lib/db";
+import { readDb, writeDb } from "@/lib/db";
 import { OrderStatus } from "@/lib/types";
 import {
   getClientIp,
@@ -10,10 +10,8 @@ import {
 } from "@/lib/rate-limit";
 import {
   verifyAndSanitizeOrder,
-  verifyAdminAuth,
+  resolveRequestActor,
   verifySameOrigin,
-  getCustomerTokenFromRequest,
-  verifyCustomerToken,
 } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
@@ -30,20 +28,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Kiểm tra Rate Limiting đặt hàng (Chống spam và cạn kiệt tồn kho)
+    const db = readDb();
+
+    // 2. Kiểm tra phân quyền RBAC: Hiện tại chỉ cho phép tài khoản có quyền `orders:create` (Staff / Admin) lên đơn
+    const actor = resolveRequestActor(request, db);
+    if (!actor.permissions.includes("orders:create")) {
+      const errorMsg =
+        actor.role === "guest"
+          ? "Chỉ nhân viên (Staff) mới được quyền lên đơn. Vui lòng đăng nhập tài khoản Staff / Admin!"
+          : `Tài khoản (${actor.role.toUpperCase()}) chưa có quyền lên đơn. Vui lòng liên hệ Admin để cấp quyền Staff!`;
+      return NextResponse.json(
+        { error: errorMsg, role: actor.role },
+        { status: 403 }
+      );
+    }
+
+    // 3. Kiểm tra Rate Limiting đặt hàng (Chống spam và cạn kiệt tồn kho)
     const rateLimitResult = orderRateLimiter.check(`order-${ip}`);
     if (!rateLimitResult.allowed) {
       return createRateLimitErrorResponse(rateLimitResult);
     }
 
     const body = await request.json();
-    const db = readDb();
 
-    // 3. Khử độc và xác thực đơn hàng trên Server-Side (Anti-Tampering)
+    // 4. Khử độc và xác thực đơn hàng trên Server-Side (Anti-Tampering)
     const verifiedResult = verifyAndSanitizeOrder(body, db);
 
     if (verifiedResult.isBot) {
-      // Bẫy Honeypot: Giả lập thành công để bot không phát hiện nhưng không lưu DB
       return NextResponse.json(
         {
           order: { id: "ord-fake", code: "FL-9999", total: 0 },
@@ -62,20 +73,24 @@ export async function POST(request: Request) {
 
     const newOrder = verifiedResult.order;
 
-    // Tự động liên kết đơn hàng với tài khoản khách hàng nếu đang đăng nhập
-    const customerToken = getCustomerTokenFromRequest(request);
-    if (customerToken) {
-      const verifiedCustId = verifyCustomerToken(customerToken);
-      if (verifiedCustId) {
-        const customer = findCustomerById(verifiedCustId);
-        if (customer) {
-          newOrder.customerId = customer.id;
-          newOrder.customerEmail = customer.email;
-        }
+    // Lưu dấu vết người lên đơn (Staff / Admin)
+    newOrder.createdByRole = actor.role;
+    if (actor.user) {
+      newOrder.createdById = actor.user.id;
+      newOrder.createdByEmail = actor.user.email;
+
+      // Chỉ gắn customerId tự động khi tài khoản là khách lẻ tự đặt (role === "user")
+      if (actor.role === "user") {
+        newOrder.customerId = actor.user.id;
+        newOrder.customerEmail = actor.user.email;
+      } else {
+        // Khi Staff/Admin lên đơn giúp khách, không ghi đè customerId của khách bằng ID nhân viên
+        newOrder.customerId = undefined;
+        newOrder.customerEmail = undefined;
       }
     }
 
-    // 4. Trừ tồn kho an toàn cho từng món
+    // 5. Trừ tồn kho an toàn cho từng món
     for (const item of newOrder.items) {
       const product = db.products.find((p) => p.id === item.productId);
       if (product) {
@@ -92,7 +107,9 @@ export async function POST(request: Request) {
           change: -(prev - nextStock),
           previousStock: prev,
           newStock: nextStock,
-          reason: `Đơn hàng ${newOrder.source} #${newOrder.code} (${item.quantity}x ${item.variantName})`,
+          reason: `Đơn hàng ${newOrder.source} #${newOrder.code} (${item.quantity}x ${item.variantName})${
+            newOrder.createdByEmail ? ` • bởi ${newOrder.createdByEmail}` : ""
+          }`,
           createdAt: new Date().toISOString(),
         });
       }
@@ -101,7 +118,16 @@ export async function POST(request: Request) {
     db.orders.unshift(newOrder);
     writeDb(db);
 
-    const response = NextResponse.json({ order: newOrder, db });
+    const canSeeFullStore = actor.permissions.includes("store:manage");
+    const scopedDb = canSeeFullStore
+      ? db
+      : {
+          products: db.products,
+          settings: db.settings,
+          orders: actor.permissions.includes("orders:manage") ? db.orders : [],
+        };
+
+    const response = NextResponse.json({ order: newOrder, db: scopedDb });
     attachRateLimitHeaders(response.headers, rateLimitResult);
     return response;
   } catch (error) {
@@ -116,15 +142,25 @@ export async function PATCH(request: Request) {
   try {
     const ip = getClientIp(request);
 
-    // 1. Kiểm tra quyền Quản trị viên
-    if (!verifyAdminAuth(request)) {
+    if (!verifySameOrigin(request)) {
       return NextResponse.json(
-        { error: "Yêu cầu quyền quản trị viên (Admin authentication required)" },
-        { status: 401 }
+        { error: "Forbidden: Nguồn gốc không hợp lệ" },
+        { status: 403 }
       );
     }
 
-    // 2. Kiểm tra Rate Limiting quản trị
+    const db = readDb();
+    const actor = resolveRequestActor(request, db);
+
+    // 1. Kiểm tra quyền xử lý đơn trong ca (`orders:manage` — cho phép Staff & Admin)
+    if (!actor.permissions.includes("orders:manage")) {
+      return NextResponse.json(
+        { error: "Yêu cầu quyền Staff hoặc Admin để cập nhật trạng thái đơn hàng" },
+        { status: 403 }
+      );
+    }
+
+    // 2. Kiểm tra Rate Limiting
     const rateLimit = adminApiRateLimiter.check(`admin-order-patch-${ip}`);
     if (!rateLimit.allowed) {
       return createRateLimitErrorResponse(rateLimit);
@@ -139,7 +175,6 @@ export async function PATCH(request: Request) {
       note?: string;
     };
 
-    const db = readDb();
     const order = db.orders.find((o) => o.id === orderId);
     if (!order) {
       return NextResponse.json({ error: "Không tìm thấy đơn hàng" }, { status: 404 });
@@ -147,7 +182,6 @@ export async function PATCH(request: Request) {
 
     const prevStatus = order.status;
     if (status && status !== prevStatus) {
-      // Nếu hủy đơn hàng đang mở -> hoàn lại tồn kho
       if (status === "CANCELLED" && prevStatus !== "CANCELLED") {
         for (const item of order.items) {
           const product = db.products.find((p) => p.id === item.productId);
@@ -183,7 +217,13 @@ export async function PATCH(request: Request) {
     }
 
     writeDb(db);
-    const response = NextResponse.json({ order, db });
+    const canSeeFullStore = actor.permissions.includes("store:manage");
+    const response = NextResponse.json({
+      order,
+      db: canSeeFullStore
+        ? db
+        : { products: db.products, settings: db.settings, orders: db.orders },
+    });
     attachRateLimitHeaders(response.headers, rateLimit);
     return response;
   } catch (error) {

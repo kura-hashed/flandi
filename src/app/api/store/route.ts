@@ -7,7 +7,12 @@ import {
   createRateLimitErrorResponse,
   attachRateLimitHeaders,
 } from "@/lib/rate-limit";
-import { verifyAdminAuth, sanitizeString } from "@/lib/security";
+import {
+  resolveRequestActor,
+  verifyAdminAuth,
+  verifySameOrigin,
+  sanitizeString,
+} from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +24,26 @@ export async function GET(request: Request) {
   }
 
   const db = readDb();
-  const response = NextResponse.json(db);
+  const actor = resolveRequestActor(request, db);
+
+  // Lọc dữ liệu trả về đúng theo cấp quyền RBAC (không lộ đơn hàng / sổ sách / danh sách user ra ngoài cho Guest & User)
+  let payload: unknown;
+  if (actor.permissions.includes("store:manage")) {
+    payload = db;
+  } else if (actor.permissions.includes("orders:manage")) {
+    payload = {
+      products: db.products,
+      settings: db.settings,
+      orders: db.orders,
+    };
+  } else {
+    payload = {
+      products: db.products,
+      settings: db.settings,
+    };
+  }
+
+  const response = NextResponse.json(payload);
   attachRateLimitHeaders(response.headers, rateLimit);
   return response;
 }
@@ -28,11 +52,18 @@ export async function PUT(request: Request) {
   try {
     const ip = getClientIp(request);
 
+    if (!verifySameOrigin(request)) {
+      return NextResponse.json(
+        { error: "Nguồn gốc không hợp lệ" },
+        { status: 403 }
+      );
+    }
+
     // 1. Bắt buộc quyền Quản trị viên khi thay đổi cài đặt cửa hàng
     if (!verifyAdminAuth(request)) {
       return NextResponse.json(
         { error: "Yêu cầu quyền quản trị viên (Admin authentication required)" },
-        { status: 401 }
+        { status: 403 }
       );
     }
 
@@ -46,8 +77,8 @@ export async function PUT(request: Request) {
     const db = readDb();
 
     if (body.settings) {
-      // Khử trùng các trường văn bản quan trọng
       const s = body.settings;
+      if (s.shopName) s.shopName = sanitizeString(s.shopName, 100);
       if (s.name) s.name = sanitizeString(s.name, 100);
       if (s.tagline) s.tagline = sanitizeString(s.tagline, 200);
       if (s.phone) s.phone = sanitizeString(s.phone, 30);
@@ -57,7 +88,9 @@ export async function PUT(request: Request) {
       if (s.qrAccountName) s.qrAccountName = sanitizeString(s.qrAccountName, 100);
       if (s.qrBank) s.qrBank = sanitizeString(s.qrBank, 50);
 
-      db.settings = { ...db.settings, ...s };
+      // Giữ nguyên rbacPolicy hiện tại trừ khi được cập nhật qua /api/admin/users
+      const preservedPolicy = db.settings.rbacPolicy;
+      db.settings = { ...db.settings, ...s, rbacPolicy: preservedPolicy };
     }
 
     writeDb(db);

@@ -41,6 +41,7 @@ import {
   ShieldCheck,
   KeyRound,
   AlertCircle,
+  Users,
 } from "lucide-react";
 import {
   Product,
@@ -54,14 +55,20 @@ import {
   ShopSettings,
   ChatSession,
   LedgerEntry,
+  PermissionKey,
+  UserRole,
 } from "@/lib/types";
 import BrandingStudio from "@/components/BrandingStudio";
 import PageManager from "@/components/PageManager";
 import LedgerBookManager from "@/components/LedgerBookManager";
+import UserRoleManager from "@/components/UserRoleManager";
+import { useCustomerAuth } from "@/lib/customer-auth-context";
+import { ROLE_META } from "@/lib/rbac";
 
 type AdminTab =
   | "POS"
   | "ORDERS"
+  | "USERS"
   | "LEDGER"
   | "CHAT"
   | "PRODUCTS"
@@ -77,7 +84,18 @@ interface PosCartItem {
 }
 
 export default function FlandiAdminPage() {
+  const {
+    user: googleUser,
+    role: globalRole,
+    triggerGoogleSignIn,
+    refreshCustomer,
+    logout: logoutGoogle,
+  } = useCustomerAuth();
+
   const [activeTab, setActiveTab] = useState<AdminTab>("ORDERS");
+  const [portalRole, setPortalRole] = useState<UserRole>("guest");
+  const [portalPermissions, setPortalPermissions] = useState<PermissionKey[]>([]);
+  const [promoteCurrentUserOnPin, setPromoteCurrentUserOnPin] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -169,11 +187,18 @@ export default function FlandiAdminPage() {
     }
   };
 
+  const canManageStore = portalPermissions.includes("store:manage");
+  const canManageUsers = portalPermissions.includes("users:manage");
+
   const checkAuthAndFetch = async () => {
     try {
-      const authRes = await fetch("/api/auth");
+      const authRes = await fetch("/api/auth", { cache: "no-store" });
       const authData = await authRes.json();
-      setIsAuthenticated(authData.authenticated);
+      setIsAuthenticated(Boolean(authData.authenticated));
+      setPortalRole((authData.role as UserRole) || "guest");
+      setPortalPermissions(
+        Array.isArray(authData.permissions) ? authData.permissions : []
+      );
       if (authData.authenticated) {
         await fetchAll();
       } else {
@@ -188,7 +213,18 @@ export default function FlandiAdminPage() {
 
   useEffect(() => {
     checkAuthAndFetch();
-  }, []);
+  }, [googleUser?.id, globalRole]);
+
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      !canManageStore &&
+      activeTab !== "ORDERS" &&
+      activeTab !== "POS"
+    ) {
+      setActiveTab("ORDERS");
+    }
+  }, [isAuthenticated, canManageStore, activeTab]);
 
   const handleVerifyPin = async (pinToSubmit?: string) => {
     const finalPin = pinToSubmit || pinInput;
@@ -202,7 +238,12 @@ export default function FlandiAdminPage() {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: finalPin }),
+        body: JSON.stringify({
+          pin: finalPin,
+          promoteCurrentUser: Boolean(
+            googleUser && googleUser.role !== "admin" && promoteCurrentUserOnPin
+          ),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -210,7 +251,10 @@ export default function FlandiAdminPage() {
         return;
       }
       setIsAuthenticated(true);
+      setPortalRole("admin");
+      setPortalPermissions(Array.isArray(data.permissions) ? data.permissions : []);
       setPinInput("");
+      await refreshCustomer();
       notify("✅ Xác thực quyền quản trị viên thành công!");
       await fetchAll();
     } catch {
@@ -223,9 +267,16 @@ export default function FlandiAdminPage() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth", { method: "DELETE" });
+      if (googleUser) {
+        await logoutGoogle();
+      } else {
+        await refreshCustomer();
+      }
     } catch {}
     setIsAuthenticated(false);
-    notify("🔒 Đã khóa cổng quản trị.");
+    setPortalRole("guest");
+    setPortalPermissions([]);
+    notify("🔒 Đã đăng xuất khỏi trang quản trị.");
   };
 
   // --- POS Helpers ---
@@ -601,9 +652,70 @@ export default function FlandiAdminPage() {
           <h2 className="font-display text-2xl text-sticker leading-tight mb-1">
             FLANDI BẾP TRƯỞNG
           </h2>
-          <p className="text-xs font-bold text-flandi-muted mb-6">
-            Khu vực Quản trị Đơn hàng, Tồn kho & Sổ sách Tài chính
+          <p className="text-xs font-bold text-flandi-muted mb-5">
+            Đăng nhập tài khoản Staff / Admin hoặc mở khóa bằng PIN Chủ tiệm
           </p>
+
+          {/* Đăng nhập Google cho Staff / Admin */}
+          <div className="mb-5 space-y-2.5">
+            {googleUser ? (
+              <div className="rounded-2xl border border-flandi-pink bg-flandi-cream/65 p-3 text-left space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold text-flandi-dark truncate">
+                      {googleUser.name} ({googleUser.email})
+                    </p>
+                    <p className="text-[11px] font-semibold text-flandi-dark/70">
+                      Vai trò hiện tại:{" "}
+                      <strong className="text-flandi-coral">
+                        {ROLE_META[googleUser.role || "user"].shortLabel}
+                      </strong>{" "}
+                      — chưa có quyền vào trang Quản trị
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={triggerGoogleSignIn}
+                    className="px-2.5 py-1.5 rounded-xl bg-white border border-flandi-salmon text-flandi-coral text-[11px] font-extrabold shrink-0 cursor-pointer"
+                  >
+                    Đổi email
+                  </button>
+                </div>
+
+                <label className="flex items-center gap-2 text-xs font-bold text-flandi-dark cursor-pointer pt-1 border-t border-flandi-pink/60">
+                  <input
+                    type="checkbox"
+                    checked={promoteCurrentUserOnPin}
+                    onChange={(e) => setPromoteCurrentUserOnPin(e.target.checked)}
+                    className="rounded accent-[#E86F5F]"
+                  />
+                  <span>
+                    Đồng thời cấp quyền <strong className="text-flandi-coral">Admin</strong> cho email này khi mở khóa PIN
+                  </span>
+                </label>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={triggerGoogleSignIn}
+                className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-flandi-cream border-2 border-flandi-salmon text-flandi-dark font-extrabold text-sm shadow-2xs transition active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                </svg>
+                <span>Đăng nhập Google (Staff / Admin)</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-2 text-[11px] font-bold text-flandi-muted">
+              <div className="flex-1 h-px bg-flandi-pink/70" />
+              <span>HOẶC DÙNG MÃ PIN DỰ PHÒNG</span>
+              <div className="flex-1 h-px bg-flandi-pink/70" />
+            </div>
+          </div>
 
           <form
             onSubmit={(e) => {
@@ -719,183 +831,235 @@ export default function FlandiAdminPage() {
       )}
 
       {/* Top Admin Header */}
-      <header className="bg-white border-b border-flandi-pink sticky top-0 z-30 px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="p-2 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-coral border border-flandi-pink transition"
-            title="Về trang chủ khách hàng"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div className="flex items-center gap-2.5">
+      <header className="bg-white border-b border-flandi-pink sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Link
+              href="/"
+              className="p-2 rounded-full bg-flandi-bg hover:bg-flandi-pink/50 text-flandi-coral border border-flandi-pink transition shrink-0"
+              title="Về trang chủ khách hàng"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
             <img
               src={
                 settings?.brandKit?.mascotImage ||
                 "/images/branding/flandi-mascot.png"
               }
               alt="FLANDI"
-              className="w-9 h-9 rounded-full object-cover border-2 border-flandi-salmon"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-flandi-salmon shrink-0"
             />
-            <div>
-              <h1 className="font-display text-xl text-sticker-sm leading-none">
-                FLANDI ADMIN PORTAL
-              </h1>
-              <span className="text-[11px] font-bold text-flandi-muted block">
-                Quản trị Đơn hàng, Thực đơn, Kho bánh & Thương hiệu (/admin)
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-lg sm:text-xl text-sticker-sm leading-none whitespace-nowrap">
+                  FLANDI ADMIN
+                </h1>
+                <span
+                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 ${ROLE_META[portalRole].badgeClass}`}
+                >
+                  {ROLE_META[portalRole].shortLabel}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-flandi-muted truncate hidden sm:block">
+                {canManageStore
+                  ? "Quản trị Đơn hàng, Phân quyền, Kho bánh & Cài đặt"
+                  : "Xử lý Đơn hàng trong ca & Lên đơn POS"}
               </span>
             </div>
           </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap">
+            <button
+              onClick={fetchAll}
+              className="p-2 rounded-xl border border-flandi-pink hover:bg-flandi-cream text-flandi-muted cursor-pointer"
+              title="Làm mới dữ liệu"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <Link
+              href="/pos"
+              className="px-3 py-1.5 sm:py-2 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs flex items-center gap-1.5 shadow-2xs"
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Máy POS</span>
+              <span className="sm:hidden">POS</span>
+            </Link>
+            <Link
+              href="/order"
+              className="hidden md:inline-flex px-3 py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral font-extrabold text-xs"
+            >
+              Trang /order
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 sm:py-2 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-600 font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer"
+              title="Đăng xuất / khóa trang quản trị"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Thoát</span>
+            </button>
+          </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1.5 overflow-x-auto py-1">
-          <button
-            onClick={() => setActiveTab("ORDERS")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "ORDERS"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span>Đơn Hàng ({orders.length})</span>
-            {pendingOrdersCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-flandi-dark text-[10px] font-black">
-                {pendingOrdersCount} mới
-              </span>
+        {/* Navigation Tabs Bar */}
+        <div className="border-t border-flandi-pink/50 bg-flandi-bg/45">
+          <nav className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 overflow-x-auto no-scrollbar py-1.5">
+            <button
+              onClick={() => setActiveTab("ORDERS")}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                activeTab === "ORDERS"
+                  ? "bg-flandi-coral text-white shadow-sm"
+                  : "text-flandi-dark hover:bg-flandi-cream"
+              }`}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Đơn Hàng ({orders.length})</span>
+              {pendingOrdersCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-flandi-dark text-[10px] font-black">
+                  {pendingOrdersCount} mới
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("POS")}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                activeTab === "POS"
+                  ? "bg-flandi-coral text-white shadow-sm"
+                  : "text-flandi-dark hover:bg-flandi-cream"
+              }`}
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>Lên Đơn POS</span>
+            </button>
+
+            {canManageUsers && (
+              <button
+                onClick={() => setActiveTab("USERS")}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                  activeTab === "USERS"
+                    ? "bg-flandi-coral text-white shadow-sm"
+                    : "text-flandi-dark hover:bg-flandi-cream"
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Phân Quyền</span>
+              </button>
             )}
-          </button>
 
-          <button
-            onClick={() => setActiveTab("LEDGER")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "LEDGER"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Sổ Sách ({ledger.length})</span>
-          </button>
+            {canManageStore && (
+              <>
+                <button
+                  onClick={() => setActiveTab("LEDGER")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                    activeTab === "LEDGER"
+                      ? "bg-flandi-coral text-white shadow-sm"
+                      : "text-flandi-dark hover:bg-flandi-cream"
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Sổ Sách ({ledger.length})</span>
+                </button>
 
-          <button
-            onClick={() => setActiveTab("CHAT")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "CHAT"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Tin Nhắn Web ({chats.length})</span>
-            {chats.reduce((s, c) => s + (c.unreadForAdmin || 0), 0) > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-[#006AFF] text-white text-[10px] font-black">
-                {chats.reduce((s, c) => s + (c.unreadForAdmin || 0), 0)} mới
-              </span>
+                <button
+                  onClick={() => setActiveTab("CHAT")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                    activeTab === "CHAT"
+                      ? "bg-flandi-coral text-white shadow-sm"
+                      : "text-flandi-dark hover:bg-flandi-cream"
+                  }`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Tin Nhắn ({chats.length})</span>
+                  {chats.reduce((s, c) => s + (c.unreadForAdmin || 0), 0) > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-[#006AFF] text-white text-[10px] font-black">
+                      {chats.reduce((s, c) => s + (c.unreadForAdmin || 0), 0)} mới
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("PRODUCTS")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                    activeTab === "PRODUCTS"
+                      ? "bg-flandi-coral text-white shadow-sm"
+                      : "text-flandi-dark hover:bg-flandi-cream"
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Thực Đơn ({products.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("INVENTORY")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                    activeTab === "INVENTORY"
+                      ? "bg-flandi-coral text-white shadow-sm"
+                      : "text-flandi-dark hover:bg-flandi-cream"
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Kho Bánh</span>
+                  {lowStockCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px] font-black">
+                      {lowStockCount} sắp hết
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("PAGE_CMS")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                    activeTab === "PAGE_CMS"
+                      ? "bg-flandi-coral text-white shadow-sm"
+                      : "text-flandi-dark hover:bg-flandi-cream"
+                  }`}
+                >
+                  <Layout className="w-3.5 h-3.5" />
+                  <span>Trang Web</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("BRANDING")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                    activeTab === "BRANDING"
+                      ? "bg-flandi-coral text-white shadow-sm"
+                      : "text-flandi-dark hover:bg-flandi-cream"
+                  }`}
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  <span>Nhận Diện</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("ANALYTICS")}
+                  className={`px-2.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer ${
+                    activeTab === "ANALYTICS"
+                      ? "bg-flandi-coral text-white shadow-sm"
+                      : "text-flandi-dark hover:bg-flandi-cream"
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Doanh Thu</span>
+                </button>
+              </>
             )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("PRODUCTS")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "PRODUCTS"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>Thực Đơn ({products.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("INVENTORY")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "INVENTORY"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>Kho Bánh & Nguyên Liệu</span>
-            {lowStockCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-red-500 text-white text-[10px] font-black">
-                {lowStockCount} sắp hết
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("PAGE_CMS")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "PAGE_CMS"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <Layout className="w-4 h-4" />
-            <span>Quản Lý Trang</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("BRANDING")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "BRANDING"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <Palette className="w-4 h-4" />
-            <span>Bộ Nhận Diện HD</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("ANALYTICS")}
-            className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition whitespace-nowrap ${
-              activeTab === "ANALYTICS"
-                ? "bg-flandi-coral text-white shadow-sm"
-                : "text-flandi-dark hover:bg-flandi-cream"
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span>Doanh Thu & Cài Đặt</span>
-          </button>
-        </nav>
-
-        <div className="hidden lg:flex items-center gap-2">
-          <button
-            onClick={fetchAll}
-            className="p-2 rounded-xl border border-flandi-pink hover:bg-flandi-cream text-flandi-muted"
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <Link
-            href="/pos"
-            className="px-3.5 py-2 rounded-xl bg-flandi-coral hover:bg-flandi-salmon text-white font-extrabold text-xs flex items-center gap-1.5 shadow-2xs"
-          >
-            <Store className="w-3.5 h-3.5" />
-            <span>Máy POS (/pos)</span>
-          </Link>
-          <Link
-            href="/"
-            className="px-3.5 py-2 rounded-xl bg-flandi-cream hover:bg-flandi-pink/60 text-flandi-coral font-extrabold text-xs"
-          >
-            Web Khách
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="px-3 py-2 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-600 font-extrabold text-xs flex items-center gap-1.5 transition cursor-pointer"
-            title="Khóa bảo mật trang quản trị"
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>Khóa</span>
-          </button>
+          </nav>
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+        {/* ==================== TAB: USER & RBAC MANAGEMENT ==================== */}
+        {activeTab === "USERS" && canManageUsers && (
+          <UserRoleManager
+            notify={notify}
+            onAuthChanged={async () => {
+              await refreshCustomer();
+              await checkAuthAndFetch();
+            }}
+          />
+        )}
         {/* ==================== TAB 1: POS COUNTER ==================== */}
         {activeTab === "POS" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

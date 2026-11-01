@@ -1,8 +1,20 @@
-import { StoreDatabase, Order, OrderItem } from "./types";
+import crypto from "crypto";
+import {
+  StoreDatabase,
+  Order,
+  OrderItem,
+  CustomerUser,
+  PermissionKey,
+  UserRole,
+} from "./types";
+import { readDb } from "./db";
+import { getPermissionsForRole } from "./rbac";
 
 // Khóa bí mật mặc định (có thể ghi đè bằng ADMIN_PIN hoặc ADMIN_SECRET_KEY trong .env)
 export const DEFAULT_ADMIN_PIN = process.env.ADMIN_PIN || "8888";
 export const ADMIN_COOKIE_NAME = "flandi_admin_session";
+const ADMIN_TOKEN_SECRET =
+  process.env.ADMIN_SECRET_KEY || `flandi_adm_hmac_2026_${DEFAULT_ADMIN_PIN}`;
 
 /**
  * Loại bỏ các thẻ HTML nguy hiểm, script, javascript: protocol và ký tự độc hại để chống XSS.
@@ -57,13 +69,42 @@ export function verifySameOrigin(request: Request): boolean {
   }
 }
 
+export interface RequestActor {
+  role: UserRole;
+  authMethod: "pin" | "google" | "none";
+  isPinAdmin: boolean;
+  user: CustomerUser | null;
+  permissions: PermissionKey[];
+}
+
+function parseCookies(cookieHeader: string | null): Record<string, string> {
+  if (!cookieHeader) return {};
+  return Object.fromEntries(
+    cookieHeader.split(";").map((c) => {
+      const [k, ...v] = c.trim().split("=");
+      return [k, v.join("=")];
+    })
+  );
+}
+
+function hmacSign(payload: string, secret: string): string {
+  return crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+}
+
+function safeEqualSignature(sigA: string, sigB: string): boolean {
+  const bufA = Buffer.from(sigA);
+  const bufB = Buffer.from(sigB);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 /**
- * Kiểm tra quyền Quản trị viên (Admin) thông qua:
+ * Kiểm tra phiên mở khóa bằng mã PIN Chủ tiệm (dự phòng ở /admin):
  * 1. Header `x-admin-key`
- * 2. Header `Authorization: Bearer <pin/token>`
+ * 2. Header `Authorization: Bearer <pin/adminToken>`
  * 3. Cookie `flandi_admin_session`
  */
-export function verifyAdminAuth(request: Request): boolean {
+export function verifyPinAdminSession(request: Request): boolean {
   const validSecret = process.env.ADMIN_SECRET_KEY || DEFAULT_ADMIN_PIN;
 
   // 1. Kiểm tra x-admin-key
@@ -82,42 +123,104 @@ export function verifyAdminAuth(request: Request): boolean {
   }
 
   // 3. Kiểm tra Cookie flandi_admin_session
-  const cookieHeader = request.headers.get("cookie");
-  if (cookieHeader) {
-    const cookies = Object.fromEntries(
-      cookieHeader.split(";").map((c) => {
-        const [k, ...v] = c.trim().split("=");
-        return [k, v.join("=")];
-      })
-    );
-    const sessionVal = cookies[ADMIN_COOKIE_NAME];
-    if (sessionVal && (sessionVal === "authenticated" || isValidAdminToken(sessionVal))) {
-      return true;
-    }
+  const cookies = parseCookies(request.headers.get("cookie"));
+  const sessionVal = cookies[ADMIN_COOKIE_NAME];
+  if (sessionVal && isValidAdminToken(sessionVal)) {
+    return true;
   }
 
   return false;
 }
 
 /**
- * Tạo token đơn giản dựa trên PIN và thời gian
+ * Xác định danh tính & tập quyền (RBAC) thực tế tại thời điểm request (Server-Side Source of Truth).
+ * Token chỉ mang user ID; role & permissions luôn được đọc trực tiếp từ DB.
+ */
+export function resolveRequestActor(
+  request: Request,
+  existingDb?: StoreDatabase
+): RequestActor {
+  const db = existingDb || readDb();
+  const isPinAdmin = verifyPinAdminSession(request);
+
+  let matchedUser: CustomerUser | null = null;
+  const custToken = getCustomerTokenFromRequest(request);
+  if (custToken) {
+    const customerId = verifyCustomerToken(custToken);
+    if (customerId) {
+      matchedUser = (db.customers || []).find((c) => c.id === customerId) || null;
+    }
+  }
+
+  let role: UserRole = "guest";
+  let authMethod: RequestActor["authMethod"] = "none";
+
+  if (isPinAdmin) {
+    role = "admin";
+    authMethod = "pin";
+  } else if (matchedUser) {
+    role = matchedUser.role || "user";
+    authMethod = "google";
+  }
+
+  const permissions = getPermissionsForRole(role, db.settings?.rbacPolicy);
+
+  return {
+    role,
+    authMethod,
+    isPinAdmin,
+    user: matchedUser,
+    permissions,
+  };
+}
+
+export function hasActorPermission(
+  actor: RequestActor,
+  permission: PermissionKey
+): boolean {
+  return actor.permissions.includes(permission);
+}
+
+/**
+ * Kiểm tra quyền Quản trị cửa hàng (`store:manage` — cho phép cả Google Admin lẫn PIN Admin).
+ */
+export function verifyAdminAuth(
+  request: Request,
+  existingDb?: StoreDatabase
+): boolean {
+  if (verifyPinAdminSession(request)) return true;
+  const actor = resolveRequestActor(request, existingDb);
+  return actor.permissions.includes("store:manage");
+}
+
+/**
+ * Tạo token phiên PIN Admin ký HMAC-SHA256 (hợp lệ 14 ngày)
  */
 export function generateAdminSessionToken(): string {
-  const timestamp = Date.now();
-  // Mã hóa đơn giản base64 chứa timestamp
-  const payload = `flandi_adm_${timestamp}_${DEFAULT_ADMIN_PIN.slice(0, 4)}`;
-  return Buffer.from(payload).toString("base64");
+  const payload = Buffer.from(
+    JSON.stringify({
+      typ: "flandi_pin_adm",
+      iat: Date.now(),
+      exp: Date.now() + 14 * 24 * 60 * 60 * 1000,
+    })
+  ).toString("base64url");
+  const sig = hmacSign(payload, ADMIN_TOKEN_SECRET);
+  return `${payload}.${sig}`;
 }
 
 function isValidAdminToken(token: string): boolean {
   try {
-    const decoded = Buffer.from(token, "base64").toString("utf8");
-    if (!decoded.startsWith("flandi_adm_")) return false;
-    const parts = decoded.split("_");
-    const ts = parseInt(parts[2], 10);
-    // Token hợp lệ trong 14 ngày
-    const maxAge = 14 * 24 * 60 * 60 * 1000;
-    return Date.now() - ts < maxAge;
+    const dotIdx = token.indexOf(".");
+    if (dotIdx === -1) return false;
+    const payloadB64 = token.slice(0, dotIdx);
+    const sig = token.slice(dotIdx + 1);
+    const expectedSig = hmacSign(payloadB64, ADMIN_TOKEN_SECRET);
+    if (!safeEqualSignature(sig, expectedSig)) return false;
+
+    const parsed = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+    if (!parsed || parsed.typ !== "flandi_pin_adm") return false;
+    if (!parsed.exp || Date.now() > parsed.exp) return false;
+    return true;
   } catch {
     return false;
   }
@@ -283,23 +386,38 @@ export function verifyAndSanitizeOrder(
 // ----------------------------------------------------
 
 export const CUSTOMER_COOKIE_NAME = "flandi_customer_session";
-const CUSTOMER_TOKEN_SECRET = process.env.CUSTOMER_AUTH_SECRET || "flandi_cust_secret_2026";
+const CUSTOMER_TOKEN_SECRET =
+  process.env.CUSTOMER_AUTH_SECRET || "flandi_cust_hmac_secret_2026";
 
+/**
+ * Token phiên đăng nhập Google chỉ lưu `sub` (ID tài khoản) + `exp`, ký HMAC-SHA256.
+ * Không nhúng `role` tĩnh trong token để mọi thay đổi phân quyền có hiệu lực tức thì.
+ */
 export function generateCustomerToken(customerId: string): string {
-  const payload = {
-    sub: customerId,
-    iat: Date.now(),
-    exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 ngày
-  };
-  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const payloadB64 = Buffer.from(
+    JSON.stringify({
+      sub: customerId,
+      iat: Date.now(),
+      exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 ngày
+    })
+  ).toString("base64url");
+  const sig = hmacSign(payloadB64, CUSTOMER_TOKEN_SECRET);
+  return `${payloadB64}.${sig}`;
 }
 
 export function verifyCustomerToken(token: string): string | null {
   try {
-    const raw = Buffer.from(token, "base64url").toString("utf8");
+    const dotIdx = token.indexOf(".");
+    if (dotIdx === -1) return null;
+    const payloadB64 = token.slice(0, dotIdx);
+    const sig = token.slice(dotIdx + 1);
+    const expectedSig = hmacSign(payloadB64, CUSTOMER_TOKEN_SECRET);
+    if (!safeEqualSignature(sig, expectedSig)) return null;
+
+    const raw = Buffer.from(payloadB64, "base64url").toString("utf8");
     const parsed = JSON.parse(raw);
-    if (!parsed || !parsed.sub) return null;
-    if (parsed.exp && Date.now() > parsed.exp) return null;
+    if (!parsed || typeof parsed.sub !== "string" || !parsed.sub) return null;
+    if (!parsed.exp || Date.now() > parsed.exp) return null;
     return parsed.sub;
   } catch {
     return null;
@@ -333,24 +451,19 @@ export function parseGoogleCredential(credential: string): {
 }
 
 export function getCustomerTokenFromRequest(request: Request): string | null {
-  // 1. Authorization: Bearer <token>
+  // 1. Authorization: Bearer <customerToken> (chỉ nhận nếu đúng định dạng token khách hàng hợp lệ)
   const authHeader = request.headers.get("authorization");
   if (authHeader && authHeader.startsWith("Bearer ")) {
-    return authHeader.substring(7).trim();
+    const candidate = authHeader.substring(7).trim();
+    if (verifyCustomerToken(candidate)) {
+      return candidate;
+    }
   }
 
   // 2. Cookie flandi_customer_session
-  const cookieHeader = request.headers.get("cookie");
-  if (cookieHeader) {
-    const cookies = Object.fromEntries(
-      cookieHeader.split(";").map((c) => {
-        const [k, ...v] = c.trim().split("=");
-        return [k, v.join("=")];
-      })
-    );
-    if (cookies[CUSTOMER_COOKIE_NAME]) {
-      return cookies[CUSTOMER_COOKIE_NAME];
-    }
+  const cookies = parseCookies(request.headers.get("cookie"));
+  if (cookies[CUSTOMER_COOKIE_NAME]) {
+    return cookies[CUSTOMER_COOKIE_NAME];
   }
 
   return null;

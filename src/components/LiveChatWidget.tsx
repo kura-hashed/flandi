@@ -22,6 +22,7 @@ interface LiveChatWidgetProps {
   preferredChannel?: "MESSENGER" | "ZALO";
   refreshTrigger?: number;
   hideFloatingButton?: boolean;
+  hideFloatingOnMobile?: boolean;
 }
 
 export function copyToClipboardInstant(text: string): boolean {
@@ -63,6 +64,7 @@ export default function LiveChatWidget({
   preferredChannel = "MESSENGER",
   refreshTrigger = 0,
   hideFloatingButton = false,
+  hideFloatingOnMobile = false,
 }: LiveChatWidgetProps) {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -472,7 +474,11 @@ export default function LiveChatWidget({
       )}
 
       {/* Floating Action Buttons Row (Opens On-Page Chat — Never triggers Safari App Store error!) */}
-      <div className="flex flex-col items-end gap-3">
+      <div
+        className={`${
+          hideFloatingOnMobile ? "hidden lg:flex" : "flex"
+        } flex-col items-end gap-3`}
+      >
         {/* Zalo Floating Button -> Opens On-Page Zalo Chat */}
         {(settings?.pageConfig?.showFloatingZalo ?? true) && (
           <button

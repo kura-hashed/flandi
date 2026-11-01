@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { appendAuditLog, readDb, upsertUserWithRole, writeDb } from "@/lib/db";
+import { getPermissionsForRole } from "@/lib/rbac";
 import {
   DEFAULT_ADMIN_PIN,
   ADMIN_COOKIE_NAME,
   generateAdminSessionToken,
-  verifyAdminAuth,
+  resolveRequestActor,
+  verifySameOrigin,
 } from "@/lib/security";
 import {
   adminAuthRateLimiter,
@@ -14,12 +17,29 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const isAuthenticated = verifyAdminAuth(request);
-  return NextResponse.json({ authenticated: isAuthenticated });
+  const db = readDb();
+  const actor = resolveRequestActor(request, db);
+  const canAccessPortal =
+    actor.permissions.includes("orders:manage") ||
+    actor.permissions.includes("store:manage") ||
+    actor.permissions.includes("users:manage");
+
+  return NextResponse.json({
+    authenticated: canAccessPortal,
+    role: actor.role,
+    authMethod: actor.authMethod,
+    isPinAdmin: actor.isPinAdmin,
+    permissions: actor.permissions,
+    user: actor.user,
+  });
 }
 
 export async function POST(request: Request) {
   try {
+    if (!verifySameOrigin(request)) {
+      return NextResponse.json({ error: "Nguồn gốc không hợp lệ" }, { status: 403 });
+    }
+
     const ip = getClientIp(request);
 
     // 1. Kiểm tra Rate Limiting chống Brute-Force PIN
@@ -28,9 +48,8 @@ export async function POST(request: Request) {
       return createRateLimitErrorResponse(rateLimitCheck);
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const pin = String(body.pin || "").trim();
-
     const expectedPin = process.env.ADMIN_PIN || DEFAULT_ADMIN_PIN;
 
     if (!pin || pin !== expectedPin) {
@@ -46,18 +65,46 @@ export async function POST(request: Request) {
     // Đăng nhập thành công -> Reset rate limit cho IP này
     adminAuthRateLimiter.reset(`auth-${ip}`);
 
+    const db = readDb();
+    const currentActor = resolveRequestActor(request, db);
+    let promotedUser = currentActor.user;
+
+    // Tiện ích: Nếu chủ tiệm đang đăng nhập Google và chọn nâng tài khoản hiện tại lên Admin khi nhập PIN
+    if (body.promoteCurrentUser && currentActor.user) {
+      const res = upsertUserWithRole(db, {
+        email: currentActor.user.email,
+        name: currentActor.user.name,
+        role: "admin",
+      });
+      promotedUser = res.user;
+      appendAuditLog(db, {
+        actorEmail: `${currentActor.user.email} (PIN)`,
+        actorRole: "admin",
+        action: "Kích hoạt Admin bằng PIN",
+        target: currentActor.user.email,
+        detail: `Nâng quyền từ ${res.previousRole || "user"} -> admin`,
+      });
+      writeDb(db);
+    }
+
     const token = generateAdminSessionToken();
+    const permissions = getPermissionsForRole("admin", db.settings?.rbacPolicy);
+
     const response = NextResponse.json({
       success: true,
       message: "Xác thực quản trị viên thành công!",
+      role: "admin",
+      authMethod: "pin",
+      isPinAdmin: true,
+      permissions,
+      user: promotedUser,
       token,
     });
 
-    // Thiết lập cookie an toàn
     response.cookies.set({
       name: ADMIN_COOKIE_NAME,
       value: token,
-      httpOnly: false, // Để client script có thể đọc được kiểm tra trạng thái
+      httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
@@ -76,9 +123,15 @@ export async function POST(request: Request) {
 export async function DELETE() {
   const response = NextResponse.json({
     success: true,
-    message: "Đã đăng xuất khỏi tài khoản quản trị.",
+    message: "Đã khóa phiên PIN quản trị.",
   });
 
-  response.cookies.delete(ADMIN_COOKIE_NAME);
+  response.cookies.set({
+    name: ADMIN_COOKIE_NAME,
+    value: "",
+    httpOnly: true,
+    path: "/",
+    maxAge: 0,
+  });
   return response;
 }

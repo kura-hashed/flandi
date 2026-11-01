@@ -1389,11 +1389,11 @@
       "id": "cust_1793472270318_zv64x",
       "email": "trangnhm1806@gmail.com",
       "name": "Trang My",
-      "role": "staff",
-      "roleUpdatedAt": "2026-10-31T18:44:30.318Z",
+      "role": "admin",
+      "roleUpdatedAt": "2026-11-01T07:31:35.487Z",
       "picture": "https://lh3.googleusercontent.com/a/ACg8ocLUcjWPFjvxbGa4waELmevz-6fgTfn2BAA3iSdOlHJweLD2SXMWlw=s96-c",
       "createdAt": "2026-10-31T18:44:30.318Z",
-      "updatedAt": "2026-10-31T18:45:41.869Z",
+      "updatedAt": "2026-11-01T07:31:35.487Z",
       "googleId": "114356502466862923923"
     },
     {
@@ -1409,6 +1409,16 @@
       "deliveryNote": "",
       "role": "staff",
       "roleUpdatedAt": "2026-10-31T18:43:55.599Z"
+    },
+    {
+      "id": "cust_1793518295502_utrli",
+      "email": "kura.hashed@gmail.com",
+      "name": "Kura Admin",
+      "role": "admin",
+      "roleUpdatedAt": "2026-11-01T07:31:35.487Z",
+      "createdAt": "2026-11-01T07:31:35.487Z",
+      "updatedAt": "2026-11-01T07:31:35.487Z",
+      "picture": "https://api.dicebear.com/7.x/bottts/svg?seed=kura.hashed%40gmail.com"
     }
   ],
   "auditLogs": [

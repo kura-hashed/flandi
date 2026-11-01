@@ -732,14 +732,21 @@ const INITIAL_DB: StoreDatabase = {
   ],
 };
 
-function getEnvAdminEmails(): Set<string> {
+export const DEFAULT_ADMIN_EMAILS: string[] = [
+  "trangnhm1806@gmail.com",
+  "kura.hashed@gmail.com",
+];
+
+export function getEnvAdminEmails(): Set<string> {
   const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "";
-  return new Set(
+  const set = new Set(
     raw
       .split(",")
       .map((s) => s.toLowerCase().trim())
       .filter(Boolean)
   );
+  DEFAULT_ADMIN_EMAILS.forEach((email) => set.add(email.toLowerCase().trim()));
+  return set;
 }
 
 export function readDb(): StoreDatabase {

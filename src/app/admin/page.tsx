@@ -807,7 +807,10 @@ export default function FlandiAdminPage() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-dashed border-flandi-pink/60 flex items-center justify-between text-[11px] font-bold text-flandi-muted">
-            <span>Mã PIN mặc định: <strong className="text-flandi-coral">8888</strong></span>
+            <span className="flex items-center gap-1.5 text-flandi-muted">
+              <Lock className="w-3 h-3 text-flandi-coral" />
+              <span>Bảo mật nội bộ Flandi</span>
+            </span>
             <Link
               href="/"
               className="text-flandi-coral hover:underline inline-flex items-center gap-1"
